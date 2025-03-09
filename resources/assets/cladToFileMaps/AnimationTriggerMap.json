@@ -529,7 +529,7 @@
   },
   {
     "CladEvent": "ReactToShake_Lvl3Waiting",
-    "AnimName": "ag_dizzy_shake_stop"
+    "AnimName": "ag_dizzy_shake_stop_3"
   },
   {
     "CladEvent": "ReactToShake_Lvl3InHand",
