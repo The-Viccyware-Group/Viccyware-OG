@@ -62,10 +62,10 @@ bool DrawStartPairingScreen(Anim::AnimationStreamer* animStreamer)
     return false;
   }
   
-  // Replace "Vector" with "Cozmo" if it exists in the robot name
+  // Replace "Vector" with "Viccy" if it exists in the robot name
   size_t pos = robotName.find("Vector");
   if(pos != std::string::npos) {
-    robotName.replace(pos, 6, "Cozmo");
+    robotName.replace(pos, 6, "Viccy");
   }
   
   s_enteredAnyScreen = true;  
@@ -106,10 +106,10 @@ void DrawShowPinScreen(Anim::AnimationStreamer* animStreamer, const Anim::AnimCo
   img->DrawSubImage(key, p);
 
   std::string robotName = OSState::getInstance()->GetRobotName();
-  // Replace "Vector" with "Cozmo" if it exists in the robot name
+  // Replace "Vector" with "Viccy" if it exists in the robot name
   size_t pos = robotName.find("Vector");
   if(pos != std::string::npos) {
-    robotName.replace(pos, 6, "Cozmo");
+    robotName.replace(pos, 6, "Viccy");
   }
   img->DrawTextCenteredHorizontally(robotName, CV_FONT_NORMAL, kRobotNameScale, 1, kColor, 15, false);
 
