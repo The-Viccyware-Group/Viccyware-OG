@@ -5,6 +5,8 @@
 #
 # Build options
 #
+# hi 
+#
 # Configure with -DANKI_RESOURCE_SHIPPING=1 to deploy shipping config files.
 # Configure with -DANKI_RESOURCE_SHIPPING=0 to deploy development config files.
 # Default is ANKI_RESOURCE_SHIPPING=0.
