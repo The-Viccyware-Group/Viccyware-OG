@@ -1,8 +1,8 @@
 {
-	"jdocs": "vic.vicw.xyz:8081",
-	"tms": "vic.vicw.xyz:8081",
-	"chipper": "vic.vicw.xyz:8081",
-	"check": "vic.vicw.xyz:443/ok",
+	"jdocs": "vicapi.pvic.xyz:8081",
+	"tms": "vicapi.pvic.xyz:8081",
+	"chipper": "vicapi.pvic.xyz:8081",
+	"check": "vicapi.pvic.xyz/ok",
 	"logfiles": "s3://anki-device-logs-prod/victor",
 	"appkey": "oDoa0quieSeir6goowai7f"
 }
