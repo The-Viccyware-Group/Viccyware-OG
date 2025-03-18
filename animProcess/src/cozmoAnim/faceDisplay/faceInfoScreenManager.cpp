@@ -329,7 +329,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
     RobotInterface::SendAnimToEngine(RobotInterface::StartSelfTest());
     return ScreenName::SelfTestRunning;
   };
-  ADD_MENU_ITEM_WITH_ACTION(SelfTest, "CONFIRM", confirmSelfTest);
+  ADD_MENU_ITEM_WITH_ACTION(SelfTest, "START", confirmSelfTest);
   DISABLE_TIMEOUT(SelfTestRunning);
   
   // Clear User Data menu
@@ -346,7 +346,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
     return ScreenName::Rebooting;
   };
   ADD_MENU_ITEM(ClearUserData, "EXIT", Main);
-  ADD_MENU_ITEM_WITH_ACTION(ClearUserData, "CONFIRM (RIP VICCY)", confirmClearUserData);
+  ADD_MENU_ITEM_WITH_ACTION(ClearUserData, IsXray() ? "CONFIRM" : "CONFIRM (RIP VICCY)", confirmClearUserData);
   SET_TIMEOUT(ClearUserDataFail, 2.f, Main);
 
 
@@ -428,7 +428,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   // === Camera Motor Test ===
   // Add menu item to camera screen to start a test mode where the motors run back and forth
   // and camera images are streamed to the face
-  ADD_MENU_ITEM(Camera, "TEST MODE", CameraMotorTest);
+  ADD_MENU_ITEM(Camera, "START TEST", CameraMotorTest);
   SET_TIMEOUT(CameraMotorTest, 300.f, None);
 
   auto cameraMotorTestExitAction = [cameraExitAction]() {
@@ -1356,7 +1356,7 @@ void FaceInfoScreenManager::DrawNetwork()
 
   auto getStatusString = [](const auto& status) {
     switch (status) {
-      case CloudMic::ConnectionCode::Available:   { return ColoredText("AVAILABLE",    NamedColors::GREEN); }
+      case CloudMic::ConnectionCode::Available:   { return ColoredText("CONNECTED",    NamedColors::GREEN); }
       case CloudMic::ConnectionCode::Connectivity:{ return ColoredText("CONNECTIVITY", NamedColors::RED); }
       case CloudMic::ConnectionCode::Tls:         { return ColoredText("TLS",          NamedColors::RED); }
       case CloudMic::ConnectionCode::Auth:        { return ColoredText("AUTH",         NamedColors::RED); }
