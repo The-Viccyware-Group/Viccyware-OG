@@ -1945,19 +1945,6 @@
     {
       "volume": 1.0,
       "audioName": [
-        "Play__Robot_Vo__Shared_Happy_Loop_Play"
-      ],
-      "Name": "RobotAudioKeyFrame",
-      "probability": 1.0,
-      "hasAlts": true,
-      "triggerTime_ms": 924.0,
-      "audioEventId": [
-        3025145855
-      ]
-    },
-    {
-      "volume": 1.0,
-      "audioName": [
         "Stop__Robot_Vo__Shared_Happy_Loop_Stop"
       ],
       "Name": "RobotAudioKeyFrame",
