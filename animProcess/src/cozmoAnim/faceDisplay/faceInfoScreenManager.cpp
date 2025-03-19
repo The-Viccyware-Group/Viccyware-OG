@@ -1340,7 +1340,7 @@ void FaceInfoScreenManager::DrawNetwork()
 
   std::string ip             = osstate->GetIPAddress();
   if (ip.empty()) {
-    ip = "XXX.XXX.XXX.XXX";
+    ip = "NOT CONNECTED";
   }
 
   std::tm timeObj;
