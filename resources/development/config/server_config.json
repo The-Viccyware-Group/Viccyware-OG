@@ -2,7 +2,7 @@
 	"jdocs": "vic.vicw.xyz:8081",
 	"tms": "vic.vicw.xyz:8081",
 	"chipper": "vic.vicw.xyz:8081",
-	"check": "vic.vicw.xyz/ok",
+	"check": "accounts.api.ddl.io",
 	"logfiles": "s3://anki-device-logs-prod/victor",
 	"appkey": "oDoa0quieSeir6goowai7f"
 }
