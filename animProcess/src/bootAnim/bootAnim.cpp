@@ -124,7 +124,7 @@ int main(int argc, char** argv)
   {
     // Figure out which frame we should play in order to adhere to
     // a frame rate of kFrameDuration_ms
-    static const uint32_t kFrameDuration_ms = 33;
+    static const uint32_t kFrameDuration_ms = 41;
     const uint32_t nextFrameToDraw = timeCount / kFrameDuration_ms;
 
     // Time how long it takes to animate/draw this frame
