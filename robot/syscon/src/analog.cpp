@@ -308,7 +308,7 @@ static void handleTemperature() {
   // The status of either SAFE, LOW, MID, or HOT is also reported back
   // to the head, so it can use more intelligent logic to decide if it
   // wants to tell the robot to stop charging and/or shut down.
-  const int safe_temp = 47;
+  const int safe_temp = 60;
   
   // Our filtered temp is cool enough to reset the counter
   // but this is also done slowly. if we've been hot for 3.5 hours
