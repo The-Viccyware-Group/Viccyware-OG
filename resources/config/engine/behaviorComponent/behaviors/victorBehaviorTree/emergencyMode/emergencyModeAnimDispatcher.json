@@ -3,8 +3,7 @@
   "behaviorClass" : "DispatcherQueue",
 
   "behaviors" : [
-    "EmergencyModeAnimInternal",
-    "CriticalTemperatureAnimInternal"
+    "EmergencyModeAnimInternal"
   ],
 
   "associatedActiveFeature": "NoFeature",
@@ -17,22 +16,6 @@
       "wantsToBeActivatedCondition" : {
         "conditionType" : "BatteryLevel",
         "targetBatteryLevel" : "Low"
-      }
-    },
-    {
-      "behaviorName" : "CriticalTemperatureAnimInternal",
-      "behaviorClass" : "AnimSequence",
-      "animTriggers": ["HighTemperatureWarningFace"],
-      "wantsToBeActivatedCondition" : {
-        "conditionType" : "Compound",
-        "or" : [
-          {
-            "conditionType" : "HighTemperature"
-          },
-          {
-            "conditionType" : "TooHotToCharge"
-          }
-        ]
       }
     }
   ]

@@ -13,12 +13,6 @@
           "conditionType" : "BatteryLevel",
           "targetBatteryLevel" : "Low"
         },
-        {
-          "conditionType" : "HighTemperature"
-        },
-        {
-          "conditionType" : "TooHotToCharge"
-        }
       ]
     },
     {
@@ -38,9 +32,6 @@
         {
           "conditionType" : "BatteryLevel",
           "targetBatteryLevel" : "Low"
-        },
-        {
-          "conditionType" : "HighTemperature"
         }
       ]
     }

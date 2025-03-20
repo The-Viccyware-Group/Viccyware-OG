@@ -8,9 +8,6 @@
       {
         "conditionType" : "BatteryLevel",
         "targetBatteryLevel" : "Low"
-      },
-      {
-        "conditionType" : "HighTemperature"
       }
     ]
   },
