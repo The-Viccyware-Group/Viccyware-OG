@@ -84,7 +84,7 @@ Result MarkerDetector::Memory::ResetBuffers(s32 numRows, s32 numCols, s32 maxMar
   //  _ccmBuffer.resize(CCM_BUFFER_MULTIPLIER * numPixels);
 
   static const s32 OFFCHIP_BUFFER_SIZE = 4000000;
-  static const s32 ONCHIP_BUFFER_SIZE = IsXray() ? 3200000 : 1600000;
+  static const s32 ONCHIP_BUFFER_SIZE = IsXray() ? 3200000 : 1600000; // This used to be constant at 3200000 which caused extra ram usage on 1.0 robots which was not needed
   static const s32 CCM_BUFFER_SIZE     = 200000;
 
   _offchipBuffer.resize(OFFCHIP_BUFFER_SIZE);
