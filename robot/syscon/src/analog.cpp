@@ -460,7 +460,7 @@ void Analog::tick(void) {
   // Still for now we keep this in in case its a safety feature,
   // but give XRAY robots a little more leeway since their bigger
   // batteries run hot.
-  int too_hot_temp = 41;
+  int too_hot_temp = 60;
   if (IS_XRAY) {
     too_hot_temp += XRAY_TEMP_ALLOWANCE;
   }
