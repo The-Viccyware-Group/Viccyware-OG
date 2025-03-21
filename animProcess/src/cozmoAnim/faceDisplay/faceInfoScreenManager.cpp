@@ -1736,7 +1736,7 @@ void FaceInfoScreenManager::DrawTextOnScreen(const std::vector<std::string>& tex
   // TODO: Expose line and location(?) as arguments
   const u8  textLineThickness = 8;
 
-  textScale = IsXray() ? textScale - 0.05f : textScale;
+  textScale = IsXray() ? textScale - 0.06f : textScale;
 
   for(const auto& text : textVec)
   {
