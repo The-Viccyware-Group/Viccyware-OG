@@ -259,9 +259,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
     ADD_SCREEN(Camera, BuildInfo);
   }
 
-  ADD_SCREEN(BuildInfo, Recovery);
-  ADD_SCREEN(Recovery, Main);
-
+  ADD_SCREEN(BuildInfo, Main);
 
   // ========== Screen Customization ========= 
   // Enter/Exit fcns, menu items, timeouts
