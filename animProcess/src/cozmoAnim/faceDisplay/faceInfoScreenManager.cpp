@@ -217,7 +217,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   const bool hideSpecialDebugScreens = (FACTORY_TEST && Factory::GetEMR()->fields.PLAYPEN_PASSED_FLAG) || !ANKI_DEV_CHEATS;  // TODO: Use this line in master
   //const bool hideSpecialDebugScreens = (FACTORY_TEST && Factory::GetEMR()->fields.PLAYPEN_PASSED_FLAG);                        // Use this line in factory branch
 
-  ADD_SCREEN_WITH_TEXT(Recovery, Recovery, {"FORCE RECOVERY"});
+  ADD_SCREEN_WITH_TEXT(Recovery, Recovery, {"RECOVERY (Wipes OS)"});
   ADD_SCREEN(None, None);
   ADD_SCREEN(Pairing, Pairing);
   ADD_SCREEN(FAC, None);
@@ -361,14 +361,14 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   FaceInfoScreen::MenuItemAction rebootAction = [this]() {
     LOG_INFO("FaceInfoScreenManager.Recovery.Rebooting", "");
 
-    return ScreenName::Rebooting;
-
     (void)system("dd if=/dev/zero of=/dev/block/bootdevice/by-name/boot_a");
     (void)system("dd if=/dev/zero of=/dev/block/bootdevice/by-name/boot_b");
     this->Reboot();
+
+    return ScreenName::Rebooting;
   };
-  ADD_MENU_ITEM_WITH_ACTION(Recovery, "EXIT", None);
-  ADD_MENU_ITEM(Recovery, "CONTINUE", rebootAction);
+  ADD_MENU_ITEM_WITH_ACTION(Recovery, "EXIT", rebootAction);
+  ADD_MENU_ITEM(Recovery, "CONTINUE", None);
   DISABLE_TIMEOUT(Recovery);
 
     
