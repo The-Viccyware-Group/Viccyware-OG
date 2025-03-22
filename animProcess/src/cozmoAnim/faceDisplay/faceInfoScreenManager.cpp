@@ -259,7 +259,8 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
     ADD_SCREEN(Camera, BuildInfo);
   }
 
-  ADD_SCREEN(BuildInfo, Main);
+  ADD_SCREEN(BuildInfo, Recovery);
+  ADD_SCREEN(Recovery, Main);
 
 
   // ========== Screen Customization ========= 
@@ -359,6 +360,14 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   // === Recovery screen ===
   FaceInfoScreen::MenuItemAction rebootAction = [this]() {
     LOG_INFO("FaceInfoScreenManager.Recovery.Rebooting", "");
+    (void)system("bootctl a set_unbootable a");
+    (void)system("bootctl a set_unbootable b");
+    (void)system("bootctl b set_unbootable a");
+    (void)system("bootctl b set_unbootable b");
+    (void)system("bootctl a set_active f");
+    (void)system("bootctl b set_active f");
+    (void)system("bootctl a mark_successful f");
+    (void)system("bootctl b mark_successful f");
     this->Reboot();
 
     return ScreenName::Rebooting;
