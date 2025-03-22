@@ -138,7 +138,7 @@ void BehaviorStayOnChargerUntilCharged::BehaviorUpdate()
 {
   if( IsActivated() ) {
 
-    // if nay condition wants to cancel, set this bool instead of directly cancelling so that all checks will
+    // if anyy condition wants to cancel, set this bool instead of directly cancelling so that all checks will
     // be performed (and the cooldown dVar can be set, if needed)
     bool cancel = false;
 
