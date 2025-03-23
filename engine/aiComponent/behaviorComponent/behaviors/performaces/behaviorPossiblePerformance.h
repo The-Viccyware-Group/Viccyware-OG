@@ -57,6 +57,8 @@ private:
     float onCooldownUntil_s = -1.0f;
     float nextProbRerollAfter_s = -1.0f;
     bool lastRollPassed = false;
+    bool isPerformingAnimation = false;
+    float animationEndTime_s = -1.0f;
   };
 
   RobotTimeStamp_t GetRecentFaceTime() const;

@@ -138,36 +138,69 @@ void BehaviorPossiblePerformance::GetBehaviorJsonKeys(std::set<const char*>& exp
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorPossiblePerformance::OnBehaviorActivated() 
 {
+  // Start the animation
   DelegateIfInControl( new TriggerAnimationAction( _iConfig.animTrigger ) );
 
   // reset cooldown
   const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
   _pVars.onCooldownUntil_s = currTime_s + _iConfig.cooldown_s;
 
-  // don't reset the reroll time -- if it were longer than the cooldown we would want to keep the last roll
+  // Make sure we know a performance is happening
+  _pVars.isPerformingAnimation = true;
+
+  // Max possible time for a performance
+  float estimatedAnimDuration_s = 26.0f;
+  _pVars.animationEndTime_s = currTime_s + estimatedAnimDuration_s;
+  
+  LOG_WARNING("BehaviorPossiblePerformance.Activated",
+              "%s: Starting performance, estimated end time: %f",
+              GetDebugLabel().c_str(),
+              _pVars.animationEndTime_s);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorPossiblePerformance::BehaviorUpdate()
 {
-  if( ! IsActivated() ) {
-    const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-    if( currTime_s > _pVars.onCooldownUntil_s ) {
-      // off cooldown, check if we should re-roll the probability (no reason to roll while on cooldown)
-      if( currTime_s > _pVars.nextProbRerollAfter_s ) {
-        // re-roll!
-        _pVars.lastRollPassed = GetRNG().RandBool( _iConfig.probability );
+  const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+  
+  if( IsActivated()) {
 
-        // reset next re-roll time
-        _pVars.nextProbRerollAfter_s = currTime_s + _iConfig.rerollPeriod_s;
-        
-        LOG_WARNING("BehaviorPossiblePerformance.Update.ReRoll",
-                    "%s: rerolled: %s, next reroll at t=%f",
-                    GetDebugLabel().c_str(),
-                    _pVars.lastRollPassed ? "PASS" : "FAIL",
-                    _pVars.nextProbRerollAfter_s);
+    bool cancel = false;
+
+    // Check if our animation has completed based on the timer
+    if (_pVars.isPerformingAnimation && currTime_s >= _pVars.animationEndTime_s) {
+      // Animation should be finished by now, mark our performance as complete and deactivate
+      LOG_WARNING("BehaviorPossiblePerformance.Update.CompletingPerformance",
+                "%s: Animation complete, deactivating behavior",
+                GetDebugLabel().c_str());
+      _pVars.isPerformingAnimation = false;
+      cancel = true;
+    }
+
+    if (cancel) {
+      CancelSelf();
+    }
+
+  } else {
+    // Only check for reroll if not currently performing
+    if (!_pVars.isPerformingAnimation) {
+      if (currTime_s > _pVars.onCooldownUntil_s) {
+        // off cooldown, check if we should re-roll the probability
+        if (currTime_s > _pVars.nextProbRerollAfter_s) {
+          // re-roll!
+          _pVars.lastRollPassed = GetRNG().RandBool(_iConfig.probability);
+
+          // reset next re-roll time
+          _pVars.nextProbRerollAfter_s = currTime_s + _iConfig.rerollPeriod_s;
+          
+          LOG_WARNING("BehaviorPossiblePerformance.Update.ReRoll",
+                      "%s: rerolled: %s, next reroll at t=%f",
+                      GetDebugLabel().c_str(),
+                      _pVars.lastRollPassed ? "PASS" : "FAIL",
+                      _pVars.nextProbRerollAfter_s);
+        }
       }
-    } 
+    }
   }
 }
 
