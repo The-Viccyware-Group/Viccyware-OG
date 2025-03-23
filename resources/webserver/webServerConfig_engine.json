@@ -1,6 +1,6 @@
 {
   "port": "8888",
-  "title0": "Cozmo Web Server (vic-engine)",
+  "title0": "Viccy Web Server (vic-engine)",
   "title1": "This web server is running in vic-engine",
   "whichWebServer": 1,
   "tickBudget_ms": 60,
