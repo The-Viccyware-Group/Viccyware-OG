@@ -5,3 +5,6 @@
 [submodule "ota/wire-os"]
 	path = ota/wire-os
 	url = https://github.com/kercre123/wire-os
+[submodule "resources/config/engine/animations"]
+	path = resources/config/engine/animations
+	url = https://github.com/Switch-modder/Viccyware-animation-assets
