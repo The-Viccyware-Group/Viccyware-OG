@@ -11,4 +11,10 @@ git reset --hard
 git clean -ffdx
 git pull
 cd ..
+cd resources/config/engine/animations
+git checkout main
+git reset --hard
+git clean -ffdx
+git pull
+cd ../../../../
 
