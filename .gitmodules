@@ -1,3 +1,7 @@
 [submodule "EXTERNALS"]
 	path = EXTERNALS
-	url = https://github.com/kercre123/EXTERNALS
+	url = https://github.com/Switch-modder/EXTERNALS
+	branch = viccyware
+[submodule "resources/config/engine/animations"]
+	path = resources/config/engine/animations
+	url = https://github.com/Switch-modder/Viccyware-animation-assets
