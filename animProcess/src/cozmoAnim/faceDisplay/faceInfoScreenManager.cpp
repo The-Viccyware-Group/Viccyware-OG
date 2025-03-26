@@ -241,7 +241,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   ADD_SCREEN(AlexaNotification, AlexaNotification);
   
   if (hideSpecialDebugScreens) {
-    ADD_SCREEN(MicInfo, Main); // Last screen cycles back to Main
+    ADD_SCREEN(MicInfo, BuildInfo);
   } else {
     ADD_SCREEN(MicInfo, MicDirectionClock);
   }
@@ -252,14 +252,14 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   if(IsWhiskey())
   {
     ADD_SCREEN(Camera, ToF);
-    ADD_SCREEN(ToF, BuildInfo);    // Last screen cycles back to Main
+    ADD_SCREEN(ToF, BuildInfo);
   }
   else
   {
     ADD_SCREEN(Camera, BuildInfo);
   }
 
-  ADD_SCREEN(BuildInfo, Main);
+  ADD_SCREEN(BuildInfo, Main); // Last screen cycles back to Main
 
   // ========== Screen Customization ========= 
   // Enter/Exit fcns, menu items, timeouts
