@@ -1073,7 +1073,7 @@
   },
   {
     "CladEvent": "PettingLevel4",
-    "AnimName": "ag_petting_lvl3"
+    "AnimName": "ag_petting_lvl4"
   },
   {
     "CladEvent": "PettingLevel1Getout",
@@ -1089,7 +1089,7 @@
   },
   {
     "CladEvent": "PettingLevel4Getout",
-    "AnimName": "ag_petting_lvl3_getout"
+    "AnimName": "ag_petting_lvl4_getout"
   },
   {
     "CladEvent":"PickupCubePreperation",
