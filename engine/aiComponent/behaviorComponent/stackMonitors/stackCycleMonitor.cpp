@@ -33,7 +33,7 @@ namespace {
   constexpr unsigned int kCapacity = 5; // see comment in NotifyOfChange
   constexpr unsigned int kMaxTicks = 2; // ditto
   
-  const BehaviorID kBehaviorIDForReset = BEHAVIOR_ID(ResetSafely);
+  const BehaviorID kBehaviorIDForReset = BEHAVIOR_ID(ModeSelector);
 
   #define LOG_CHANNEL "Behaviors"
 }
@@ -126,7 +126,7 @@ void StackCycleMonitor::SwitchToSafeStack( BehaviorExternalInterface& bei, IBeha
   auto& BC = bei.GetBehaviorContainer();
   
   std::shared_ptr<BehaviorResetState> resetBehavior;
-  if( BC.FindBehaviorByIDAndDowncast( kBehaviorIDForReset, BEHAVIOR_CLASS(ResetState), resetBehavior ) ) {
+  if( BC.FindBehaviorByIDAndDowncast( kBehaviorIDForReset, BEHAVIOR_CLASS(DispatcherStrictPriority), resetBehavior ) ) {
     
     auto* castPtr = dynamic_cast<ICozmoBehavior*>( newBaseBehavior );
     if( ANKI_VERIFY( castPtr != nullptr, "StackCycleMonitor.SwitchToSafeStack.Invalid", "Could not cast") ) {
