@@ -164,7 +164,6 @@ def verify_signature(file_path_name, sig_path_name, public_key):
     openssl_out, openssl_err = openssl.communicate()
     return ret_code == 0, ret_code, openssl_out, openssl_err
 
-
 def get_prop(property_name):
     "Gets a value from the property server via subprocess"
     getprop = subprocess.Popen(["/usr/bin/getprop", property_name], shell=False, stdout=subprocess.PIPE)
