@@ -126,7 +126,7 @@ namespace Vector {
   }
   CONSOLE_FUNC(DebugToggleCameraEnabled, "Vision.General");
 
-  CONSOLE_VAR_RANGED(f32, kDebayerGamma, "Vision.Debayer", 1.7f, 0.1f, 4.f);
+  CONSOLE_VAR_RANGED(f32, kDebayerGamma, "Vision.Debayer", 1.9f, 0.1f, 4.f); // 1.9 works best on 1.0 and 2.0 robots
   bool s_debayerResetGamma(false);
   void ResetGamma(ConsoleFunctionContextRef context)
   {
