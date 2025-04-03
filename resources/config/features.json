@@ -41,7 +41,7 @@
   },
   {
     "feature": "KnowledgeGraph",
-    "enabled": true
+    "enabled": false
   },
   {
     "feature": "Dancing",
