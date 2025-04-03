@@ -23,7 +23,7 @@
   },
 
   "earConAudioEventBegin"   : "Play__Robot_Vo__Shared_Curious_Short",
-  "earConAudioEventSuccess" : "Play__Robot_Vic_Sfx__Wake_Word_Success",
+  "earConAudioEventSuccess" : "Play__Robot_Vic_Sfx__Wake_Word_On",
   "earConAudioEventNeutral" : "Play__Robot_Vic_Sfx__Wake_Word_Off",
   "animListeningGetIn"      : "VC_SleepingToListeningGetIn",
   "animListeningLoop"       : "VC_SleepingToListeningLoop",
