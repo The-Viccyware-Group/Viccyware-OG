@@ -9,6 +9,8 @@ include(okao)
 include(anki_build_cxx)
 include(anki_build_strip)
 
+include(dlib)
+
 #
 # cti_vision
 #
@@ -35,6 +37,7 @@ target_link_libraries(cti_vision
   ${OPENCV_LIBS}
   ${OKAO_LIBS}
   ${ASAN_LINKER_FLAGS}
+  ${DLIB_LIBS}
 )
 
 target_compile_options(cti_vision

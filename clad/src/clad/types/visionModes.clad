@@ -10,13 +10,13 @@ namespace Vector {
     //
     // Full-blown vision modes
     //
-    Markers = 0x00,       // By default, uses cropping. See also "FullFrame/Height/Width" modifiers below.
-    Faces,
-    Motion,
-    BrightColors,
-    OverheadEdges,
-    Calibration,
-    AutoExp,
+    DetectingMarkers = 0x00,    // By default, uses cropping. See also "FullFrame/Height/Width" modifiers below.
+    DetectingFaces,
+    DetectingMotion,
+    DetectingColors,
+    DetectingOverheadEdges,
+    ComputingCalibration,
+    AutoExposure,        
     WhiteBalance,
     Stats,
     Pets,

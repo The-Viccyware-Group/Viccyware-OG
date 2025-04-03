@@ -155,6 +155,7 @@ VisionSystem::VisionSystem(const CozmoContext* context)
 , _vizManager(context == nullptr ? nullptr : context->GetVizManager())
 , _petTracker(new Vision::PetTracker())
 , _markerDetector(new Vision::MarkerDetector(_camera))
+, _colorDetector(nullptr)
 , _laserPointDetector(new LaserPointDetector(_vizManager))
 , _overheadEdgeDetector(new OverheadEdgesDetector(_camera, _vizManager, *this))
 , _cameraCalibrator(new CameraCalibrator())
@@ -270,6 +271,15 @@ Result VisionSystem::Init(const Json::Value& config)
   PRINT_CH_INFO(kLogChannelName, "VisionSystem.Init.DoneInstantiatingFaceTracker", "");
 
   _motionDetector.reset(new MotionDetector(_camera, _vizManager, config));
+
+  // Configure ColorDetector
+  {
+    Json::Value cfg;
+    _context->GetDataPlatform()->readAsJson(Util::Data::Scope::Resources,
+                                            config["ColorDetector"]["config"].asString(),
+                                            cfg);
+    _colorDetector.reset(new Vision::ColorDetector(cfg));
+  }
 
   if (!config.isMember("OverheadMap")) {
     PRINT_NAMED_ERROR("VisionSystem.Init.MissingJsonParameter", "OverheadMap");
@@ -918,13 +928,16 @@ Result VisionSystem::DetectMotion(Vision::ImageCache& imageCache)
 } // DetectMotion()
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Result VisionSystem::DetectBrightColors(Vision::ImageCache& imageCache)
+Result VisionSystem::DetectColors(Vision::ImageCache& imageCache)
 {
-  DEV_ASSERT(imageCache.HasColor(), "VisionSystem.DetectBrightColors.NoColor");
+  DEV_ASSERT(imageCache.HasColor(), "VisionSystem.DetectColors.NoColor");
   const Vision::ImageRGB& image = imageCache.GetRGB();
-  Result result = _brightColorDetector->Detect(image, _currentResult.salientPoints);
+  Result result = _colorDetector->Detect(image, _currentResult.salientPoints, _currentResult.debugImageRGBs);
   return result;
-} // DetectBrightColors()
+} // DetectColors()
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Result VisionSystem::UpdateOverheadMap(Vision::ImageCache& imageCache)
 {
@@ -1670,20 +1683,19 @@ Result VisionSystem::Update(const VisionPoseData& poseData, Vision::ImageCache& 
     }
     Toc("TotalMotion");
   }
-
-  if(IsModeEnabled(VisionMode::BrightColors)){
+  if(IsModeEnabled(VisionMode::DetectingColors)){
     if (imageCache.HasColor()){
-      Tic("TotalBrightColors");
-      lastResult = DetectBrightColors(imageCache);
-      Toc("TotalBrightColors");
+      Tic("TotalDetectingColors");
+      lastResult = DetectColors(imageCache);
+      Toc("TotalDetectingColors");
       if (lastResult != RESULT_OK){
-        PRINT_NAMED_ERROR("VisionSystem.Update.DetectBrightColorsFailed","");
+        PRINT_NAMED_ERROR("VisionSystem.Update.DetectColorsFailed","");
         anyModeFailures = true;
       } else {
-        visionModesProcessed.Insert(VisionMode::BrightColors);
+        visionModesProcessed.Insert(VisionMode::DetectingColors);
       }
     } else {
-      PRINT_NAMED_WARNING("VisionSystem.Update.NoColorImage", "Could not process bright colors. No color image!");
+      PRINT_NAMED_WARNING("VisionSystem.Update.NoColorImage", "Could not detect colors. No color image!");
     }
   }
   // Disabling this while VisionMode::OverheadMap is disabled

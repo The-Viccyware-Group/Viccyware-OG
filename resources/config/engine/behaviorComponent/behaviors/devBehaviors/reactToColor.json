@@ -1,0 +1,26 @@
+{
+  "behaviorID" :   "ReactToColor",
+  "behaviorClass": "ReactToColor",
+
+  
+  "sayLabel":true,
+  "targetDistance_mm": 75,
+  "salientPointAge_ms":750,
+  "postActionColorDetectorDelay_ms": 250,
+  "maxRetries":3,
+  
+  "useIntermediateAnimations":true,
+  "animDetect":"ReactToColorDetect",
+  "animGiveUp":"ReactToColorGiveUp",
+  "animReactColor":{
+    "red":"ReactToColorReactColorA",
+    "green":"ReactToColorReactColorB",
+    "blue":"ReactToColorReactColorA"
+  },
+
+  "wantsToBeActivatedCondition": {
+    "conditionType":      "SalientPointDetected",
+    "targetSalientPoint": "Color",
+    "requiredVisionModes": ["DetectingColors"]
+  }
+}

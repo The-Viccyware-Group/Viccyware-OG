@@ -95,7 +95,7 @@
       "relativeCost" : 4
     },
     {
-      "mode"         : "BrightColors",
+      "mode"         : "DetectingColors",
       "low"          : 4,
       "med"          : 2,
       "high"         : 1,

@@ -1202,9 +1202,8 @@ namespace Vector {
       }
     }
 
-    const auto& visionModesUsingNeuralNets = GetVisionModesUsingNeuralNets();
-    if(procResult.modesProcessed.ContainsAnyOf(visionModesUsingNeuralNets)
-       || procResult.modesProcessed.Contains(VisionMode::BrightColors))
+    if(procResult.modesProcessed.Contains(VisionMode::DetectingPeople)
+       || procResult.modesProcessed.Contains(VisionMode::DetectingColors))
     {
       if(!usingFixedDrawTime)
       {
@@ -1245,9 +1244,9 @@ namespace Vector {
 
       switch(object.salientType)
       {
-        case Vision::SalientPointType::BrightColors:
+        case Vision::SalientPointType::Color:
         {
-          color = (object.color_rgba == 0) ? NamedColors::BLACK : ColorRGBA(object.color_rgba);
+          color = ColorRGBA(object.color_rgba);
           caption = object.description + "[" + std::to_string((s32)std::round(object.score))
                     + "] t:" + std::to_string(object.timestamp);
           break;
@@ -2590,17 +2589,14 @@ namespace Vector {
     }
     else
     {
-      auto const& currentParams = _visionSystem->GetCurrentCameraParams();
       Vision::CameraParams params(payload.exposure_ms, payload.gain,
-                                  currentParams.whiteBalanceGainR,
-                                  currentParams.whiteBalanceGainG,
-                                  currentParams.whiteBalanceGainB);
-
-      LOG_INFO("VisionComponent.HandleSetCameraSettings.Manual",
-               "Setting camera params to: Exp:%dms / %.3f, WB:%.3f,%.3f,%.3f",
-               params.exposureTime_ms, params.gain,
-               params.whiteBalanceGainR, params.whiteBalanceGainG, params.whiteBalanceGainB);
-
+                                  payload.awb_red, payload.awb_green, payload.awb_blue);
+      
+      PRINT_CH_INFO("VisionComponent", "VisionComponent.HandleSetCameraSettings.Manual",
+                    "Setting camera params to: Exp:%dms / %.3f, WB:%.3f,%.3f,%.3f",
+                    params.exposureTime_ms, params.gain,
+                    params.whiteBalanceGainR, params.whiteBalanceGainG, params.whiteBalanceGainB);
+      
       SetAndDisableCameraControl(params);
     }
   }

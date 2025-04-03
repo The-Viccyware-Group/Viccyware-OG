@@ -109,6 +109,7 @@ enum uint_8 BehaviorClass {
   PowerSaveTest,
   ReactToBody,
   ReactToGazeDirection,
+  ReactToColor,
 
   // devBehaviors/selfTest
   SelfTest,

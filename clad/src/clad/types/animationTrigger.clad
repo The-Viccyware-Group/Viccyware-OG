@@ -372,6 +372,10 @@ enum int_32 AnimationTrigger
 
   PutDownBlockKeepAlive,
   PutDownBlockPutDown,
+  ReactToColorDetect,
+  ReactToColorReactColorA,
+  ReactToColorReactColorB,
+  ReactToColorGiveUp,
   ReactToCliff,
   ReactToCliffBack,
   ReactToCliffBackLeft,

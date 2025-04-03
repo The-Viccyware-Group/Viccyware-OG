@@ -67,6 +67,7 @@ enum uint_16 BehaviorID {
   // devBehaviors
   SnakeGame,
   TestStackMonitors,
+  ReactToColor,
 
   // victorBehaviorTree/alexa
   Alexa,
