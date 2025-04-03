@@ -67,7 +67,7 @@
 
 // CHANGE THIS TO BE YOUR PROJECT'S STUFF
 const std::string OSProject = "Viccy";
-const std::string OSBranch = "Viccyware-beta-4";
+const std::string OSBranch = "Beta 4";
 const std::string Creator = "Built by the Viccy Team";
 const std::string CreatorWebsite = "vicw.xyz";
 
@@ -1314,7 +1314,7 @@ void FaceInfoScreenManager::DrawMain()
 
   std::string ip             = osstate->GetIPAddress();
   if (ip.empty()) {
-    ip = "XXX.XXX.XXX.XXX";
+    ip = "NOT CONNECTED";
   }
 
   // ESN/serialNo and the HW version are drawn on the same line with serialNo default left aligned and
@@ -1473,7 +1473,7 @@ void FaceInfoScreenManager::DrawSensorInfo(const RobotState& state)
 void FaceInfoScreenManager::DrawBuildInfo() {
   auto *osstate = OSState::getInstance();
   const std::string osProject = "OS: " + OSProject;
-  const std::string branch = "BRANCH: " + OSBranch;
+  const std::string branch = "BUILD: " + OSBranch;
   const std::string osVer = "VER: " + osstate->GetOSBuildVersion();
   const std::string sha = "SHA: " + osstate->GetBuildSha();
   const std::string creator = Creator;
