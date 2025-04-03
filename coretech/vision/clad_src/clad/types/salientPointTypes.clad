@@ -9,7 +9,7 @@ namespace Vision {
 enum uint_8 SalientPointType 
 {
   BrightColors,     // For brightly colored areas
-  Color    // For brightly colored areas
+  Color,    // For brightly colored areas
   Cat,
   Dog,
   Face,

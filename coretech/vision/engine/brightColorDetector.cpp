@@ -4,11 +4,11 @@
  * Author: Patrick Doran
  * Date: 10/22/2018
  */
-#include "brightColorDetector.h"
 #include "util/math/math.h"
 #include "coretech/vision/engine/image.h"
 #include "coretech/vision/engine/camera.h"
 #include "coretech/common/shared/math/matrix.h"
+#include "coretech/vision/engine/brightColorDetector.h"
 
 namespace Anki {
 namespace Vision {

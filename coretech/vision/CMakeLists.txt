@@ -37,7 +37,6 @@ target_link_libraries(cti_vision
   ${OPENCV_LIBS}
   ${OKAO_LIBS}
   ${ASAN_LINKER_FLAGS}
-  ${DLIB_LIBS}
 )
 
 target_compile_options(cti_vision

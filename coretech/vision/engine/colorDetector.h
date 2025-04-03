@@ -12,7 +12,7 @@
 #include "coretech/common/shared/types.h"
 #include "coretech/vision/engine/colorClassifier.h"
 #include "coretech/vision/engine/colorPixelTypes.h"
-#include "engine/debugImageList.h"
+#include "coretech/vision/engine/debugImageList.h"
 
 #include "json/json.h"
 
