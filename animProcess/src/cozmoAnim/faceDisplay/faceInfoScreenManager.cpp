@@ -67,7 +67,7 @@
 
 // CHANGE THIS TO BE YOUR PROJECT'S STUFF
 const std::string OSProject = "Viccy";
-const std::string OSBranch = "Viccyware-tester";
+const std::string OSBranch = "Viccyware-beta-4";
 const std::string Creator = "Built by the Viccy Team";
 const std::string CreatorWebsite = "vicw.xyz";
 
