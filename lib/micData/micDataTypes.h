@@ -17,7 +17,7 @@
 #include <cstdint>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace MicData {
 
   enum class MicDataType {
@@ -25,18 +25,18 @@ namespace MicData {
     Processed
   };
 
-  static constexpr uint32_t kNumInputChannels         = 4;
-  static constexpr uint32_t kSamplesPerChunkIncoming  = 80;
-  static constexpr uint32_t kSampleRateIncoming_hz    = 16000;
-  static constexpr uint32_t kTimePerChunk_ms          = 5;
-  static constexpr uint32_t kChunksPerSEBlock         = 2;
-  static constexpr uint32_t kSamplesPerBlock          = kSamplesPerChunkIncoming * kChunksPerSEBlock;
-  static constexpr uint32_t kTimePerSEBlock_ms        = kTimePerChunk_ms * kChunksPerSEBlock;
-  static constexpr uint32_t kRawAudioChunkSize        = kSamplesPerChunkIncoming * kNumInputChannels;
-  static constexpr uint32_t kTriggerOverlapSize_ms    = 140;
-  static constexpr uint32_t kPreTriggerOverlapSize_ms = 1500;
-  static constexpr uint32_t kStreamingTimeout_ms      = 6000 + kTriggerOverlapSize_ms;
-  static constexpr uint32_t kRawAudioPerBuffer_ms     = 1000;
+  static constexpr uint32_t kNumInputChannels               = 4;
+  static constexpr uint32_t kSamplesPerBlockPerChannel      = 160;
+  static constexpr uint32_t kSampleRateIncoming_hz          = 16000;
+  static constexpr uint32_t kTimePerChunk_ms                = 10;
+  static constexpr uint32_t kIncomingAudioChunkSize         = kSamplesPerBlockPerChannel * kNumInputChannels;
+  static constexpr uint32_t kTriggerOverlapSize_ms          = 50;
+  static constexpr uint32_t kTriggerLessOverlapSize_ms      = 0;
+  static constexpr uint32_t kTriggerAudioLengthDebug_ms     = 1500; // We only hold onto more audio for FP testing during development
+  static constexpr uint32_t kTriggerAudioLengthShipping_ms  = 750;
+  static constexpr uint32_t kStreamingTimeout_ms            = 6000 + kTriggerOverlapSize_ms;
+  static constexpr uint32_t kStreamingDefaultMinDuration_ms = 4000;
+  static constexpr uint32_t kRawAudioPerBuffer_ms           = 1000;
 
   using DirectionIndex = uint16_t;
   using DirectionConfidence = int16_t;
@@ -60,7 +60,7 @@ namespace MicData {
     float                 latestNoiseFloor = 0.f;
   };
 } // namespace MicData
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __MicData_MicDataTypes_H_

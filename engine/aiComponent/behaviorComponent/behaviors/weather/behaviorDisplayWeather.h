@@ -1,8 +1,8 @@
 /**
  * File: BehaviorDisplayWeather.h
  *
- * Author: Kevin M. Karol
- * Created: 2018-04-25
+ * Author: Kevin M. Karol refactored by Sam Russell
+ * Created: 2018-04-25 refactor 2019-4-12
  *
  * Description: Displays weather information by compositing temperature information and weather conditions returned from the cloud
  *
@@ -15,6 +15,7 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/components/animationComponent.h"
+#include "engine/aiComponent/behaviorComponent/weatherIntents/weatherIntentParser.h"
 
 namespace Anki {
 
@@ -22,68 +23,68 @@ namespace Anki {
 namespace Vision {
 class CompositeImage;
 }
-  
-namespace Cozmo {
 
-class BehaviorTextToSpeechLoop;
+namespace Vector {
+
+// Fwd Declarations
+enum class UtteranceState;
 
 class BehaviorDisplayWeather : public ICozmoBehavior
 {
-public: 
+public:
   virtual ~BehaviorDisplayWeather();
 
 protected:
 
   // Enforce creation through BehaviorFactory
   friend class BehaviorFactory;
-  explicit BehaviorDisplayWeather(const Json::Value& config);  
+  explicit BehaviorDisplayWeather(const Json::Value& config);
 
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override;
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
   virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override;
 
-  
+
   virtual bool WantsToBeActivatedBehavior() const override;
-  virtual void OnBehaviorActivated() override;
   virtual void InitBehavior() override;
+  virtual void OnBehaviorActivated() override;
+  virtual void BehaviorUpdate() override;
+  virtual void OnBehaviorDeactivated() override;
 
 private:
-  void StateWeatherInformation(const std::string& textToSay);
-  void DisplayWeatherResponse();
+  using AudioTtsProcessingStyle = AudioMetaData::SwitchState::Robot_Vic_External_Processing;
 
   struct InstanceConfig {
-    InstanceConfig(const Json::Value& layoutConfig,
-                   const Json::Value& mapConfig);
-    const Json::Value& compLayoutConfig;
-    const Json::Value& compMapConfig;
-    std::unique_ptr<Vision::CompositeImage> compImg;
-    std::shared_ptr<BehaviorTextToSpeechLoop> textToSpeechBehavior;
+    InstanceConfig() {}
 
     // Animation metadata
     std::string animationName;
-    const Animation* animationPtr = nullptr;
-    u32 timeTempShouldAppear_ms = 0;
-    u32 timeTempShouldDisappear_ms = 0;
+    u32 timeTTSShouldStart_ms = 0;
 
-    std::vector<Vision::SpriteName> temperatureAssets;
-    // layouts stored least -> greatest pos followed by least -> greatest neg
-    std::vector<Vision::CompositeImage> temperatureLayouts;
+    std::unique_ptr<WeatherIntentParser> intentParser;
+    ICozmoBehaviorPtr                    lookAtFaceInFront;
   };
 
   struct DynamicVariables {
     DynamicVariables();
-    Vision::CompositeImage* temperatureImg = nullptr;
+    UserIntentPtr           currentIntent;
+    uint8_t utteranceID;
+    UtteranceState  utteranceState;
+    bool playingWeatherResponse;
   };
 
-  std::unique_ptr<InstanceConfig> _iConfig;
+  InstanceConfig _iConfig;
   DynamicVariables _dVars;
 
-  bool GenerateTemperatureImage(int temp, bool isFahrenheit, Vision::CompositeImage*& outImg) const;
-  void ParseDisplayTempTimesFromAnim();
-  
+  void TransitionToDisplayWeatherResponse();
+  void TransitionToFindFaceInFront();
+
+  void StartTTSGeneration();
+  bool GenerateTemperatureRemaps(int temp, bool isFahrenheit, AnimationComponent::RemapMap& spriteBoxRemaps) const;
+
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorDisplayWeather__

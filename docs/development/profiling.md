@@ -4,6 +4,9 @@ Profiling on Victor is based on [simpleperf](../../project/victor/simpleperf/REA
 
 ## Prerequisites
 
+### Robot
+SimplePerf *only works* if you have a special non-MP robot that does not have debug fuses blown. Ask someone on the engine / OS team if you need one
+
 ### Useful Aliases
 
 This documentation assumes that you are using alias commands from [usefulALiases.sh](../../project/victor/scripts/usefulALiases.sh).
@@ -19,12 +22,32 @@ source usefulALiases.sh
 
 Simpleperf relies on ADB to transfer data and execute commands on the robot.
 
-If your robot does not allow ADB over tcp, you can enable it by running a command like this ON THE ROBOT:
+Android development tools are not installed by the Anki environment, to install adb:
+```
+brew cask install android-platform-tools
+```
+
+If your robot does not allow ADB over tcp, you can enable it by running a command like [this](https://ankiinc.atlassian.net/wiki/spaces/VD/pages/148638114/Victor+Developer+Tips) ON THE ROBOT:
+
+```bash
+setprop service.adb.tcp.port 5555
+systemctl restart adbd
+```
+
+And to make it permanent:
+```bash
+setprop persist.adb.tcp.port 5555
+systemctl restart adbd
+```
+
+You can make this change persistent by running a command like this ON THE ROBOT:
 
 ```sh
-setprop service.adb.tcp.port 5555
-pkill -SIGHUP adbd
+setprop persist.adb.tcp.port 5555
+systemctl restart adbd
 ```
+
+The persistent setting is stored in /data/persist.  It will be lost if you reformat /data.
 
 If you have not already connected to ADB on the robot, you can connect by running a command like this
 ON YOUR DEVELOPMENT HOST:
@@ -78,9 +101,14 @@ ANKI_PROFILE_PROCNAME=vic-anim bash HOW-inferno.sh
 Current Victor processes are:
 
 * vic-anim
-* vic-engine
 * vic-cloud
+* vic-dasmgr
+* vic-engine
+* vic-gateway
+* vic-neuralnets
 * vic-robot
+* vic-switchboard
+* vic-webserver
 
 Additional arguments can be passed to the report generation:
 
@@ -219,7 +247,7 @@ The following are arguments to `app_profiler.py`:
 |-np       |--native_program       |   |Profile a native program.
 |-o        |--perf_data_path       |   |The path to store profiling data.
 |          |--profile_from_launch  |X  |Profile an activity from initial launch. It should be used with -p, -a, and --arch options.
-|-r        |--record_options       |   |Set options for `simpleperf record` command. See also [annotated-profiler-events.md](annotated-profiler-events.md).
+|-r        |--record_options       |   |Set options for `simpleperf record` command.
 |-t        |--test                 |X  |When profiling an Android app, start an instrumentation test before profiling. It restarts the app if the app is already running.
 
 ## Anki Profiling

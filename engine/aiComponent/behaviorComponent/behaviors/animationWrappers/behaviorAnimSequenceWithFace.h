@@ -16,7 +16,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/animationWrappers/behaviorAnimSequence.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorAnimSequenceWithFace : public BehaviorAnimSequence
 {
@@ -35,11 +35,20 @@ protected:
   virtual void OnBehaviorActivated() override;
 
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
+  
+  virtual bool WantsToBeActivatedAnimSeqInternal() const override;
+  
+  virtual void OnAnimationsComplete() override;
 
 private:
+  
+  SmartFaceID GetBestFace() const;
 
   struct InstanceConfig;
   std::unique_ptr<InstanceConfig> _iConfig;
+  
+  struct DynamicVariables;
+  std::unique_ptr<DynamicVariables> _dVars;
   
 };
 

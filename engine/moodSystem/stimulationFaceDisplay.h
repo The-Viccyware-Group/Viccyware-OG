@@ -24,7 +24,7 @@ namespace Util {
 class GraphEvaluator2d;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class StimulationFaceDisplay : public IDependencyManagedComponent<RobotComponentID>, private Util::noncopyable
 {
@@ -36,15 +36,15 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
   virtual void AdditionalInitAccessibleComponents(RobotCompIDSet& components) const override {
-    components.insert(RobotComponentID::CozmoContextWrapper);
   };
   virtual void GetUpdateDependencies(RobotCompIDSet& dependencies) const override {
     dependencies.insert(RobotComponentID::MoodManager);
   }
   virtual void AdditionalUpdateAccessibleComponents(RobotCompIDSet& components) const override {
     components.insert(RobotComponentID::Animation);
+    components.insert(RobotComponentID::CozmoContextWrapper);
   }
 
   virtual void UpdateDependent(const RobotCompMap& dependentComps) override;

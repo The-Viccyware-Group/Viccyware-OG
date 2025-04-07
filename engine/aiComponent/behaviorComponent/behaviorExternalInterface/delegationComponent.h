@@ -23,7 +23,7 @@
 #include <memory>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward Declaration
 class BehaviorManager;
@@ -64,8 +64,8 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComponents) override;
-  virtual void UpdateDependent(const BCCompMap& dependentComponents) override {};
+  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComps) override;
+  virtual void UpdateDependent(const BCCompMap& dependentComps) override {};
   virtual void AdditionalInitAccessibleComponents(BCCompIDSet& components) const override {
     components.insert(BCComponentID::BehaviorSystemManager);
     components.insert(BCComponentID::AIComponent);
@@ -111,7 +111,7 @@ private:
   
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_DelegationComponent_H__

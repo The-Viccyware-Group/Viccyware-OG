@@ -4,14 +4,14 @@
 // Copyright: Anki, inc. 2016
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum uint_8 EngineState {
   Stopped,
   LoadingData,
   ConnectingToRobot,
   Running,
-  UpdatingFirmware
+  ShuttingDown,
 }
 
 enum uint_8 RobotConnectionResult {
@@ -25,5 +25,5 @@ enum uint_8 RobotConnectionResult {
   PinMaxAttemptsReached,
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

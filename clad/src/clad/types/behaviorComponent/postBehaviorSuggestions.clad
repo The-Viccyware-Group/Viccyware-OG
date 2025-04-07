@@ -6,7 +6,7 @@
 // Desc: Thematic suggestions of what should follow a behavior
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum uint_8 PostBehaviorSuggestions {
   Invalid=0,
@@ -14,7 +14,11 @@ enum uint_8 PostBehaviorSuggestions {
   Socialize,
   PlayWithCube,
   Nothing,
+  ReactToPutDownFromPalm,
+  Sleep,
+  SleepOnCharger,
+  SleepOnPalm,
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

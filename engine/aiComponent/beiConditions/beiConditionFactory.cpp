@@ -12,22 +12,34 @@
 
 #include "engine/aiComponent/beiConditions/beiConditionFactory.h"
 
+#include "engine/aiComponent/beiConditions/conditions/conditionAlexaInteractionActive.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionAnyStimuli.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionAnyUserIntent.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionBatteryLevel.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionBeatDetected.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionBecameTrueThisTick.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionBehaviorSuggested.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionBehaviorTimer.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionBeingHeld.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionCarryingCube.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionCliffDetected.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionCompound.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionConnectedToCube.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionConsoleVar.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionCubeTapped.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionEmotion.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionEngineErrorCodeReceived.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionEyeContact.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionFaceKnown.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionFacePositionUpdated.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionFeatureGate.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionHighTemperature.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionIsMaintenanceReboot.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionIsNightTime.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionMotionDetected.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionMotionDetectedWithProx.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionObjectInitialDetection.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionObjectKnown.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionObjectMoved.h"
@@ -38,31 +50,46 @@
 #include "engine/aiComponent/beiConditions/conditions/conditionOnChargerPlatform.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionPetInitialDetection.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionProxInRange.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotHeldInPalm.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotInHabitat.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotPickedUp.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotPitchInRange.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionRobotPlacedOnSlope.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotPoked.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionRobotRollInRange.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionRobotShaken.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionRobotTouched.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionSalientPointDetected.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionSettingsUpdatePending.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionSimpleMood.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionStuckOnEdge.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionTimePowerButtonPressed.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionTimedDedup.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionTimerInRange.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionTooHotToCharge.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionTriggerWordPending.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionTrue.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionUnexpectedMovement.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionUnitTest.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionUserHoldingCube.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionUserIntentActive.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionUserIntentPending.h"
-#include "engine/aiComponent/beiConditions/conditions/conditionTrue.h"
 
 #include "clad/types/behaviorComponent/beiConditionTypes.h"
 
+#include "util/console/consoleInterface.h"
 #include "util/logging/logging.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
-  
 namespace {
-static const char* kCustomConditionKey = "customCondition";
+  const char* kCustomConditionKey = "customCondition";
+
+  #define CONSOLE_GROUP "Behaviors.ConditionFactory"
+  CONSOLE_VAR(bool, kDebugConditionFactory, CONSOLE_GROUP, false);
+
 }
 
 std::map< std::string, IBEIConditionPtr > BEIConditionFactory::_customConditionMap;
@@ -91,13 +118,14 @@ CustomBEIConditionHandle BEIConditionFactory::InjectCustomBEICondition(const std
                  "BEIConditionFactory.InjectCustomBEICondition.DuplicateName",
                  "already have a condition with name '%s'",
                  name.c_str());
-  
+
   _customConditionMap[name] = condition;
 
-  PRINT_CH_DEBUG("Behaviors", "BEIConditionFactory.InjectCustomBEICondition",
-                 "Added custom condition '%s'",
-                 name.c_str());
-
+  if (kDebugConditionFactory) {
+    PRINT_CH_DEBUG("Behaviors", "BEIConditionFactory.InjectCustomBEICondition",
+                   "Added custom condition '%s'",
+                   name.c_str());
+  }
   {
     // set debug label to include name for easier debugging
     std::string newLabel = "@" + name;
@@ -106,7 +134,7 @@ CustomBEIConditionHandle BEIConditionFactory::InjectCustomBEICondition(const std
     }
     condition->SetDebugLabel( newLabel );
   }
-  
+
   // note: can't use make_shared because constructor is private
   CustomBEIConditionHandle ret( new CustomBEIConditionHandleInternal( name ) );
   return ret;
@@ -123,9 +151,11 @@ void BEIConditionFactory::RemoveCustomCondition(const std::string& name)
                    _customConditionMap.size() ) ) {
     _customConditionMap.erase(it);
 
-    PRINT_CH_DEBUG("Behaviors", "BEIConditionFactory.RemoveCustomCondition",
-                   "Removed custom condition '%s'",
-                   name.c_str());
+    if (kDebugConditionFactory) {
+      PRINT_CH_DEBUG("Behaviors", "BEIConditionFactory.RemoveCustomCondition",
+                     "Removed custom condition '%s'",
+                     name.c_str());
+    }
   }
 }
 
@@ -146,14 +176,14 @@ bool BEIConditionFactory::IsValidCondition(const Json::Value& config)
   }
 
   // neither key is specified
-  return false;    
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 IBEIConditionPtr BEIConditionFactory::GetCustomCondition(const Json::Value& config, const std::string& ownerDebugLabel)
 {
   DEV_ASSERT( config[IBEICondition::kConditionTypeKey].isNull(), "BEIConditionFactory.SpecifiedCustomConditionAndType" );
-  
+
   auto it = _customConditionMap.find(config[kCustomConditionKey].asString());
   if( ANKI_VERIFY( it != _customConditionMap.end(),
                    "BEIConditionFactory.GetCustomCondition.NotFound",
@@ -161,7 +191,7 @@ IBEIConditionPtr BEIConditionFactory::GetCustomCondition(const Json::Value& conf
                    config[kCustomConditionKey].asString().c_str(),
                    _customConditionMap.size() ) ) {
     // replace the owner debug label, even if it exists, since it was likely created before knowing
-    // what behavior or condition would end up grabbing it. Obivously multiple behaviors or
+    // what behavior or condition would end up grabbing it. Obviously multiple behaviors or
     // conditions could grab it, but we can deal with that if the use of the owner debug label depends on it
     it->second->SetOwnerDebugLabel( ownerDebugLabel );
     return it->second;
@@ -169,25 +199,35 @@ IBEIConditionPtr BEIConditionFactory::GetCustomCondition(const Json::Value& conf
   else {
     return IBEIConditionPtr{};
   }
-  
+
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& config, const std::string& ownerDebugLabel)
 {
-  
+
   if( !config[kCustomConditionKey].isNull() ) {
     return GetCustomCondition(config, ownerDebugLabel);
   }
-  
+
   BEIConditionType conditionType = IBEICondition::ExtractConditionType(config);
-  
+
   IBEIConditionPtr condition = nullptr;
 
   switch (conditionType) {
+    case BEIConditionType::AlexaInteractionActive:
+    {
+      condition = std::make_shared<ConditionAlexaInteractionActive>(config);
+      break;
+    }
     case BEIConditionType::AnyStimuli:
     {
       condition = std::make_shared<ConditionAnyStimuli>(config);
+      break;
+    }
+    case BEIConditionType::AnyUserIntent:
+    {
+      condition = std::make_shared<ConditionAnyUserIntent>(config);
       break;
     }
     case BEIConditionType::BatteryLevel:
@@ -198,6 +238,16 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
     case BEIConditionType::BeatDetected:
     {
       condition = std::make_shared<ConditionBeatDetected>(config);
+      break;
+    }
+    case BEIConditionType::BecameTrueThisTick:
+    {
+      condition = std::make_shared<ConditionBecameTrueThisTick>(config);
+      break;
+    }
+    case BEIConditionType::BehaviorSuggested:
+    {
+      condition = std::make_shared<ConditionBehaviorSuggested>(config);
       break;
     }
     case BEIConditionType::BehaviorTimer:
@@ -220,9 +270,19 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       condition = std::make_shared<ConditionConsoleVar>(config);
       break;
     }
+    case BEIConditionType::ConnectedToCube:
+    {
+      condition = std::make_shared<ConditionConnectedToCube>(config);
+      break;
+    }
     case BEIConditionType::Emotion:
     {
       condition = std::make_shared<ConditionEmotion>(config);
+      break;
+    }
+    case BEIConditionType::EngineErrorCodeReceived:
+    {
+      condition = std::make_shared<ConditionEngineErrorCodeReceived>(config);
       break;
     }
     case BEIConditionType::EyeContact:
@@ -245,6 +305,11 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       condition = std::make_shared<ConditionFeatureGate>(config);
       break;
     }
+    case BEIConditionType::HighTemperature:
+    {
+      condition = std::make_shared<ConditionHighTemperature>(config);
+      break;
+    }
     case BEIConditionType::IlluminationDetected:
     {
       condition = std::make_shared<ConditionIlluminationDetected>(config);
@@ -253,6 +318,11 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
     case BEIConditionType::MotionDetected:
     {
       condition = std::make_shared<ConditionMotionDetected>(config);
+      break;
+    }
+    case BEIConditionType::MotionDetectedWithProx:
+    {
+      condition = std::make_shared<ConditionMotionDetectedWithProx>(config);
       break;
     }
     case BEIConditionType::ObjectInitialDetection:
@@ -290,9 +360,39 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       condition = std::make_shared<ConditionProxInRange>(config);
       break;
     }
+    case BEIConditionType::RobotHeldInPalm:
+    {
+      condition = std::make_shared<ConditionRobotHeldInPalm>(config);
+      break;
+    }
+    case BEIConditionType::RobotInHabitat:
+    {
+      condition = std::make_shared<ConditionRobotInHabitat>(config);
+      break;
+    }
+    case BEIConditionType::RobotPickedUp:
+    {
+      condition = std::make_shared<ConditionRobotPickedUp>(config);
+      break;
+    }
+    case BEIConditionType::RobotPitchInRange:
+    {
+      condition = std::make_shared<ConditionRobotPitchInRange>(config);
+      break;
+    }
     case BEIConditionType::RobotPlacedOnSlope:
     {
       condition = std::make_shared<ConditionRobotPlacedOnSlope>(config);
+      break;
+    }
+    case BEIConditionType::RobotPoked:
+    {
+      condition = std::make_shared<ConditionRobotPoked>(config);
+      break;
+    }
+    case BEIConditionType::RobotRollInRange:
+    {
+      condition = std::make_shared<ConditionRobotRollInRange>(config);
       break;
     }
     case BEIConditionType::RobotShaken:
@@ -303,6 +403,16 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
     case BEIConditionType::RobotTouched:
     {
       condition = std::make_shared<ConditionRobotTouched>(config);
+      break;
+    }
+    case BEIConditionType::SalientPointDetected:
+    {
+      condition = std::make_shared<ConditionSalientPointDetected>(config);
+      break;
+    }
+    case BEIConditionType::SettingsUpdatePending:
+    {
+      condition = std::make_shared<ConditionSettingsUpdatePending>(config);
       break;
     }
     case BEIConditionType::SimpleMood:
@@ -318,6 +428,16 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
     case BEIConditionType::TimedDedup:
     {
       condition = std::make_shared<ConditionTimedDedup>(config);
+      break;
+    }
+    case BEIConditionType::TimePowerButtonPressed:
+    {
+      condition = std::make_shared<ConditionTimePowerButtonPressed>(config);
+      break;
+    }
+    case BEIConditionType::TooHotToCharge:
+    {
+      condition = std::make_shared<ConditionTooHotToCharge>(config);
       break;
     }
     case BEIConditionType::TrueCondition:
@@ -345,6 +465,11 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       condition = std::make_shared<ConditionUserIntentPending>(config);
       break;
     }
+    case BEIConditionType::UserIsHoldingCube:
+    {
+      condition = std::make_shared<ConditionUserHoldingCube>(config);
+      break;
+    }
     case BEIConditionType::OnCharger:
     {
       condition = std::make_shared<ConditionOnCharger>(config);
@@ -358,6 +483,11 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
     case BEIConditionType::OffTreadsState:
     {
       condition = std::make_shared<ConditionOffTreadsState>(config);
+      break;
+    }
+    case BEIConditionType::BeingHeld:
+    {
+      condition = std::make_shared<ConditionBeingHeld>(config);
       break;
     }
     case BEIConditionType::CliffDetected:
@@ -380,7 +510,17 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       condition = std::make_shared<ConditionUnitTest>(config);
       break;
     }
-    
+    case BEIConditionType::IsMaintenanceReboot:
+    {
+      condition = std::make_shared<ConditionIsMaintenanceReboot>(config);
+      break;
+    }
+    case BEIConditionType::IsNightTime:
+    {
+      condition = std::make_shared<ConditionIsNightTime>(config);
+      break;
+    }
+
     case BEIConditionType::Lambda:
     {
       DEV_ASSERT(false, "BEIConditionFactory.CreateBeiCondition.CantCreateLambdaFromConfig");
@@ -391,16 +531,16 @@ IBEIConditionPtr BEIConditionFactory::CreateBEICondition(const Json::Value& conf
       DEV_ASSERT(false, "BEIConditionFactory.CreateBeiCondition.InvalidType");
       break;
     }
-    
+
   }
-  
+
   if( (condition != nullptr) && !ownerDebugLabel.empty() ) {
     condition->SetOwnerDebugLabel( ownerDebugLabel );
   }
-  
+
   return condition;
 }
-  
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 IBEIConditionPtr BEIConditionFactory::CreateBEICondition(BEIConditionType type, const std::string& ownerDebugLabel)
 {
@@ -413,7 +553,7 @@ bool BEIConditionFactory::CheckConditionsAreUsed(const CustomBEIConditionHandleL
                                                  const std::string& debugStr)
 {
   bool ret = true;
-  
+
   for( const auto& handle : handles ) {
     if( handle == nullptr ) {
       ret = false;
@@ -446,7 +586,7 @@ bool BEIConditionFactory::CheckConditionsAreUsed(const CustomBEIConditionHandleL
 
   return ret;
 }
-  
 
-} // namespace Cozmo
+
+} // namespace Vector
 } // namespace Anki

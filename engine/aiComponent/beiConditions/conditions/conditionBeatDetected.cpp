@@ -19,20 +19,21 @@
 #include "engine/components/mics/beatDetectorComponent.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ConditionBeatDetected::ConditionBeatDetected(const Json::Value& config)
 : IBEICondition(config)
 {
-  
+  JsonTools::GetValueOptional(config, "allowPotentialBeat", _allowPotentialBeat);
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool ConditionBeatDetected::AreConditionsMetInternal(BehaviorExternalInterface& bei) const
 {
-  return bei.GetBeatDetectorComponent().IsBeatDetected();
+  const auto& beatDetector = bei.GetBeatDetectorComponent();
+  return beatDetector.IsBeatDetected() || (_allowPotentialBeat && beatDetector.IsPossibleBeatDetected());
 }
 
 }

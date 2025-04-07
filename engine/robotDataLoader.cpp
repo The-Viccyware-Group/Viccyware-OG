@@ -17,16 +17,16 @@
 #include "cannedAnimLib/spriteSequences/spriteSequenceLoader.h"
 #include "coretech/common/engine/utils/data/dataPlatform.h"
 #include "coretech/common/engine/utils/timer.h"
-#include "coretech/vision/shared/compositeImage/compositeImage.h"
 #include "coretech/vision/shared/spriteCache/spriteCache.h"
 #include "engine/actions/sayTextAction.h"
-#include "engine/animations/animationContainers/backpackLightAnimationContainer.h"
-#include "engine/animations/animationContainers/cubeLightAnimationContainer.h"
+
 #include "engine/animations/animationGroup/animationGroupContainer.h"
 #include "engine/animations/animationTransfer.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
-#include "engine/components/bodyLightComponent.h"
-#include "engine/components/cubes/cubeLightComponent.h"
+
+#include "engine/components/cubes/cubeLights/cubeLightComponent.h"
+#include "engine/components/variableSnapshot/variableSnapshotComponent.h"
+#include "engine/components/variableSnapshot/variableSnapshotEncoder.h"
 #include "engine/cozmoContext.h"
 #include "engine/utils/cozmoExperiments.h"
 #include "engine/utils/cozmoFeatureGate.h"
@@ -39,6 +39,7 @@
 #include "util/fileUtils/fileUtils.h"
 #include "util/logging/logging.h"
 #include "util/math/numericCast.h"
+#include "util/string/stringUtils.h"
 #include "util/threading/threadPriority.h"
 #include "util/time/universalTime.h"
 #include <json/json.h>
@@ -52,48 +53,47 @@ namespace {
 CONSOLE_VAR(bool, kStressTestThreadedPrintsDuringLoad, "RobotDataLoader", false);
 
 #if REMOTE_CONSOLE_ENABLED
-static Anki::Cozmo::ThreadedPrintStressTester stressTester;
+static Anki::Vector::ThreadedPrintStressTester stressTester;
 #endif // REMOTE_CONSOLE_ENABLED
 
-const char* pathToExternalIndependentSprites = "assets/sprites/independentSprites/";
-const char* pathToEngineIndependentSprites = "config/devOnlySprites/independentSprites/";
-const char* pathToExternalSpriteSequences = "assets/sprites/spriteSequences/";
-const char* pathToEngineSpriteSequences   = "config/devOnlySprites/spriteSequences/";
+const char* kPathToExternalIndependentSprites = "assets/sprites/independentSprites/";
+const char* kPathToEngineIndependentSprites = "config/sprites/independentSprites/";
+const char* kPathToExternalSpriteSequences = "assets/sprites/spriteSequences/";
+const char* kPathToEngineSpriteSequences   = "config/sprites/spriteSequences/";
 
 const std::vector<std::string> kPathsToEngineAccessibleAnimations = {
   // Dance to the beat:
   "assets/animations/anim_dancebeat_01.bin",
+  "assets/animations/anim_dancebeat_02.bin",
   "assets/animations/anim_dancebeat_getin_01.bin",
   "assets/animations/anim_dancebeat_getout_01.bin",
-  
-  // Weather:
-  "assets/animations/anim_weather_cloud_01.bin",
-  "assets/animations/anim_weather_snow_01.bin",
-  "assets/animations/anim_weather_rain_01.bin",
-  "assets/animations/anim_weather_sunny_01.bin",
-  "assets/animations/anim_weather_stars_01.bin",
-  "assets/animations/anim_weather_cold_01.bin",
-  "assets/animations/anim_weather_windy_01.bin",
-};
 
+  // Cube Spinner
+  "assets/animations/anim_spinner_tap_01.bin",
+  
+  // Onboarding
+  "assets/animations/anim_onboarding_cube_reacttocube.bin",
+  
+  // Robot power on/off
+  "assets/animations/anim_power_offon_01.bin",
+  "assets/animations/anim_power_onoff_01.bin",
+
+};
 }
 
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 RobotDataLoader::RobotDataLoader(const CozmoContext* context)
 : _context(context)
 , _platform(_context->GetDataPlatform())
-, _cubeLightAnimations(new CubeLightAnimationContainer())
 , _animationGroups(new AnimationGroupContainer(*context->GetRandom()))
-, _animationTriggerResponses(new Util::CladEnumToStringMap<AnimationTrigger>())
-, _cubeAnimationTriggerResponses(new Util::CladEnumToStringMap<CubeAnimationTrigger>())
-, _backpackLightAnimations(new BackpackLightAnimationContainer())
+, _animationTriggerMap(new AnimationTriggerMap())
+, _cubeAnimationTriggerMap(new CubeAnimationTriggerMap())
 , _dasBlacklistedAnimationTriggers()
 {
   _spritePaths = std::make_unique<Vision::SpritePathMap>();
-  _compLayoutMap = std::make_unique<CompLayoutMap>();
-  _compImageMap = std::make_unique<CompImageMap>();
 }
 
 RobotDataLoader::~RobotDataLoader()
@@ -112,10 +112,7 @@ void RobotDataLoader::LoadNonConfigData()
 
   Anki::Util::SetThreadName(pthread_self(), "RbtDataLoader");
 
-  // Uncomment this line to enable the profiling of loading data
-  //ANKI_CPU_TICK_ONE_TIME("RobotDataLoader::LoadNonConfigData");
-
-  ANKI_VERIFY( !_context->IsEngineThread(), "RobotDataLoadingShouldNotBeOnEngineThread", "" );
+  ANKI_CPU_TICK_ONE_TIME("RobotDataLoader::LoadNonConfigData");
 
   if( kStressTestThreadedPrintsDuringLoad ) {
     REMOTE_CONSOLE_ENABLED_ONLY( stressTester.Start() );
@@ -135,10 +132,30 @@ void RobotDataLoader::LoadNonConfigData()
     ANKI_CPU_PROFILE("RobotDataLoader::LoadWeatherResponseMaps");
     LoadWeatherResponseMaps();
   }
+
+  {
+    ANKI_CPU_PROFILE("RobotDataLoader::LoadWeatherRemaps");
+    LoadWeatherRemaps();
+  }
+
+  {
+    ANKI_CPU_PROFILE("RobotDataLoader::LoadWeatherConditionTTSMap");
+    LoadWeatherConditionTTSMap();
+  }
+
+  {
+    ANKI_CPU_PROFILE("RobotDataLoader::LoadVariableSnapshotJsonMap");
+    LoadVariableSnapshotJsonMap();
+  }
   
   {
-    ANKI_CPU_PROFILE("RobotDataLoader::LoadBackpackLightAnimations");
-    LoadBackpackLightAnimations();
+    ANKI_CPU_PROFILE("RobotDataLoader::LoadCubeSpinnerConfig");
+    LoadCubeSpinnerConfig();
+  }
+
+  {
+    ANKI_CPU_PROFILE("RobotDataLoader::LoadUserDefinedBehaviorTreeConfig");
+    LoadUserDefinedBehaviorTreeConfig();
   }
 
   {
@@ -146,14 +163,21 @@ void RobotDataLoader::LoadNonConfigData()
     LoadSpritePaths();
     _spriteCache = std::make_unique<Vision::SpriteCache>(_spritePaths.get());
   }
+
   {
     ANKI_CPU_PROFILE("RobotDataLoader::LoadSpriteSequences");
-    std::vector<std::string> spriteSequenceDirs = {pathToExternalSpriteSequences, pathToEngineSpriteSequences};
+    std::vector<std::string> spriteSequenceDirs = {kPathToExternalSpriteSequences, kPathToEngineSpriteSequences};
     SpriteSequenceLoader seqLoader;
-    auto* sContainer = seqLoader.LoadSpriteSequences(_platform, _spritePaths.get(), 
-                                                     _spriteCache.get(), spriteSequenceDirs);
+    auto* sContainer = seqLoader.LoadSpriteSequences(_platform,
+                                                     _spritePaths.get(),
+                                                     _spriteCache.get(),
+                                                     spriteSequenceDirs);
     _spriteSequenceContainer.reset(sContainer);
   }
+
+  // After we've finished loading Sprites and SpriteSequences, retroactively verify
+  // any AssetID's requested before/during loading
+  _spritePaths->CheckUnverifiedAssetIDs();
 
   if(!FACTORY_TEST)
   {
@@ -168,43 +192,36 @@ void RobotDataLoader::LoadNonConfigData()
     }
 
     {
-      ANKI_CPU_PROFILE("RobotDataLoader::LoadCubeAnimationTriggerResponses");
-      LoadCubeAnimationTriggerResponses();
+      ANKI_CPU_PROFILE("RobotDataLoader::LoadCubeAnimationTriggerMap");
+      LoadCubeAnimationTriggerMap();
     }
-
     {
       ANKI_CPU_PROFILE("RobotDataLoader::LoadEmotionEvents");
       LoadEmotionEvents();
     }
 
-
-
     {
-      ANKI_CPU_PROFILE("RobotDataLoader::LoadDasBlacklistedAnimationTriggers");
-      LoadDasBlacklistedAnimationTriggers();
-    }
-
-
-    {
-      ANKI_CPU_PROFILE("RobotDataLoader::LoadAnimationTriggerResponses");
-      LoadAnimationTriggerResponses();
+      ANKI_CPU_PROFILE("RobotDataLoader::LoadDasBlacklistedAnimations");
+      LoadDasBlacklistedAnimations();
     }
 
     {
-      // Load SayText Action Intent Config
-      ANKI_CPU_PROFILE("RobotDataLoader::LoadSayTextActionIntentConfigs");
-      SayTextAction::LoadMetadata(*_context->GetDataPlatform());
+      ANKI_CPU_PROFILE("RobotDataLoader::LoadAnimationTriggerMap");
+      LoadAnimationTriggerMap();
     }
+
     {
-      ANKI_CPU_PROFILE("RobotDataLoader::LoadCompositeImageMaps");
-      LoadCompositeImageMaps();
+      ANKI_CPU_PROFILE("RobotDataLoader::LoadAnimationWhitelist");
+      LoadAnimationWhitelist();
     }
+
   }
   
   {
     CannedAnimationLoader animLoader(_platform,
-                                     _spritePaths.get(), _spriteSequenceContainer.get(), 
+                                     _spriteSequenceContainer.get(),
                                      _loadingCompleteRatio, _abortLoad);
+
     // Create the canned animation container, but don't load any data into it
     // Engine side animations are loaded only when requested
     _cannedAnimations = std::make_unique<CannedAnimationContainer>();
@@ -260,12 +277,6 @@ void RobotDataLoader::CollectAnimFiles()
     });
   }
 
-  // backpack light animations
-  {
-    WalkAnimationDir("config/engine/lights/backpackLights", _backpackLightAnimFileTimestamps, [this] (const std::string& filename) {
-      _jsonFiles[FileType::BackpackLightAnimation].push_back(filename);
-    });
-  }
 
   if(!FACTORY_TEST)
   {
@@ -288,29 +299,32 @@ void RobotDataLoader::CollectAnimFiles()
 
 bool RobotDataLoader::IsCustomAnimLoadEnabled() const
 {
-  return (_context->IsInSdkMode() || (ANKI_DEV_CHEATS != 0));
+  return (ANKI_DEV_CHEATS != 0);
 }
 
 void RobotDataLoader::LoadCubeLightAnimations()
 {
+  const auto& fileList = _jsonFiles[FileType::CubeLightAnimation];
+  const auto size = fileList.size();
+
   const double startTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
 
   using MyDispatchWorker = Util::DispatchWorker<3, const std::string&>;
-  MyDispatchWorker::FunctionType loadFileFunc = std::bind(&RobotDataLoader::LoadCubeLightAnimationFile, this, std::placeholders::_1);
+  MyDispatchWorker::FunctionType loadFileFunc = std::bind(&RobotDataLoader::LoadCubeLightAnimationFile, 
+                                                          this, std::placeholders::_1);
   MyDispatchWorker myWorker(loadFileFunc);
 
-  const auto& fileList = _jsonFiles[FileType::CubeLightAnimation];
-  const auto size = fileList.size();
   for (int i = 0; i < size; i++) {
     myWorker.PushJob(fileList[i]);
   }
-
+  
   myWorker.Process();
 
   const double endTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
   double loadTime = endTime - startTime;
   PRINT_CH_INFO("Animations", "RobotDataLoader.LoadCubeLightAnimations.LoadTime",
                 "Time to load cube light animations = %.2f ms", loadTime);
+
 }
 
 void RobotDataLoader::LoadCubeLightAnimationFile(const std::string& path)
@@ -319,39 +333,7 @@ void RobotDataLoader::LoadCubeLightAnimationFile(const std::string& path)
   const bool success = _platform->readAsJson(path.c_str(), animDefs);
   if (success && !animDefs.empty()) {
     std::lock_guard<std::mutex> guard(_parallelLoadingMutex);
-    _cubeLightAnimations->DefineFromJson(animDefs);
-  }
-}
-
-void RobotDataLoader::LoadBackpackLightAnimations()
-{
-  const double startTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
-
-  using MyDispatchWorker = Util::DispatchWorker<3, const std::string&>;
-  MyDispatchWorker::FunctionType loadFileFunc = std::bind(&RobotDataLoader::LoadBackpackLightAnimationFile, this, std::placeholders::_1);
-  MyDispatchWorker myWorker(loadFileFunc);
-
-  const auto& fileList = _jsonFiles[FileType::BackpackLightAnimation];
-  const auto size = fileList.size();
-  for (int i = 0; i < size; i++) {
-    myWorker.PushJob(fileList[i]);
-  }
-
-  myWorker.Process();
-
-  const double endTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
-  double loadTime = endTime - startTime;
-  PRINT_CH_INFO("Animations", "RobotDataLoader.LoadBackpackLightAnimations.LoadTime",
-                "Time to load backpack light animations = %.2f ms", loadTime);
-}
-
-void RobotDataLoader::LoadBackpackLightAnimationFile(const std::string& path)
-{
-  Json::Value animDefs;
-  const bool success = _platform->readAsJson(path.c_str(), animDefs);
-  if (success && !animDefs.empty()) {
-    std::lock_guard<std::mutex> guard(_parallelLoadingMutex);
-    _backpackLightAnimations->DefineFromJson(animDefs);
+    _cubeLightAnimations.emplace(path, animDefs);
   }
 }
 
@@ -474,158 +456,54 @@ void RobotDataLoader::LoadBehaviors()
 
 void RobotDataLoader::LoadSpritePaths()
 {
- // Creates a map of all sprite names to their file names
-  const bool reverseLookupAllowed = true;
-  _spritePaths->Load(_platform, "assets/cladToFileMaps/spriteMap.json", "SpriteName", reverseLookupAllowed);
-
-  auto spritePaths = {pathToExternalIndependentSprites,
-                      pathToEngineIndependentSprites};
-  auto fileNameToFullPath = CreateFileNameToFullPathMap(spritePaths, "png");
-  
-  // Get all sprite sequences with recursive directory search
+    // Get all independent sprites
   {
-    std::vector<std::string> directoriesToSearch = {
-       _platform->pathToResource(Util::Data::Scope::Resources, pathToExternalSpriteSequences),
-       _platform->pathToResource(Util::Data::Scope::Resources, pathToEngineSpriteSequences)};
+    auto spritePaths = {kPathToExternalIndependentSprites,
+                        kPathToEngineIndependentSprites};
     
-    auto searchIter = directoriesToSearch.begin();
-    while(searchIter != directoriesToSearch.end()){
-      // Get all directories at this level and add them to the file map
-      std::vector<std::string> outDirNames;
-      Util::FileUtils::ListAllDirectories(*searchIter, outDirNames);
-      for(auto& dirName: outDirNames){
-        // turn name into full path
-        dirName = Util::FileUtils::FullFilePath({*searchIter, dirName});
-        fileNameToFullPath.emplace(Util::FileUtils::GetFileName(dirName), dirName);
+    const bool useFullPath = true;
+    const char* extensions = "png";
+    const bool recurse = true;
+    for(const auto& path: spritePaths){
+      const std::string& fullPathFolder = _platform->pathToResource(Util::Data::Scope::Resources, path);
+
+      auto fullImagePaths = Util::FileUtils::FilesInDirectory(fullPathFolder, useFullPath, extensions, recurse);
+      for(const auto& fullImagePath : fullImagePaths){
+        const std::string& fileName = Util::FileUtils::GetFileName(fullImagePath, true, true);
+        _spritePaths->AddAsset(fileName, fullImagePath, false);
       }
-      directoriesToSearch.erase(searchIter);
-      
-      // Add directories for recursive search and advance to next directory
-      copy(outDirNames.begin(), outDirNames.end(), back_inserter(directoriesToSearch));
-      searchIter = directoriesToSearch.begin();
     }
-  }
-  
-  for (auto key : _spritePaths->GetAllKeys()) {
-    auto fullPath = fileNameToFullPath[_spritePaths->GetValue(key)];
-    if(fullPath.empty()){
-      PRINT_NAMED_ERROR("RobotDataLoader.LoadSpritePaths.EmptyPath",
-                        "No path found for %s",
-                        EnumToString(key));
-    }else{
-      _spritePaths->UpdateValue(key, std::move(fullPath));
-    }
+    _spritePaths->VerifyPlaceholderAsset();
   }
 }
 
-void RobotDataLoader::LoadCompositeImageMaps()
+void RobotDataLoader::LoadAnimationWhitelist()
 {
-  const bool useFullPath = false;
-  const char* extensions = ".json";
-  const bool recurse = true;
-  const bool shouldCacheLookup = true;
-
-  // Load in image layouts
+  static const std::string jsonFilename = "config/engine/animation_whitelist.json";
+  Json::Value whitelistConfig;
+  const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, whitelistConfig);
+  if(!success)
   {
-    // Load the layout map file and fileName Map
-    const auto layoutBasePath = "assets/compositeImageResources/imageLayouts/";
-    const std::string layoutFullPath = _platform->pathToResource(Util::Data::Scope::Resources,
-                                                                 layoutBasePath);
-    const bool reverseLookupAllowed = true;
-    Util::CladEnumToStringMap<Vision::CompositeImageLayout> layoutMap;
-    layoutMap.Load(_platform, "assets/cladToFileMaps/CompositeImageLayoutMap.json", "LayoutName", reverseLookupAllowed);
-    auto fileNameToFullPath = CreateFileNameToFullPathMap({layoutBasePath}, "json");
-
-    // Iterate through all files in the directory and extract the associated
-    // enum value
-    auto fullImagePaths = Util::FileUtils::FilesInDirectory(layoutFullPath, useFullPath, extensions, recurse);
-    for(auto& fullImagePath : fullImagePaths){
-      const std::string fileName = Util::FileUtils::GetFileName(fullImagePath, true, true);
-      Vision::CompositeImageLayout ev = Vision::CompositeImageLayout::Count;
-      if(layoutMap.GetKeyForValue(fileName, ev, shouldCacheLookup)){
-        // Load the layout contents into a composite image and place it in the map
-        Json::Value contents;
-        const auto& fullPath = fileNameToFullPath[fileName];
-        const bool success = _platform->readAsJson(fullPath, contents);
-        if(success){
-          auto compImg = Vision::CompositeImage(_spriteCache.get(), ProceduralFace::GetHueSatWrapper(),contents);
-          _compLayoutMap->emplace(ev, std::move(compImg));
-        }
-      }else{
-        PRINT_NAMED_WARNING("RobotDataLoader.LoadCompositeImageLayouts",
-                            "Failed to find %s in map", 
-                            CompositeImageLayoutToString(ev));
-      }
-    }
+    LOG_ERROR("RobotDataLoader.AnimationWhitelistConfig",
+              "Animation whitelist json config file %s not found or failed to parse",
+              jsonFilename.c_str());
   }
-
-  // Load in image map
-  {
-    // Load the image map file and fileName Map
-    const auto mapBasePath = "assets/compositeImageResources/imageMaps/";
-    const std::string mapFullPath = _platform->pathToResource(Util::Data::Scope::Resources,
-                                                              mapBasePath);
+  else {
+    static constexpr const char* kDriveOffChargerAnimsKey = "driveOffChargerAnims";
     
-    const bool reverseLookupAllowed = true;
-    Util::CladEnumToStringMap<Vision::CompositeImageMap> mapMap;
-    mapMap.Load(_platform, "assets/cladToFileMaps/CompositeImageMapMap.json", "MapName", reverseLookupAllowed);
-    auto fileNameToFullPath = CreateFileNameToFullPathMap({mapBasePath}, "json");
-
-    // Iterate through all files in the directory and extract the associated
-    // enum value
-    auto fullImagePaths = Util::FileUtils::FilesInDirectory(mapFullPath, useFullPath, extensions, recurse);
-    for(auto& fullImagePath : fullImagePaths){
-      const std::string fileName = Util::FileUtils::GetFileName(fullImagePath, true, true);
-      Vision::CompositeImageMap ev = Vision::CompositeImageMap::Count;
-      if(mapMap.GetKeyForValue(fileName, ev, shouldCacheLookup)){
-        // Load the layout contents into a composite image and place it in the map
-        Json::Value contents;
-        const auto& fullPath = fileNameToFullPath[fileName];
-        const bool success = _platform->readAsJson(fullPath, contents);
-        if(success){
-          const std::string debugStr = "RobotDataLoader.LoadCompositeImageMaps.";
-
-          Vision::CompositeImage::LayerImageMap fullImageMap;
-          for(auto& mapEntry: contents){
-            // Extract Layer Name
-            const std::string strLayerName = JsonTools::ParseString(mapEntry, Vision::CompositeImageConfigKeys::kLayerNameKey, debugStr + "NoLayerName");
-            const Vision::LayerName layerName = Vision::LayerNameFromString(strLayerName);
-
-            // Extract all image entries for the layer
-            if(mapEntry.isMember(Vision::CompositeImageConfigKeys::kImagesListKey)){
-              Vision::CompositeImageLayer::ImageMap partialMap;
-              Json::Value imageArray = mapEntry[Vision::CompositeImageConfigKeys::kImagesListKey];
-              for(auto& imageEntry: imageArray){
-                // Extract Sprite Box Name
-                const std::string strSpriteBox = JsonTools::ParseString(imageEntry, Vision::CompositeImageConfigKeys::kSpriteBoxNameKey, debugStr + "NoSpriteBoxName");
-                const Vision::SpriteBoxName sbName = Vision::SpriteBoxNameFromString(strSpriteBox);
-                // Extract Sprite Name
-                const std::string strSpriteName = JsonTools::ParseString(imageEntry, Vision::CompositeImageConfigKeys::kSpriteNameKey, debugStr + "NoSpriteName");
-                const Vision::SpriteName spriteName = Vision::SpriteNameFromString(strSpriteName);
-
-                auto spriteEntry = Vision::CompositeImageLayer::SpriteEntry(_spriteCache.get(), _spriteSequenceContainer.get(), spriteName);
-                partialMap.emplace(sbName, std::move(spriteEntry));
-              }
-              
-              fullImageMap.emplace(layerName, partialMap);
-            }else{
-              PRINT_NAMED_WARNING("RobotDataLoader.LoadCompositeImageMap.MissingKey", 
-                                  "Missing image map key %s",
-                                  Vision::CompositeImageConfigKeys::kImagesListKey);
-            }
-          }// end for(contents)
-
-          _compImageMap->emplace(ev, std::move(fullImageMap));
-        }
-      }else{
-        PRINT_NAMED_WARNING("RobotDataLoader.LoadCompositeImageMaps",
-                            "Failed to find %s in map", 
-                            Vision::CompositeImageMapToString(ev));
+    for( const auto& clipName : whitelistConfig[kDriveOffChargerAnimsKey] ) {
+      if( ANKI_VERIFY( clipName.isString(),
+                       "RobotDataLoader.LoadAnimationWhitelist.DriveOffAnims.NonString",
+                       "List values must be strings" ) ) {
+        _whitelistedChargerAnimationPrefixes.push_back(clipName.asString());
       }
     }
+
+    PRINT_CH_INFO("Animations", "RobotDataLoader.AnimationWhitelist.LoadedConfig",
+                  "Loaded %zu charger whitelisted animation prefixes",
+                  _whitelistedChargerAnimationPrefixes.size());
   }
 }
-
 
 void RobotDataLoader::LoadWeatherResponseMaps()
 {
@@ -635,7 +513,7 @@ void RobotDataLoader::LoadWeatherResponseMaps()
   const bool recurse = true;
 
 
-  const std::string path =  "config/engine/behaviorComponent/weatherResponseMaps/";
+  const std::string path =  "config/engine/behaviorComponent/weather/weatherResponseMaps/";
   const char* kAPIValueKey = "APIValue";
   const char* kCladTypeKey = "CladType";
 
@@ -684,6 +562,191 @@ void RobotDataLoader::LoadWeatherResponseMaps()
 
 }
 
+void RobotDataLoader::LoadWeatherRemaps()
+{
+  static const std::string jsonFilename = "config/engine/behaviorComponent/weather/condition_remaps.json";
+  const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _weatherRemaps);
+  if(!success)
+  {
+    PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherRemaps.ErrorReadingFile","");
+  }
+}
+
+void RobotDataLoader::LoadWeatherConditionTTSMap()
+{
+  _weatherConditionTTSMap = std::make_unique<WeatherConditionTTSMap>();
+  static const std::string jsonFilename = "config/engine/behaviorComponent/weather/condition_to_tts.json";
+  
+  Json::Value conditionList;
+  const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, conditionList);
+  if(!success || !conditionList.isArray())
+  {
+    PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherConditionTTSMap.ErrorReadingFile","");
+    return;
+  }
+
+  const char* kConditionKey = "Condition";
+  const char* kWhatToSayKey = "Say";
+  WeatherConditionType condition = WeatherConditionType::Count;
+  for(const auto& entry: conditionList){
+    if(!entry.isMember(kConditionKey)){
+      PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherConditionTTSMap.EntryDoesNotContainCondition","");
+      continue;
+    }
+    if(!entry.isMember(kWhatToSayKey)){
+      PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherConditionTTSMap.EntryDoesNotContainSayKey","");
+      continue;
+    }
+    const bool conditionExists = WeatherConditionTypeFromString(entry[kConditionKey].asString(), condition);
+    if(!conditionExists){
+      PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherConditionTTSMap.InvalidWeatherCondition",
+                          "Condition %s not found in weather condition enum",
+                          entry[kConditionKey].asString().c_str());
+      continue;
+    }
+    _weatherConditionTTSMap->emplace(std::move(condition), entry[kWhatToSayKey].asString());
+  }
+
+  if(_weatherConditionTTSMap->size() != static_cast<int>(WeatherConditionType::Count)){
+    PRINT_NAMED_WARNING("RobotDataLoader.LoadWeatherConditionTTSMap.MissingConditions",
+                        "There are %d weather conditions, but only %zu TTS entries",
+                        static_cast<int>(WeatherConditionType::Count), 
+                        _weatherConditionTTSMap->size());
+  }
+
+}
+
+
+void RobotDataLoader::LoadVariableSnapshotJsonMap()
+{
+  _variableSnapshotJsonMap = std::make_unique<VariableSnapshotJsonMap>();
+  
+  std::string path = VariableSnapshotComponent::GetSavePath(_platform,
+                                                            VariableSnapshotComponent::kVariableSnapshotFolder,
+                                                            VariableSnapshotComponent::kVariableSnapshotFilename);
+  Json::Value outLoadedJson;
+  const bool success = _platform->readAsJson(path,
+                                             outLoadedJson);
+  // check whether the look up was successful and we got back a nonempty JSON array
+  if (success && !outLoadedJson.empty() && outLoadedJson.isArray()) {
+    for(const auto& loadedInfo : outLoadedJson) {
+      // store the json object in the map
+      const auto key = loadedInfo[VariableSnapshotEncoder::kVariableSnapshotIdKey].asString();
+      VariableSnapshotId variableSnapshotId = VariableSnapshotId::Count;
+      if(VariableSnapshotIdFromString(key, variableSnapshotId)){
+        _variableSnapshotJsonMap->emplace(variableSnapshotId, loadedInfo);
+      }else{
+        PRINT_NAMED_WARNING("RobotDataLoader.LoadVariableSnapshotJsonMap.UnknownStringinJson",
+                            "Key %s was not recognized as a valid snapshot value, will be dropped", key.c_str());
+      }
+    }
+  }
+}
+
+
+void RobotDataLoader::LoadCubeSpinnerConfig()
+{
+  static const std::string jsonFilename = "config/engine/behaviorComponent/cubeSpinnerLightMaps.json";
+  const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _cubeSpinnerConfig);
+  if(!success)
+  {
+    LOG_ERROR("RobotDataLoader.LoadCubeSpinnerConfig",
+              "LoadCubeSpinnerConfig Json config file %s not found or failed to parse",
+              jsonFilename.c_str());
+  }
+}
+
+void RobotDataLoader::LoadUserDefinedBehaviorTreeConfig()
+{
+  const char* kBehaviorOptionsKey = "behaviorOptions";
+  const char* kConditionTypeKey = "conditionType";
+  const char* kEditModeTriggerIDKey = "editModeTrigger";
+  const char* kMappingOptionsListKey = "conditionToBehaviorMappingOptions";
+
+  Json::Value _userDefinedBehaviorTreeConfig;
+  static const std::string jsonFilename = "config/engine/userDefinedBehaviorTree/conditionToBehaviorMap.json";
+  const bool jsonSuccess = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _userDefinedBehaviorTreeConfig);
+
+  // if json is read properly, load the config data
+  if(!jsonSuccess)
+  {
+    LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig",
+              "LoadUserDefinedBehaviorTreeConfig Json config file %s not found or failed to parse",
+              jsonFilename.c_str());
+  }
+
+  // load the behavior that triggers editing
+  _userDefinedEditCondition = BEIConditionType::Invalid;
+
+  const std::string editBehaviorIdString = JsonTools::ParseString(_userDefinedBehaviorTreeConfig,
+                                                                  kEditModeTriggerIDKey,
+                                                                  "RobotDataLoader.LoadUserDefinedBehaviorTreeConfig.ParseEditConditionStringFailed");
+  const bool editBehaviorIdSuccess = BEIConditionTypeFromString(editBehaviorIdString, _userDefinedEditCondition);
+
+  if(!editBehaviorIdSuccess) {
+    LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig",
+              "LoadUserDefinedBehaviorTreeConfig: Edit behavior %s not a valid BehaviorID.",
+              editBehaviorIdString.c_str());
+    return;
+  }
+
+  // load the map of possible condition to behavior mappings
+  _conditionToBehaviorsMap = std::make_unique<ConditionToBehaviorsMap>();
+
+  for(const Json::Value& mapOptionsJson : _userDefinedBehaviorTreeConfig[kMappingOptionsListKey]) {
+    BEIConditionType beiCondType = BEIConditionType::Invalid;
+    const std::string beiCondTypeString = JsonTools::ParseString(mapOptionsJson,
+                                                                 kConditionTypeKey,
+                                                                 "RobotDataLoader.LoadUserDefinedBehaviorTreeConfig.ParseConditionStringFailed");
+    const bool beiCondTypeParseSuccess = BEIConditionTypeFromString(beiCondTypeString, beiCondType);
+    const bool editConditionMappedToBehaviors = _userDefinedEditCondition == beiCondType;
+
+    // edit condition should not be customizable
+    if(editConditionMappedToBehaviors) {
+      LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig",
+                "LoadUserDefinedBehaviorTreeConfig: edit condition should not be customizable.");
+      return;
+    }
+
+    // if parsing the BEIConditionType works, read the behaviorIds
+    if(!beiCondTypeParseSuccess) {
+      LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig",
+                "LoadUserDefinedBehaviorTreeConfig: %s not a valid BEIConditionType.",
+                beiCondTypeString.c_str());
+      return;
+    }
+
+    // if the BehaviorID strings are parsed to strings successfully, convert them to BehaviorIDs
+    std::vector<std::string> behaviorIdStrings;
+    const bool behaviorIdStringsParseSuccess = JsonTools::GetVectorOptional<std::string>(mapOptionsJson, kBehaviorOptionsKey, behaviorIdStrings);
+
+    if(!behaviorIdStringsParseSuccess) {
+      LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig.ParseBehaviorStringsFailed",
+                "LoadUserDefinedBehaviorTreeConfig: Could not parse list of Json BehaviorID Strings.");
+      return;
+    }
+
+    // if the string->BehaviorID conversion happens successfully, add them into a set
+    std::set<BehaviorID> behaviors;
+    for(const auto& behaviorIdString : behaviorIdStrings) {
+      BehaviorID behaviorId = BehaviorID::Anonymous;
+      const bool behaviorIdSuccess = BehaviorIDFromString(behaviorIdString, behaviorId);
+
+      if(!behaviorIdSuccess) {
+        LOG_ERROR("RobotDataLoader.LoadUserDefinedBehaviorTreeConfig",
+                  "LoadUserDefinedBehaviorTreeConfig: %s not a valid BehaviorID.",
+                  behaviorIdString.c_str());
+        return;
+      }
+
+      behaviors.emplace(behaviorId);
+    }
+
+    // add the set of behaviors into the map
+    _conditionToBehaviorsMap->emplace(beiCondType, behaviors);
+  }
+
+}
 
 std::map<std::string, std::string> RobotDataLoader::CreateFileNameToFullPathMap(const std::vector<const char*> & srcDirs, const std::string& fileExtensions) const
 {
@@ -706,17 +769,20 @@ std::map<std::string, std::string> RobotDataLoader::CreateFileNameToFullPathMap(
   return fileNameToFullPath;
 }
 
-void RobotDataLoader::LoadAnimationTriggerResponses()
+
+void RobotDataLoader::LoadAnimationTriggerMap()
 {
-  _animationTriggerResponses->Load(_platform, "assets/cladToFileMaps/AnimationTriggerMap.json", "AnimName");
+  _animationTriggerMap->Load(_platform, "assets/cladToFileMaps/AnimationTriggerMap.json", "AnimName");
 }
 
-void RobotDataLoader::LoadCubeAnimationTriggerResponses()
+void RobotDataLoader::LoadCubeAnimationTriggerMap()
 {
-  _cubeAnimationTriggerResponses->Load(_platform, "assets/cladToFileMaps/CubeAnimationTriggerMap.json", "AnimName");
+  _cubeAnimationTriggerMap->Load(_platform, "assets/cladToFileMaps/CubeAnimationTriggerMap.json", "AnimName");
 }
 
-void RobotDataLoader::LoadDasBlacklistedAnimationTriggers()
+
+
+void RobotDataLoader::LoadDasBlacklistedAnimations()
 {
   static const std::string kBlacklistedAnimationTriggersConfigKey = "blacklisted_animation_triggers";
   const Json::Value& blacklistedTriggers = _dasEventConfig[kBlacklistedAnimationTriggersConfigKey];
@@ -724,6 +790,13 @@ void RobotDataLoader::LoadDasBlacklistedAnimationTriggers()
   {
     const std::string& trigger = blacklistedTriggers[i].asString();
     _dasBlacklistedAnimationTriggers.insert(AnimationTriggerFromString(trigger));
+  }
+  static const std::string kBlacklistedAnimationNamesConfigKey = "blacklisted_animation_names";
+  const Json::Value& blacklistedAnims = _dasEventConfig[kBlacklistedAnimationNamesConfigKey];
+  for (int i = 0; i < blacklistedAnims.size(); i++)
+  {
+    const std::string& animName = blacklistedAnims[i].asString();
+    _dasBlacklistedAnimationNames.insert( animName );
   }
 }
 
@@ -812,7 +885,7 @@ void RobotDataLoader::LoadRobotConfigs()
   {
     const std::string filename{_platform->pathToResource(Util::Data::Scope::Resources, "config/features.json")};
     const std::string fileContents{Util::FileUtils::ReadFile(filename)};
-    _context->GetFeatureGate()->Init(fileContents);
+    _context->GetFeatureGate()->Init(_context, fileContents);
   }
 
   // A/B testing definition
@@ -820,18 +893,6 @@ void RobotDataLoader::LoadRobotConfigs()
     const std::string filename{_platform->pathToResource(Util::Data::Scope::Resources, "config/experiments.json")};
     const std::string fileContents{Util::FileUtils::ReadFile(filename)};
     _context->GetExperiments()->GetAnkiLab().Load(fileContents);
-  }
-
-  // Inventory config
-  {
-    static const std::string jsonFilename = "config/engine/inventory_config.json";
-    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _inventoryConfig);
-    if (!success)
-    {
-      LOG_ERROR("RobotDataLoader.InventoryConfigNotFound",
-                "Inventory Config file %s not found or failed to parse",
-                jsonFilename.c_str());
-    }
   }
 
   // Web server config
@@ -846,13 +907,74 @@ void RobotDataLoader::LoadRobotConfigs()
     }
   }
 
-  // TextToSpeechConfig
+  // Photography config
   {
-    const std::string jsonFilename = "config/engine/sayTextintentConfig.json";
-    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _textToSpeechConfig);
-    if( !success){
-      LOG_ERROR("RobotDataLoader.TextToSpeechConfigNotFound",
-                "TextToSpeech Engine Config file %s not found or failed to parse",
+    static const std::string jsonFilename = "config/engine/photography_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _photographyConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.PhotographyConfigNotFound",
+                "Photography Config file %s not found or failed to parse",
+                jsonFilename.c_str());
+    }
+  }
+
+  // Settings config
+  {
+    static const std::string jsonFilename = "config/engine/settings_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _settingsConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.SettingsConfigNotFound",
+                "Settings Config file %s not found or failed to parse",
+                jsonFilename.c_str());
+    }
+  }
+
+  // Eye color config
+  {
+    static const std::string jsonFilename = "config/engine/eye_color_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _eyeColorConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.EyeColorConfigNotFound",
+                "Eye Color Config file %s not found or failed to parse",
+                jsonFilename.c_str());
+    }
+  }
+
+  // Jdocs config
+  {
+    static const std::string jsonFilename = "config/engine/jdocs_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _jdocsConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.JdocsConfigNotFound",
+                "Jdocs Config file %s not found or failed to parse",
+                jsonFilename.c_str());
+    }
+  }
+
+  // Account settings config
+  {
+    static const std::string jsonFilename = "config/engine/accountSettings_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _accountSettingsConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.AccountSettingsConfigNotFound",
+                "Account Settings Config file %s not found or failed to parse",
+                jsonFilename.c_str());
+    }
+  }
+
+  // User entitlements config
+  {
+    static const std::string jsonFilename = "config/engine/userEntitlements_config.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, jsonFilename, _userEntitlementsConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.UserEntitlementsConfigNotFound",
+                "User Entitlements Config file %s not found or failed to parse",
                 jsonFilename.c_str());
     }
   }
@@ -889,20 +1011,28 @@ bool RobotDataLoader::DoNonConfigDataLoading(float& loadingCompleteRatio_out)
   return true;
 }
 
-bool RobotDataLoader::HasAnimationForTrigger( AnimationTrigger ev )
+bool RobotDataLoader::HasAnimationForTrigger( AnimationTrigger ev ) const
 {
-  return _animationTriggerResponses->HasKey(ev);
+  return _animationTriggerMap->HasKey(ev);
 }
-std::string RobotDataLoader::GetAnimationForTrigger( AnimationTrigger ev )
+std::string RobotDataLoader::GetAnimationForTrigger( AnimationTrigger ev ) const
 {
-  return _animationTriggerResponses->GetValue(ev);
+  return _animationTriggerMap->GetValue(ev);
 }
-std::string RobotDataLoader::GetCubeAnimationForTrigger( CubeAnimationTrigger ev )
+std::string RobotDataLoader::GetCubeAnimationForTrigger( CubeAnimationTrigger ev ) const
 {
-  return _cubeAnimationTriggerResponses->GetValue(ev);
+  return _cubeAnimationTriggerMap->GetValue(ev);
 }
 
-
+bool RobotDataLoader::IsAnimationAllowedToMoveBodyOnCharger(const std::string& animName) const
+{
+  for (const auto& whitelistAnimPrefix : _whitelistedChargerAnimationPrefixes) {
+    if (Util::StringStartsWith(animName, whitelistAnimPrefix)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 
 }

@@ -16,7 +16,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class AnimationTrigger : int32_t;
 
@@ -34,7 +34,7 @@ protected:
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override{
     modifiers.wantsToBeActivatedWhenOnCharger = true;
     
-    modifiers.visionModesForActiveScope->insert({ VisionMode::DetectingFaces, EVisionUpdateFrequency::Low});
+    modifiers.visionModesForActiveScope->insert({ VisionMode::Faces, EVisionUpdateFrequency::Low});
   }
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
   virtual bool CanBeGentlyInterruptedNow() const override;

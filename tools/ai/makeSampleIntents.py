@@ -20,10 +20,32 @@ import sys
 import json
 import itertools
 
+USAGE_MSG = 'USAGE: {0} <dialogFlowDataDir> <outputFile.json>'.format( sys.argv[0] )
+
+# These are from https://dialogflow.com/docs/reference/system-entities
+SYSTEM_ENTITIES = { "sys.any": ["flower"],
+                    "sys.date-time": ["2017-07-12T16:30:00Z"],
+                    "sys.duration": [{"amount":10, "unit":"min"}],
+                    "sys.time": ["16:30:00", "08:20:01"],
+                    "sys.temperature": [{"amount":25,"unit":"F"}],
+                    "sys.percentage": ["50%"],
+                    "sys.given-name": ["Mary"],
+                    "sys.date": ["2017-07-12"],
+                    "sys.geo-city": ["New York"],
+                    "sys.geo-state-us": ["California"],
+                    "sys.geo-country": ["United States of America"] }
+
 # - - - - - - - - - - - - - - - - - - - - - -
 def Fail(msg):
   sys.stderr.write( '{0}\n'.format(msg) )
   sys.exit( 1 )
+
+# - - - - - - - - - - - - - - - - - - - - - -
+def CheckDirectoryExists( dirPath ):
+  try:
+    os.stat( dirPath )
+  except OSError:
+    Fail( 'Directory missing: {0}'.format( dirPath ) )
 
 # - - - - - - - - - - - - - - - - - - - - - -
 def LoadFile( filename ):
@@ -39,12 +61,11 @@ def GetIntents(path):
   """ Loads and returns a list of intents """
   intents = []
 
-  path = os.path.join( path, 'intents' )
   files = []
   for file in os.listdir( path ):
     if file.endswith( '.json' ):
       filename = os.path.join( path, file )
-      if 'usersays_en' not in filename:
+      if 'usersays' not in filename:
         files.append( filename )
 
   for file in files:
@@ -59,35 +80,18 @@ def GetIntents(path):
   return intents
 
 # - - - - - - - - - - - - - - - - - - - - - -
-def GetSamplesForDataType(paramName, dataType, entities):
+def GetSamplesForDataType(paramName, dataType, entities, ankiEntities):
   """ Map from dataType to a sample, either from entities or system types """
 
   dataType = dataType[1:] # drop the "@"
 
   paramSamples = []
 
-  if dataType == "entity_behavior" \
-   or dataType == "word" \
-   or dataType == "entity_bad_words" \
-   or dataType == "entity_topic":
+  if dataType in ankiEntities:
     paramSamples = entities[dataType]["values"]
   # the rest from https://dialogflow.com/docs/reference/system-entities
-  elif dataType == "sys.date-time":
-    paramSamples = ["2017-07-12T16:30:00Z"]
-  elif dataType == "sys.duration":
-    paramSamples = [{"amount":10,"unit":"min"}]
-  elif dataType == "sys.time":
-    paramSamples = ["16:30:00", "08:20:01"]
-  elif dataType == "sys.temperature":
-    paramSamples = [{"amount":25,"unit":"F"}]
-  elif dataType == "sys.percentage":
-    paramSamples = ["50%"]
-  elif dataType == "sys.given-name":
-    paramSamples = ["Mary"]
-  elif dataType == "sys.date":
-    paramSamples = ["2017-07-12"]
-  elif dataType == "sys.geo-city":
-    paramSamples = ["New York"]
+  elif dataType in SYSTEM_ENTITIES:
+    paramSamples = SYSTEM_ENTITIES[dataType]
 
   if len(paramSamples) == 0:
     # if no match, this script needs updating to match the
@@ -108,18 +112,25 @@ def GetSamplesForDataType(paramName, dataType, entities):
   return sampleList
 
 # - - - - - - - - - - - - - - - - - - - - - -
+def GetEntityFiles(path, fullPath=True):
+  files = []
+  for file in os.listdir( path ):
+    if file.endswith( '.json' ):
+      if 'entries_en' in file:
+        continue
+      if fullPath:
+        files.append( os.path.join( path, file ) )
+      else:
+        files.append( file )
+  return files
+
+# - - - - - - - - - - - - - - - - - - - - - -
 def GetEntities(path):
   """ Loads and returns a list of entities """
 
   entities = {}
 
-  path = os.path.join( path, 'entities' )
-  files = []
-  for file in os.listdir( path ):
-    if file.endswith( '.json' ):
-      filename = os.path.join( path, file )
-      if 'entries_en' not in filename:
-        files.append( filename )
+  files = GetEntityFiles(path)
 
   for file in files:
     entity = {}
@@ -137,7 +148,7 @@ def GetEntities(path):
   return entities
 
 # - - - - - - - - - - - - - - - - - - - - - -
-def MakeSamples( intents, entities ):
+def MakeSamples( intents, entities, ankiEntities ):
   """ Merges intents, entities, and samples of system data types to
       generate and return a list of sample cloud intents """
 
@@ -146,7 +157,7 @@ def MakeSamples( intents, entities ):
   for intent in intents:
     paramSamples = []
     for param in intent["params"]:
-      paramSamples.append( GetSamplesForDataType( param["name"], param["dataType"], entities ) )
+      paramSamples.append( GetSamplesForDataType( param["name"], param["dataType"], entities, ankiEntities ) )
     if len( paramSamples ) == 0:
       sample = {}
       sample["intent"] = intent["name"]
@@ -169,24 +180,45 @@ def SaveSamples( sampleList, outputFilename ):
     json.dump( sampleList, outfile )
 
 # - - - - - - - - - - - - - - - - - - - - - -
+def ParseArgs():
+  """ Parses sys.argv and returns a three-item tuple of:
+      1. path to the intents directory
+      2. path to the entities directory
+      3. path to the json output file """
+
+  if len( sys.argv ) != 3:
+    Fail( USAGE_MSG )
+
+  dialogFlowDataDir = sys.argv[1]
+  CheckDirectoryExists( dialogFlowDataDir )
+
+  intentsDir = os.path.join( dialogFlowDataDir, 'intents' )
+  CheckDirectoryExists( intentsDir )
+
+  entitiesDir = os.path.join( dialogFlowDataDir, 'entities' )
+  CheckDirectoryExists( entitiesDir )
+
+  outputFilename = sys.argv[2]
+
+  return (intentsDir, entitiesDir, outputFilename)
+
+# - - - - - - - - - - - - - - - - - - - - - -
 def main():
-  if len( sys.argv ) != 2:
-    Fail( 'USAGE: {0} <outputFile.json>'.format( sys.argv[0] ) )
 
-  outputFilename = sys.argv[1]
+  intentsDir, entitiesDir, outputFilename = ParseArgs()
 
-  # todo: download DialogFlow data using DEPS or submodules.
-  # For now, get the put the contents of the file victor-prd-lab-04.zip
-  # from nishkar into the "json" dir.
-  pathToIntentData = 'json'
+  intents = GetIntents( intentsDir )
+  entities = GetEntities( entitiesDir )
 
-  intents = GetIntents( pathToIntentData )
-  entities = GetEntities( pathToIntentData )
+  ankiEntities = GetEntityFiles( entitiesDir, False )
+  ankiEntities = map(lambda x: os.path.splitext(x)[0], ankiEntities)
+  ankiEntities.sort()
 
-  sampleList = MakeSamples( intents, entities )
+  sampleList = MakeSamples( intents, entities, ankiEntities )
 
   SaveSamples( sampleList, outputFilename )
 
 # - - - - - - - - - - - - - - - - - - - - - -
 if __name__ == "__main__":
   main()
+

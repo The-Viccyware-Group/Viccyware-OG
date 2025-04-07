@@ -13,8 +13,11 @@
 
 #include "engine/aiComponent/faceSelectionComponent.h"
 
+#include "coretech/vision/engine/camera.h"
+#include "coretech/vision/engine/cameraCalibration.h"
 #include "engine/actions/basicActions.h"
 #include "engine/components/mics/micDirectionHistory.h"
+#include "engine/components/visionComponent.h"
 #include "engine/faceWorld.h"
 #include "engine/robot.h"
 #include "engine/smartFaceId.h"
@@ -25,7 +28,7 @@
 #include "json/json.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 static const char* kPenaltyFactorKey = "factor";
@@ -72,14 +75,8 @@ bool FaceSelectionComponent::ParseFaceSelectionFactorMap(const Json::Value& conf
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SmartFaceID FaceSelectionComponent::GetBestFaceToUse(const FaceSelectionFactorMap& criteriaMap) const
 {
-  const auto& faces = _faceWorld.GetFaceIDs();
-  std::vector<SmartFaceID> smartFaces;
-
-  for(auto faceID : faces) {
-    smartFaces.emplace_back( _faceWorld.GetSmartFaceID( faceID ) );
-  }
-  
-  return GetBestFaceToUse(criteriaMap, smartFaces);
+  auto smartFaceIDs = _faceWorld.GetSmartFaceIDs(0);
+  return GetBestFaceToUse(criteriaMap, smartFaceIDs);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -173,6 +170,23 @@ SmartFaceID FaceSelectionComponent::GetBestFaceToUse(const FaceSelectionFactorMa
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FaceSelectionComponent::AreFacesInFrontOfRobot(std::vector<SmartFaceID>& faceIDs,
+                                                    RobotTimeStamp_t seenSinceTime_ms,
+                                                    bool includeRecognizableOnly) const
+{
+  // To check if faces are within Robot's range of view, pass in half the camera's FOV as the acceptabel face range
+  auto calibration = _visionComp.GetCamera().GetCalibration();
+  if(calibration != nullptr){
+    const Radians fov = calibration->ComputeHorizontalFOV();
+    faceIDs =_faceWorld.GetSmartFaceIDs(seenSinceTime_ms, includeRecognizableOnly, fov.ToFloat()/2);
+    return !faceIDs.empty();
+  }else{
+    return false;
+  }
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 float FaceSelectionComponent::CalculateHeadAngleCost(const Vision::TrackedFace* currentFace) const
 {
   Pose3d poseWrtRobot;
@@ -232,8 +246,8 @@ float FaceSelectionComponent::CalculateTrackingOnlyCost(const Vision::TrackedFac
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 float FaceSelectionComponent::CalculateTimeSinceSeenCost(const Vision::TrackedFace* currentFace) const
 {
-  const TimeStamp_t currTime_ms = _robot.GetLastImageTimeStamp();
-  const TimeStamp_t dt_ms = currTime_ms - currentFace->GetTimeStamp();
+  const RobotTimeStamp_t currTime_ms = _robot.GetLastImageTimeStamp();
+  const RobotTimeStamp_t dt_ms = currTime_ms - currentFace->GetTimeStamp();
 
   return Util::MilliSecToSec((float)dt_ms);
 }
@@ -259,5 +273,5 @@ float FaceSelectionComponent::CalculateDistanceCost(const Vision::TrackedFace* c
   return MM_TO_M(distanceBetween_mm);
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

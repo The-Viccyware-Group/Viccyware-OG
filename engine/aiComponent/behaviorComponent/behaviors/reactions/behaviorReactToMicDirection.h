@@ -21,7 +21,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class BehaviorReactToMicDirection : public ICozmoBehavior
@@ -88,6 +88,7 @@ private:
     NineOClock,
     TenOClock,
     ElevenOClock,
+    Ambient,
 
     NumDirections,
     Invalid = NumDirections,

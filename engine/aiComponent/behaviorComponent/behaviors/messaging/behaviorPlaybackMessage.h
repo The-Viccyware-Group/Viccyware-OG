@@ -15,10 +15,13 @@
 #define __Cozmo_Basestation_Behaviors_BehaviorPlaybackMessage_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
+#include "engine/components/mics/voiceMessageTypes.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+
+class BehaviorTextToSpeechLoop;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class BehaviorPlaybackMessage : public ICozmoBehavior
@@ -53,6 +56,25 @@ protected:
   virtual void OnBehaviorDeactivated() override;
   virtual void BehaviorUpdate() override;
 
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // State Transitions
+
+  void TransitionToPlayingFirstMessage();
+  void TransitionToPlayingNextMessage();
+  void TransitionToFailureResponse();
+  void TransitionToNoMessagesResponse();
+  void TransitionToFinishedMessages();
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // Helpers ...
+
+  // plays the next message in our internal list (starting at the end)
+  void PlaybackNextMessage();
+  void OnMessagePlaybackComplete( VoiceMessageID id );
+
+  void PlayNextRecipientTTS();
+  void PlayTextToSpeech( const std::string& ttsString, BehaviorSimpleCallback callback = {} );
+
 
 private:
 
@@ -62,6 +84,14 @@ private:
   struct InstanceConfig
   {
     InstanceConfig();
+
+    // Configurable localization keys
+    std::string ttsAnnounceSingleKey;
+    std::string ttsAnnouncePluralKey;
+    std::string ttsNoRecipientKey;
+    std::string ttsNoMessagesKey;
+
+    std::shared_ptr<BehaviorTextToSpeechLoop> ttsBehavior;
 
   } _iVars;
 
@@ -73,14 +103,16 @@ private:
   {
     DynamicVariables();
 
-    float         startedRecordingTime; // temp
-    std::string   messageRecipient;
+    std::string          messageRecipient;
+    VoiceMessageList     messages;
+    VoiceMessageUserList allMessages;
+    VoiceMessageID       activeMessageId;
 
   } _dVars;
 
 }; // class BehaviorPlaybackMessage
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_Behaviors_BehaviorPlaybackMessage_H__

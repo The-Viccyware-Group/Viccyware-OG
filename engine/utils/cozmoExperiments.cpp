@@ -22,7 +22,7 @@
 #endif
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 CozmoExperiments::CozmoExperiments(const CozmoContext* context)
 : _context(context)
@@ -56,7 +56,7 @@ void CozmoExperiments::InitExperiments()
   };
   auto userIdAccessor = [this] {
     Robot* robot = _context->GetRobotManager()->GetRobot();
-    return robot != nullptr ? std::to_string(robot->GetBodySerialNumber()) : GetDeviceId();
+    return robot != nullptr ? std::to_string(robot->GetHeadSerialNumber()) : GetDeviceId();
   };
   Util::AnkiLab::InitializeABInterface(labOpRunner, userIdAccessor);
 }

@@ -11,9 +11,9 @@
 #include "lights.h"
 #include "mics.h"
 #include "touch.h"
-#include "contacts.h"
 #include "vectors.h"
 #include "flash.h"
+#include "encoders.h"
 
 #include "messages.h"
 
@@ -81,6 +81,11 @@ static uint8_t inbound_raw[MAX_INBOUND_SIZE];
 
 static int missed_frames = 0;
 
+// Receive buffer stuff
+static int previousIndex = 0;
+static int receivedWords;
+static CommsState state;
+
 static uint32_t crc(const void* ptr, int length) {
   const uint32_t* data = (const uint32_t*) ptr;
 
@@ -121,6 +126,9 @@ void Comms::init(void) {
   DMA1_Channel5->CPAR = (uint32_t)&USART1->RDR;
   DMA1_Channel5->CMAR = (uint32_t)inbound_raw;
   DMA1_Channel5->CNDTR = sizeof(inbound_raw);
+
+  reset();
+
   DMA1_Channel5->CCR = DMA_CCR_MINC
                      | DMA_CCR_CIRC
                      | DMA_CCR_TCIE
@@ -130,6 +138,14 @@ void Comms::init(void) {
 
   static const AckMessage ack = { ACK_APPLICATION };
   enqueue(PAYLOAD_ACK, &ack, sizeof(ack));
+}
+
+void Comms::reset() {
+  NVIC_DisableIRQ(DMA1_Channel4_5_IRQn);
+  // Clear out any received bytes
+  state = COMM_STATE_SYNC;
+  memset(inbound_raw, 0, sizeof(inbound_raw));
+  NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
 }
 
 void Comms::enqueue(PayloadId kind, const void* packet, int size) {
@@ -190,6 +206,12 @@ void Comms::tick(void) {
   // Finalize the packet
   int count = sizeof(outboundPacket.sync);
 
+  outboundPacket.sync.payload.flags  = 0
+                                     | (Opto::active ? RUNNING_FLAGS_SENSORS_VALID : 0)
+                                     | (Encoders::disabled ? ENCODERS_DISABLED : 0)
+                                     | (Encoders::head_invalid ? ENCODER_HEAD_INVALID : 0)
+                                     | (Encoders::lift_invalid ? ENCODER_LIFT_INVALID : 0);
+  
   Analog::transmit(&outboundPacket.sync.payload);
   Motors::transmit(&outboundPacket.sync.payload);
   Opto::transmit(&outboundPacket.sync.payload);
@@ -252,11 +274,12 @@ static void ProcessMessage(InboundPacket& packet) {
   // Process our packet
   if (foundCRC == footer->checksum) {
     // Emergency eject in case of recovery mode
-    BODY_TX::set();
     BODY_TX::mode(MODE_ALTERNATE);
 
     switch (packet.header.payload_type) {
       case PAYLOAD_SHUT_DOWN:
+        // Prevent system from waking itself up for 1 second
+        missed_frames = 0;
         Power::setMode(POWER_STOP);
         break ;
       case PAYLOAD_MODE_CHANGE:
@@ -275,9 +298,9 @@ static void ProcessMessage(InboundPacket& packet) {
         Power::wakeUp();
         Motors::receive(&packet.headToBody);
         Lights::receive(packet.headToBody.lightState.ledColors);
+        Analog::receive(&packet.headToBody);
         break ;
       case PAYLOAD_CONT_DATA:
-        Contacts::forward(packet.contactData);
         break ;
       default:
         static const AckMessage ack = { NACK_BAD_COMMAND };
@@ -292,10 +315,6 @@ static void ProcessMessage(InboundPacket& packet) {
 
 extern "C" void DMA1_Channel4_5_IRQHandler(void) {
   // Find number of words transfered
-  static int previousIndex = 0;
-  static int receivedWords = 0;
-  static CommsState state = COMM_STATE_SYNC;
-
   int currentIndex = MAX_INBOUND_SIZE - DMA1_Channel5->CNDTR;
 
   static InboundPacket packet;
@@ -377,7 +396,7 @@ extern "C" void DMA1_Channel4_5_IRQHandler(void) {
         // Process the message
         ProcessMessage(packet);
 
-        // Clear out our payload
+        // Clear out our payload       
         memcpy(&packet.raw[0], &packet.raw[packetLength], receivedWords - packetLength);
         receivedWords -= packetLength;
         state = COMM_STATE_SYNC;

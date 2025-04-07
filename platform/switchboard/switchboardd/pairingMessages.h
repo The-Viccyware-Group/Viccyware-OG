@@ -13,9 +13,11 @@
 #ifndef SecurePairingMessages_h
 #define SecurePairingMessages_h
 
-#define SB_PAIRING_PROTOCOL_VERSION 2
+#define SB_PAIRING_PROTOCOL_VERSION V5
 #define SB_IPv4_SIZE 4
 #define SB_IPv6_SIZE 16
+
+#include <stdint.h>
 
 namespace Anki {
 namespace Switchboard {
@@ -23,7 +25,11 @@ namespace Switchboard {
     INVALID                   = 0,
     V1                        = 1,
     V2                        = 2,
-    CURRENT                   = SB_PAIRING_PROTOCOL_VERSION,
+    V3                        = 3,
+    V4                        = 4,
+    V5                        = 5,
+    FACTORY                   = V2,
+    CURRENT                   = V5,
   };
   
   enum SetupMessage : uint8_t {

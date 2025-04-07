@@ -18,7 +18,7 @@
 #include "util/container/circularBuffer.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 class ConditionMotionDetected;
 
@@ -26,6 +26,8 @@ class BehaviorReactToMotion : public ICozmoBehavior
 {
 public: 
   virtual ~BehaviorReactToMotion();
+  
+  void DevAddFakeMotion();
 
 protected:
 
@@ -132,7 +134,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorReactToMotion__

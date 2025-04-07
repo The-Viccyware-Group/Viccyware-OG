@@ -22,7 +22,7 @@ namespace Util {
 class GraphEvaluator2d;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class MoodDecayEvaulator
 {
@@ -49,7 +49,7 @@ public:
 
   // Take in the current value and time and return the _new_ emotion value. Will apply the correct graph
   // internally and won't cross 0 with decay
-  float EvaluateDecay(float currentValue, float currentTimeSinceEvent_s, float deltaTime_s) const;
+  float EvaluateDecay(float currentValue, float currentTimeSinceEvent_s, float deltaTime_s, float& velocity, float& accel) const;
 
   // Return true if the evaluator is empty and has no value (e.g. was default constructed or given an empty
   // graph)

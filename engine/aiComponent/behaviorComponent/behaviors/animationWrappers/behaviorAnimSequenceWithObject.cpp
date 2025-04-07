@@ -16,11 +16,12 @@
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/actions/basicActions.h"
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 
 #include "coretech/common/engine/jsonTools.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
 const char* kObjectTypeKey = "objectType";
@@ -97,5 +98,5 @@ const ObservableObject* BehaviorAnimSequenceWithObject::GetLocatedObject() const
   return object;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

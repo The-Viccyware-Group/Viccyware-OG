@@ -31,7 +31,7 @@
 #define INVALID_IDEAL_FOLLOW_LINE_IDX std::numeric_limits<s16>::max()
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
   namespace SteeringController {
 
 
@@ -82,6 +82,8 @@ namespace Anki {
 #else
       const f32 POINT_TURN_SLIP_COMP_FACTOR = 1.5f;
 #endif
+      
+      const f32 MAX_PITCH_POINT_TURN_RAD = DEG_TO_RAD(45.f);
       
       f32 pointTurnAngTol_;
       
@@ -387,14 +389,6 @@ namespace Anki {
       //Deactivate steering if: We are not really moving and the commanded speed is zero (or smaller than 0+eps)
       if (!WheelController::AreWheelsMoving() && ABS(desspeed) <= SpeedController::SPEED_CONSIDER_VEHICLE_STOPPED_MM_S) {
         steering_active = false;
-
-        // Set wheel controller coast mode as we finish decelerating to 0
-        WheelController::SetCoastMode(true);
-      }
-
-      // If we're commanding any non-zero speed, don't coast
-      if(ABS(desspeed) > SpeedController::SPEED_CONSIDER_VEHICLE_STOPPED_MM_S) {
-        WheelController::SetCoastMode(false);
       }
 
       ///////////////////////////////////////////////////////////////////////////////
@@ -714,12 +708,29 @@ namespace Anki {
     // Position-controlled point turn update
     void ManagePointTurn()
     {
-
+      
+      // Check to make sure the robot is not pitched too steeply,
+      // and if it is, stop and cancel the point turn
+      const Radians& currPitch = IMUFilter::GetPitch();
+      // The only exception is that when the robot is being held, we don't care if the pitch
+      // is out of the acceptable range, since some behaviors like the HeldInPalm or the
+      // WhileInAir reactions can have actions that execute point turns while the robot
+      // is tilted in mid-air, on a user's palm, etc.
+      const bool isBeingHeld = IMUFilter::IsBeingHeld();
+      if (currPitch.getAbsoluteVal() > MAX_PITCH_POINT_TURN_RAD && !isBeingHeld) {
+        ExitPointTurn();
+        AnkiInfo( "SteeringController.ManagePointTurn.StoppingDueToPitch",
+                  "Pitch magnitude of %f [deg] is higher than max allowed pitch of %f [deg]",
+                  currPitch.getAbsoluteVal().getDegrees(),
+                  RAD_TO_DEG(MAX_PITCH_POINT_TURN_RAD));
+        return;
+      }
+      
       // Update current angular velocity
       f32 currDesiredAngularVel, currDesiredAngle;
       vpg_.Step(currDesiredAngularVel, currDesiredAngle);
 
-      const Radians& currAngle = Cozmo::Localization::GetCurrPose_angle();
+      const Radians& currAngle = Vector::Localization::GetCurrPose_angle();
       
       // Compute the velocity along the arc length equivalent of currAngularVel.
       // currDesiredAngularVel / PI = arcVel / (PI * R)
@@ -952,5 +963,5 @@ namespace Anki {
 
     
   } // namespace SteeringController
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

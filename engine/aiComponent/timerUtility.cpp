@@ -22,12 +22,13 @@
 #include <chrono>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace{
-Anki::Cozmo::TimerUtility* sTimerUtility = nullptr;
+Anki::Vector::TimerUtility* sTimerUtility = nullptr;
 }
 
+#if ANKI_DEV_CHEATS
 CONSOLE_VAR(u32, kAdvanceTimerSeconds,   "TimerUtility.AdvanceTimerSeconds", 60);
 CONSOLE_VAR(u32, kAdvanceTimerAndAnticSeconds,   "TimerUtility.AdvanceTimerAndAnticSeconds", 60);
 
@@ -56,6 +57,7 @@ void AdvanceTimerBySeconds(int seconds)
 
 CONSOLE_FUNC(AdvanceTimer, "TimerUtility.AdvanceTimer");
 CONSOLE_FUNC(AdvanceTimerAndAntic, "TimerUtility.AdvanceTimerAndAntic");
+#endif // ANKI_DEV_CHEATS
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -113,5 +115,5 @@ int TimerUtility::GetSystemTime_s() const
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

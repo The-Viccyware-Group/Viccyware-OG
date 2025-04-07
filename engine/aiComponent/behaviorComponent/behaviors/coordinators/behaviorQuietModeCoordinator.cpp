@@ -13,29 +13,32 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/coordinators/behaviorQuietModeCoordinator.h"
 #include "engine/actions/dockActions.h"
-#include "engine/activeObject.h"
 #include "engine/aiComponent/aiWhiteboard.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
+#include "engine/aiComponent/behaviorComponent/behaviors/timer/behaviorTimerUtilityCoordinator.h"
+#include "engine/block.h"
 #include "engine/audio/engineRobotAudioClient.h"
 #include "clad/types/animationTrigger.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "engine/aiComponent/behaviorComponent/userIntentComponent.h"
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/components/carryingComponent.h"
-#include "engine/components/cubes/cubeLightComponent.h"
+#include "engine/components/cubes/cubeLights/cubeLightComponent.h"
 #include "engine/moodSystem/moodManager.h"
 #include "util/console/consoleInterface.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
   const char* const kActiveTimeKey        = "activeTime_s";
   const char* const kBehaviorsKey         = "behaviors";
   const char* const kBehaviorKey          = "behavior";
   const char* const kAudioAllowedKey      = "audioAllowed";
+  const char* const kTimeToPowerSaveKey   = "timeToPowerSave_s";
 
   const float kAccelMagnitudeShakingStartedThreshold = 16000.f;
 }
@@ -52,6 +55,7 @@ BehaviorQuietModeCoordinator::DynamicVariables::DynamicVariables()
 {
   audioActive = true;
   wasFixed = false;
+  requestedPowerSave = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -59,6 +63,7 @@ BehaviorQuietModeCoordinator::BehaviorQuietModeCoordinator(const Json::Value& co
  : ICozmoBehavior(config)
 {
   _iConfig.activeTime_s = JsonTools::ParseFloat(config, kActiveTimeKey, GetDebugLabel());
+  _iConfig.timeToPowerSave_s = JsonTools::ParseFloat(config, kTimeToPowerSaveKey, GetDebugLabel());
   
   const auto& behaviors = config[kBehaviorsKey];
   if( behaviors.isArray() ) {
@@ -81,7 +86,7 @@ BehaviorQuietModeCoordinator::BehaviorQuietModeCoordinator(const Json::Value& co
 void BehaviorQuietModeCoordinator::InitBehavior()
 {
   const auto& BC = GetBEI().GetBehaviorContainer();
-  _iConfig.wakeWordBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ReactToTriggerDirectionAwake) );
+  _iConfig.wakeWordBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(TriggerWordDetected) );
   ANKI_VERIFY( _iConfig.wakeWordBehavior != nullptr,
                "BehaviorQuietModeCoordinator.InitBehavior.InvalidBehavior",
                "Wake word behavior not found" );
@@ -93,6 +98,10 @@ void BehaviorQuietModeCoordinator::InitBehavior()
                  "Behavior ID %s not found",
                  BehaviorTypesWrapper::BehaviorIDToString(entry.behaviorID) );
   }
+  
+  BC.FindBehaviorByIDAndDowncast(BEHAVIOR_ID(TimerUtilityCoordinator),
+                                 BEHAVIOR_CLASS(TimerUtilityCoordinator),
+                                 _iConfig.timerBehavior);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -127,6 +136,7 @@ void BehaviorQuietModeCoordinator::GetBehaviorJsonKeys(std::set<const char*>& ex
     kBehaviorKey,
     kAudioAllowedKey,
     kActiveTimeKey,
+    kTimeToPowerSaveKey
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
 }
@@ -175,9 +185,20 @@ void BehaviorQuietModeCoordinator::BehaviorUpdate()
     // note that this means the trigger word was used (to break us out of the quiet behavior)
     // but that the stimulation was still fixed at 0. we might consider issuing a fake "ReactToTriggerWord"
     // emotion event here to compensate
+    // note that this also doesn't send any wake word triggered DAS events or help accumulate wake word stats!
     CancelSelf();
     return;
   }
+
+  // wake word should disable timer
+  if( (_iConfig.timerBehavior != nullptr) && (_iConfig.wakeWordBehavior != nullptr) && _iConfig.timerBehavior->IsTimerRinging() ) {
+    _iConfig.wakeWordBehavior->SetDontActivateThisTick( GetDebugLabel() );
+    // disable streaming when wake work behavior is suppressed
+    SmartPushEmptyResponseToTriggerWord();
+  } else {
+    SmartPopResponseToTriggerWord();
+  }
+  
   
   // exit quiet mode once enough time has elapsed
   const float timeActivated_s = GetActivatedDuration();
@@ -190,6 +211,11 @@ void BehaviorQuietModeCoordinator::BehaviorUpdate()
   if( GetBEI().GetRobotInfo().GetHeadAccelMagnitudeFiltered() > kAccelMagnitudeShakingStartedThreshold ) {
     CancelSelf();
     return;
+  }
+  
+  if(timeActivated_s > _iConfig.timeToPowerSave_s && !_dVars.requestedPowerSave) {
+    ICozmoBehavior::SmartRequestPowerSaveMode();
+    _dVars.requestedPowerSave = true;
   }
   
   // if we're here, quiet mode is stll active. go through the behavior list like a DispatcherStrictPriority would
@@ -211,11 +237,11 @@ void BehaviorQuietModeCoordinator::SimmerDownNow()
   
   GetBEI().GetCubeLightComponent().StopAllAnims();
   BlockWorldFilter filter;
-  filter.AddAllowedFamily(ObjectFamily::LightCube);
-  std::vector<const ActiveObject*> connectedCubes;
-  GetBEI().GetBlockWorld().FindConnectedActiveMatchingObjects(filter, connectedCubes);
+  filter.AddFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
+  std::vector<const Block*> connectedCubes;
+  GetBEI().GetBlockWorld().FindConnectedMatchingBlocks(filter, connectedCubes);
   for( const auto* obj : connectedCubes ) {
-    GetBEI().GetCubeLightComponent().PlayLightAnim( obj->GetID(), CubeAnimationTrigger::SleepNoFade );
+    GetBEI().GetCubeLightComponent().PlayLightAnimByTrigger( obj->GetID(), CubeAnimationTrigger::SleepNoFade );
   }
   
   auto& moodManager = GetBEI().GetMoodManager();

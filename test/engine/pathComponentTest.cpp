@@ -17,7 +17,7 @@
 
 #include "engine/components/pathComponent.h"
 #include "engine/cozmoContext.h"
-#include "engine/latticePlanner.h"
+#include "engine/xyPlanner.h"
 #include "engine/robot.h"
 #include "engine/robotInterface/messageHandler.h"
 #include "engine/robotManager.h"
@@ -25,9 +25,9 @@
 #include "test/engine/helpers/messaging/stubRobotMessageHandler.h"
 
 using namespace Anki;
-using namespace Cozmo;
+using namespace Vector;
 
-extern Anki::Cozmo::CozmoContext* cozmoContext;
+extern Anki::Vector::CozmoContext* cozmoContext;
 
 #define EXPECT_STATUS_EQ(x, y) EXPECT_EQ((x), (y)) << "expected " << ERobotDriveToPoseStatusToString(x) \
                                                    << " got " << ERobotDriveToPoseStatusToString(y)
@@ -46,11 +46,9 @@ protected:
     _robot.reset(new Robot(1, cozmoContext));
     _pathComponent = &(_robot->GetPathComponent());
 
-    LatticePlanner* planner = dynamic_cast<LatticePlanner*>(_pathComponent->_longPathPlanner.get());
+    _pathComponent->_longPathPlanner.reset(new XYPlanner(_robot.get(), true));
+    XYPlanner* planner = dynamic_cast<XYPlanner*>(_pathComponent->_longPathPlanner.get());
     ASSERT_TRUE(planner != nullptr);
-
-    // default planner to run in main thread
-    planner->SetIsSynchronous(true);
 
     _robot->FakeSyncRobotAck();
 
@@ -71,9 +69,9 @@ private:
   // This works because path component doesn't actually have any
   // dependent components.
   //
-  void Update(Anki::Cozmo::PathComponent * pathComponent)
+  void Update(Anki::Vector::PathComponent * pathComponent)
   {
-    static const Anki::Cozmo::RobotCompMap dependentComps;
+    static const Anki::Vector::RobotCompMap dependentComps;
     pathComponent->UpdateDependent(dependentComps);
   }
 

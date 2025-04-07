@@ -12,6 +12,7 @@ include(anki_build_cxx)
 #
 
 anki_build_cxx_library(victor_web_library ${ANKI_SRCLIST_DIR})
+anki_build_target_license(victor_web_library "ANKI")
 
 set(PLATFORM_LIBS "")
 set(PLATFORM_INCLUDES ${OPENCV_INCLUDE_PATHS})
@@ -31,7 +32,6 @@ endif()
 
 target_link_libraries(victor_web_library
   PRIVATE
-  util
   cti_vision
   DAS
   osState
@@ -57,17 +57,18 @@ target_include_directories(victor_web_library
 
 # victor_web_server binary only builds on VICOS now
 # mac implementation uses (webotsCtrlWebServer)
-if (VICOS)
+if (VICOS AND NOT ANKI_NO_WEBSERVER_ENABLED)
 
   anki_build_cxx_executable(vic-webserver ${ANKI_SRCLIST_DIR})
+  anki_build_target_license(vic-webserver "ANKI")
 
   target_link_libraries(vic-webserver
     PRIVATE
     victor_web_library
     cti_common
-    util
     victorCrashReports
     ${PLATFORM_LIBS}
+    ${ASAN_EXE_LINKER_FLAGS}
   )
 
   anki_build_strip(TARGET vic-webserver)

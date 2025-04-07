@@ -13,21 +13,20 @@
 #include "engine/aiComponent/aiComponent.h"
 
 #include "coretech/common/engine/utils/timer.h"
-#include "coretech/common/shared/radiansMath.h"
+#include "coretech/common/shared/math/radiansMath.h"
 #include "engine/aiComponent/aiWhiteboard.h"
-#include "engine/aiComponent/aiInformationAnalysis/aiInformationAnalyzer.h"
+#include "engine/aiComponent/alexaComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/continuityComponent.h"
 #include "engine/aiComponent/faceSelectionComponent.h"
-#include "engine/aiComponent/freeplayDataTracker.h"
 #include "engine/aiComponent/objectInteractionInfoCache.h"
 #include "engine/aiComponent/puzzleComponent.h"
+#include "engine/aiComponent/salientPointsComponent.h"
 #include "engine/aiComponent/timerUtility.h"
 #include "engine/components/mics/micComponent.h"
 #include "engine/components/sensors/proxSensorComponent.h"
 #include "engine/components/publicStateBroadcaster.h"
-#include "engine/components/progressionUnlockComponent.h"
 #include "engine/cozmoContext.h"
 #include "engine/externalInterface/externalInterface.h"
 #include "engine/moodSystem/moodManager.h"
@@ -36,8 +35,9 @@
 #include "engine/robotDataLoader.h"
 #include "engine/robotStateHistory.h"
 
+#include "util/logging/DAS.h"
+
 namespace {
-static const int kLowQualityProxDistance_mm   = 300;   // Assumed distance if prox reading is low quality
 static const int kObsSampleWindow_ms          = 300;   // sample all measurements over this period
 static const f32 kObsSampleWindow_s           = Anki::Util::MilliSecToSec((f32)kObsSampleWindow_ms);
 static const int kNumRequiredSamples          = static_cast<int>(kObsSampleWindow_s / 0.03f) - 1; // Require almost all samples to be valid
@@ -48,7 +48,7 @@ static const int kObsMaxObjectDistance_mm     = 100;   // don't respond if senso
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AIComponent::AIComponent()
@@ -66,7 +66,7 @@ AIComponent::~AIComponent()
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void AIComponent::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents)
+void AIComponent::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps)
 {
   _robot = robot;
   const CozmoContext* context = robot->GetContext();
@@ -78,18 +78,19 @@ void AIComponent::InitDependent(Cozmo::Robot* robot, const RobotCompMap& depende
   {
     _aiComponents = std::make_unique<EntityType>();
     {
-      const MicDirectionHistory& micDirectionHistory = robot->GetMicComponent().GetMicDirectionHistory();
-      auto* faceSelectionComp = new FaceSelectionComponent(*robot, robot->GetFaceWorld(), micDirectionHistory);
+      const MicDirectionHistory& micDirectionHistory = dependentComps.GetComponent<MicComponent>().GetMicDirectionHistory();
+      auto* faceSelectionComp = new FaceSelectionComponent(*robot, dependentComps.GetComponent<FaceWorld>(), 
+                                                           micDirectionHistory, dependentComps.GetComponent<VisionComponent>());
 
-      _aiComponents->AddDependentComponent(AIComponentID::BehaviorComponent,          new BehaviorComponent());
-      _aiComponents->AddDependentComponent(AIComponentID::ContinuityComponent,        new ContinuityComponent(*robot));
-      _aiComponents->AddDependentComponent(AIComponentID::FaceSelection,              faceSelectionComp);
-      _aiComponents->AddDependentComponent(AIComponentID::FreeplayDataTracker,        new FreeplayDataTracker());
-      _aiComponents->AddDependentComponent(AIComponentID::InformationAnalyzer,        new AIInformationAnalyzer());
-      _aiComponents->AddDependentComponent(AIComponentID::ObjectInteractionInfoCache, new ObjectInteractionInfoCache(*robot));
-      _aiComponents->AddDependentComponent(AIComponentID::Puzzle,                     new PuzzleComponent(*robot));
-      _aiComponents->AddDependentComponent(AIComponentID::TimerUtility,               new TimerUtility());
-      _aiComponents->AddDependentComponent(AIComponentID::Whiteboard,                 new AIWhiteboard(*robot));
+      _aiComponents->AddDependentComponent(AIComponentID::AlexaComponent,                    new AlexaComponent(*robot));
+      _aiComponents->AddDependentComponent(AIComponentID::BehaviorComponent,                 new BehaviorComponent());
+      _aiComponents->AddDependentComponent(AIComponentID::ContinuityComponent,               new ContinuityComponent(*robot));
+      _aiComponents->AddDependentComponent(AIComponentID::FaceSelection,                     faceSelectionComp);
+      _aiComponents->AddDependentComponent(AIComponentID::ObjectInteractionInfoCache,        new ObjectInteractionInfoCache(*robot));
+      _aiComponents->AddDependentComponent(AIComponentID::Puzzle,                            new PuzzleComponent(*robot));
+      _aiComponents->AddDependentComponent(AIComponentID::SalientPointsDetectorComponent,    new SalientPointsComponent());
+      _aiComponents->AddDependentComponent(AIComponentID::TimerUtility,                      new TimerUtility());
+      _aiComponents->AddDependentComponent(AIComponentID::Whiteboard,                        new AIWhiteboard(*robot));
     }
 
     _aiComponents->InitComponents(robot);
@@ -98,7 +99,7 @@ void AIComponent::InitDependent(Cozmo::Robot* robot, const RobotCompMap& depende
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void AIComponent::UpdateDependent(const RobotCompMap& dependentComponents)
+void AIComponent::UpdateDependent(const RobotCompMap& dependentComps)
 {
   _aiComponents->UpdateComponents();
   CheckForSuddenObstacle(*_robot);
@@ -116,6 +117,12 @@ void AIComponent::OnRobotRelocalized()
 {
   GetComponent<AIWhiteboard>().OnRobotRelocalized();
 }
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void AIComponent::OnRobotWakeUp()
+{
+  GetComponent<AIWhiteboard>().OnRobotWakeUp();
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AIComponent::CheckForSuddenObstacle(Robot& robot)
@@ -126,8 +133,8 @@ void AIComponent::CheckForSuddenObstacle(Robot& robot)
   std::vector<Radians> angleVec;  // set of angles from history
   angleVec.reserve(kNumRequiredSamples);
 
-  const auto&       states  = robot.GetStateHistory()->GetRawPoses();
-  const TimeStamp_t endTime = robot.GetLastMsgTimestamp() - kObsSampleWindow_ms;
+  const auto&            states  = robot.GetStateHistory()->GetRawStates();
+  const RobotTimeStamp_t endTime = robot.GetLastMsgTimestamp() - kObsSampleWindow_ms;
 
   int n = 0;
   for(auto st = states.rbegin(); st != states.rend() && st->first > endTime; ++st) {
@@ -135,20 +142,12 @@ void AIComponent::CheckForSuddenObstacle(Robot& robot)
     angleVec.push_back(state.GetPose().GetRotationAngle<'Z'>());
     const auto& proxData = state.GetProxSensorData();
 
-    // Ignore readings where lift was in fov or it's too pitched
-    if (proxData.isLiftInFOV || proxData.isTooPitched) {
-      continue;
+    // only check for average prox value if we found an object
+    if (proxData.foundObject) {
+      avgProxValue_mm    += proxData.distance_mm;
+      avgRobotSpeed_mmps += state.GetLeftWheelSpeed_mmps() + state.GetRightWheelSpeed_mmps();
+      n++;
     }
-
-    // If signal quality was low, then assume some fixed far
-    // distance since the actual reading can vary wildly.
-    avgProxValue_mm    += proxData.isValidSignalQuality ?
-                          state.GetProxSensorVal_mm() :
-                          kLowQualityProxDistance_mm;
-
-    avgRobotSpeed_mmps += state.GetLeftWheelSpeed_mmps() + state.GetRightWheelSpeed_mmps();
-
-    n++;
   }
 
   // Check that there are a sufficient number of samples
@@ -171,11 +170,9 @@ void AIComponent::CheckForSuddenObstacle(Robot& robot)
   const f32 angleRange_rad = distToMaxAngle_rad - distToMinAngle_rad;
 
   // Get latest distance reading and assess validity
-  const auto& proxData = robot.GetProxSensorComponent().GetLatestProxData();
-  const u16 latestDistance_mm = proxData.distance_mm;
-  const bool readingIsValid = proxData.isValidSignalQuality &&
-                              !proxData.isLiftInFOV &&
-                              !proxData.isTooPitched;
+  const auto& latestProxData = robot.GetProxSensorComponent().GetLatestProxData();
+  const bool foundObject = latestProxData.foundObject;
+  const u16 latestDistance_mm = latestProxData.distance_mm;
 
   // (Not-exactly) "average" speed at which object is approaching robot
   // If it was looking at nothing and then an obstacle appears in front of it,
@@ -191,19 +188,24 @@ void AIComponent::CheckForSuddenObstacle(Robot& robot)
   // 5) Object is moving faster than some min speed
   // 6) Last sensor reading is less than a certain distance that defines
   //    how close an obstacle needs to be in order for it to be sudden.
-  _suddenObstacleDetected = readingIsValid &&
+  static bool wasObstacleDetected = false;
+  _suddenObstacleDetected = foundObject &&
                             (avgRobotSpeed_mmps  >= 0.f) &&
                             (avgObjectSpeed_mmps >= kObsTriggerSensitivity * avgRobotSpeed_mmps) &&
                             (angleRange_rad <= kObsMaxRotation_rad) &&
                             (avgObjectSpeed_mmps >= kObsMinObjectSpeed_mmps) &&
-                            (latestDistance_mm   <= kObsMaxObjectDistance_mm);
+                            (latestDistance_mm <= kObsMaxObjectDistance_mm);
 
-  if (_suddenObstacleDetected) {
-    Anki::Util::sInfoF("robot.obstacle_detected", {},
-                       "dist: %4.2f objSpeed: %4.2f robotSpeed: %4.2f",
-                       avgProxValue_mm, avgObjectSpeed_mmps, avgRobotSpeed_mmps);
-    PRINT_NAMED_INFO("AIComponent.Update.CheckForSuddenObstacle","SuddenObstacleDetected");
+  if (!wasObstacleDetected && _suddenObstacleDetected) {
+    DASMSG(robot_obstacle_detected,
+           "robot.obstacle_detected",
+           "The robot has detected (with his prox sensor) that an obstacle has suddenly appeared in front of him");
+    DASMSG_SET(i1, static_cast<int64_t>(avgProxValue_mm), "Average prox sensor value in the recent past (mm)");
+    DASMSG_SET(i2, static_cast<int64_t>(avgObjectSpeed_mmps), "Average object speed in the recent past (mm/sec)");
+    DASMSG_SET(i3, static_cast<int64_t>(avgRobotSpeed_mmps), "Average robot speed in the recent past (mm/sec)");
+    DASMSG_SEND();
   }
+  wasObstacleDetected = _suddenObstacleDetected;
 }
 
 #if ANKI_DEV_CHEATS
@@ -215,5 +217,5 @@ BehaviorContainer& AIComponent::GetBehaviorContainer()
 }
 #endif
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

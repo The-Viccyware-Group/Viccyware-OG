@@ -53,8 +53,23 @@ public:
   // reads resource as json file. returns true if successful.
   static bool readAsJson(const std::string& resourceName, Json::Value& data);
 
-  // write dat to json file. returns true if successful.
+  // write data to json file. returns true if successful.
   bool writeAsJson(const Scope& resourceScope, const std::string& resourceName, const Json::Value& data) const;
+
+  // write data to json file. returns true if successful.
+  bool writeAsJson(const std::string& resourceName, const Json::Value& data) const;
+
+  // Helper methods to parse data platform configuration file.
+  // Helper methods return nullptr on error.
+  // Format looks like this:
+  // {
+  //   "DataPlatformPersistentPath": "/path/to/persistent/files",
+  //   "DataPlatformCachePath": "/path/to/cache/files",
+  //   "DataPlatformResourcesPath": "/path/to/resource/files"
+  // }
+  //
+  static std::unique_ptr<DataPlatform> GetDataPlatform(const Json::Value & json);
+  static std::unique_ptr<DataPlatform> GetDataPlatform(const std::string & path);
 
 private:
   const std::string _persistentPath;

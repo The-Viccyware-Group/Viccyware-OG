@@ -17,7 +17,7 @@
 #include "engine/aiComponent/beiConditions/iBEIConditionEventHandler.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BEIConditionMessageHelper;
 
@@ -33,11 +33,12 @@ protected:
   virtual bool AreConditionsMetInternal(BehaviorExternalInterface& behaviorExternalInterface) const override;
   
 private:
+  bool enabledWhileHeldOnPalm = false;
   mutable float _onEdgeStartTime_s;
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AiComponent_BeiConditions_ConditionStuckOnEdge__

@@ -1,0 +1,21 @@
+# https://help.github.com/articles/about-codeowners/
+
+.github/CODEOWNERS @CodeForCoffee
+Jenkinsfile @CodeForCoffee
+project/buildScripts/* @CodeForCoffee
+project/victor/scripts/* @CodeForCoffee
+
+clad/src/clad/types/behaviorComponent/activeFeatures.clad @dstulic
+
+robot/hal/* @ashelly @DanielCasner
+robot/syscon/* @bryon
+robot/include/anki/cozmo/shared/factory/* @alchaussee
+
+# The OTA client
+platform/update-engine/update-engine.py @seichert
+
+# Proto files
+/tools/protobuf/gateway/ @msintov @BruceVonK @rakeshr4
+
+# The compatibility version of the os
+VICTOR_COMPAT_VERSION @CodeForCoffee @chapados

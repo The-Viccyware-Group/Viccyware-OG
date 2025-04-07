@@ -14,17 +14,18 @@
 #include "cozmoAnim/animation/animationStreamer.h"
 #include "cozmoAnim/animComms.h"
 #include "cozmoAnim/animContext.h"
+#include "cozmoAnim/animProcessMessages.h"
 #include "cozmoAnim/faceDisplay/faceDisplay.h"
 #include "cozmoAnim/faceDisplay/faceInfoScreenManager.h"
 #include "cozmoAnim/robotDataLoader.h"
 
-#include "coretech/common/engine/array2d_impl.h"
+#include "coretech/common/shared/array2d.h"
 #include "coretech/common/engine/utils/data/dataPlatform.h"
 #include "coretech/common/engine/utils/data/dataScope.h"
 #include "coretech/vision/engine/image.h"
-#include "coretech/vision/engine/image_impl.h"
 
 #include "clad/robotInterface/messageEngineToRobot.h"
+#include "clad/robotInterface/messageEngineToRobot_sendAnimToRobot_helper.h"
 
 #include "util/console/consoleSystem.h"
 #include "util/logging/logging.h"
@@ -37,18 +38,22 @@
 #include "osState/osState.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 u32 _pin = 123456;
 
-const f32 kRobotNameScale = 0.6f;
-const std::string kURL = "anki.com/v";
-const ColorRGBA   kColor(0.9f, 0.9f, 0.9f, 1.f);
+const f32 kRobotNameScale = 0.7f;
+const std::string kURL = "v.pvic.xyz";
+const ColorRGBA   kColor(0.9f, 0.5f, 0.9f, 1.f);
+
+const char* kShowPinScreenSpriteName = "pairing_icon_key";
+
+bool s_enteredAnyScreen = false;
 }
 
 // Draws BLE name and url to screen
-bool DrawStartPairingScreen(AnimationStreamer* animStreamer)
+bool DrawStartPairingScreen(Anim::AnimationStreamer* animStreamer)
 {
   // Robot name will be empty until switchboard has set the property
   std::string robotName = OSState::getInstance()->GetRobotName();
@@ -56,9 +61,8 @@ bool DrawStartPairingScreen(AnimationStreamer* animStreamer)
   {
     return false;
   }
-
-  animStreamer->EnableKeepFaceAlive(false, 0);
-  animStreamer->Abort();
+  
+  s_enteredAnyScreen = true;  
 
   auto* img = new Vision::ImageRGBA(FACE_DISPLAY_HEIGHT, FACE_DISPLAY_WIDTH);
   img->FillWith(Vision::PixelRGBA(0, 0));
@@ -71,17 +75,22 @@ bool DrawStartPairingScreen(AnimationStreamer* animStreamer)
   img->DrawTextCenteredHorizontally(kURL, CV_FONT_NORMAL, scale, 1, kColor, (FACE_DISPLAY_HEIGHT + textSize.height)/2, true);
 
   auto handle = std::make_shared<Vision::SpriteWrapper>(img);
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetFaceImage(handle, shouldRenderInEyeHue, 0);
+  const bool overrideAllSpritesToEyeHue = false;
+  animStreamer->SetFaceImage(handle, overrideAllSpritesToEyeHue, 0);
 
   return true;
 }
 
 // Draws BLE name, key icon, and BLE pin to screen
-void DrawShowPinScreen(AnimationStreamer* animStreamer, const AnimContext* context, const std::string& pin)
+void DrawShowPinScreen(Anim::AnimationStreamer* animStreamer, const Anim::AnimContext* context, const std::string& pin)
 {
+  s_enteredAnyScreen = true;
+  
   Vision::ImageRGB key;
-  key.Load(context->GetDataLoader()->GetSpritePaths()->GetValue(Vision::SpriteName::PairingIconKey));
+  key.Load(context->GetDataLoader()->GetSpritePaths()->GetAssetPath(kShowPinScreenSpriteName));
+  if(IsXray()) {
+    key.Resize(FACE_DISPLAY_HEIGHT, FACE_DISPLAY_WIDTH);
+  }
 
   auto* img = new Vision::ImageRGBA(FACE_DISPLAY_HEIGHT, FACE_DISPLAY_WIDTH);
   img->FillWith(Vision::PixelRGBA(0, 0));
@@ -95,48 +104,44 @@ void DrawShowPinScreen(AnimationStreamer* animStreamer, const AnimContext* conte
   img->DrawTextCenteredHorizontally(pin, CV_FONT_NORMAL, 0.8f, 1, kColor, FACE_DISPLAY_HEIGHT-5, false);
 
   auto handle = std::make_shared<Vision::SpriteWrapper>(img);
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetFaceImage(handle, shouldRenderInEyeHue, 0);
+  const bool overrideAllSpritesToEyeHue = false;
+  animStreamer->SetFaceImage(handle, overrideAllSpritesToEyeHue, 0);
 }
 
 // Uses a png sequence animation to draw wifi icon to screen
-void DrawWifiScreen(AnimationStreamer* animStreamer)
+void DrawWifiScreen(Anim::AnimationStreamer* animStreamer)
 {
+  s_enteredAnyScreen = true;
+  
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetStreamingAnimation("anim_pairing_icon_wifi", 0, 0, shouldInterrupt,
-                                      shouldOverrideEyeHue, shouldRenderInEyeHue);
+  animStreamer->SetStreamingAnimation("anim_pairing_icon_wifi", 0, 0, 0, shouldInterrupt);
 }
 
 // Uses a png sequence animation to draw os updating icon to screen
-void DrawUpdatingOSScreen(AnimationStreamer* animStreamer)
+void DrawUpdatingOSScreen(Anim::AnimationStreamer* animStreamer)
 {
+  s_enteredAnyScreen = true;
+  
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetStreamingAnimation("anim_pairing_icon_update", 0, 0, shouldInterrupt,
-                                      shouldOverrideEyeHue, shouldRenderInEyeHue);
+  animStreamer->SetStreamingAnimation("anim_pairing_icon_update", 0, 0, 0, shouldInterrupt);
 }
 
 // Uses a png sequence animation to draw os updating error icon to screen
-void DrawUpdatingOSErrorScreen(AnimationStreamer* animStreamer)
+void DrawUpdatingOSErrorScreen(Anim::AnimationStreamer* animStreamer)
 {
+  s_enteredAnyScreen = true;
+  
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetStreamingAnimation("anim_pairing_icon_update_error", 0, 0, shouldInterrupt,
-                                      shouldOverrideEyeHue, shouldRenderInEyeHue);
+  animStreamer->SetStreamingAnimation("anim_pairing_icon_update_error", 0, 0, 0, shouldInterrupt);
 }
 
 // Uses a png sequence animation to draw waiting for app icon to screen
-void DrawWaitingForAppScreen(AnimationStreamer* animStreamer)
+void DrawWaitingForAppScreen(Anim::AnimationStreamer* animStreamer)
 {
+  s_enteredAnyScreen = true;
+  
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  animStreamer->SetStreamingAnimation("anim_pairing_icon_awaitingapp", 0, 0, shouldInterrupt,
-                                      shouldOverrideEyeHue, shouldRenderInEyeHue);
+  animStreamer->SetStreamingAnimation("anim_pairing_icon_awaitingapp", 0, 0, 0, shouldInterrupt);
 }
 
 void SetBLEPin(uint32_t pin)
@@ -144,7 +149,7 @@ void SetBLEPin(uint32_t pin)
   _pin = pin;
 }
 
-bool InitConnectionFlow(AnimationStreamer* animStreamer)
+bool InitConnectionFlow(Anim::AnimationStreamer* animStreamer)
 {
   if(FACTORY_TEST)
   {
@@ -159,62 +164,44 @@ bool InitConnectionFlow(AnimationStreamer* animStreamer)
   return true;
 }
 
-void UpdatePairingLight(bool on)
-{
-  static bool isOn = false;
-  if(!isOn && on)
-  {
-    // Start system pairing light (pulsing orange/green)
-    RobotInterface::EngineToRobot m(RobotInterface::SetSystemLight({
-          .light = {
-            .onColor = 0xFFFF0000,
-            .offColor = 0x00000000,
-            .onFrames = 16,
-            .offFrames = 16,
-            .transitionOnFrames = 16,
-            .transitionOffFrames = 16,
-            .offset = 0
-          }}));
-    AnimComms::SendPacketToRobot((char*)m.GetBuffer(), m.Size());
-    isOn = on;
-  }
-  else if(isOn && !on)
-  {
-    // Turn system pairing light off
-    RobotInterface::EngineToRobot m(RobotInterface::SetSystemLight({
-          .light = {
-            .onColor = 0x00000000,
-            .offColor = 0x00000000,
-            .onFrames = 1,
-            .offFrames = 1,
-            .transitionOnFrames = 0,
-            .transitionOffFrames = 0,
-            .offset = 0
-          }}));
-    AnimComms::SendPacketToRobot((char*)m.GetBuffer(), m.Size());
-    isOn = on;
-  }
-}
-
 void UpdateConnectionFlow(const SwitchboardInterface::SetConnectionStatus& msg,
-                          AnimationStreamer* animStreamer,
-                          const AnimContext* context)
+                          Anim::AnimationStreamer* animStreamer,
+                          const Anim::AnimContext* context)
 {
   using namespace SwitchboardInterface;
 
-  // Update the pairing light
-  // Turn it on if we are on the START_PAIRING, SHOW_PRE_PIN, or SHOW_PIN screen
-  // Otherwise turn it off
-  UpdatePairingLight((msg.status == ConnectionStatus::START_PAIRING ||
-                      msg.status == ConnectionStatus::SHOW_PRE_PIN ||
-                      msg.status == ConnectionStatus::SHOW_PIN));
+  PRINT_NAMED_INFO("ConnectionFlow.UpdateConnectionFlow.NewStatus", "%s", EnumToString(msg.status));
+  
+  // isPairing is a proxy for "switchboard is doing something and needs to display something on face"
+  const bool isPairing = msg.status != ConnectionStatus::NONE &&
+                         msg.status != ConnectionStatus::COUNT &&
+                         msg.status != ConnectionStatus::SHOW_URL_FACE &&
+                         msg.status != ConnectionStatus::END_PAIRING;
+
+  const bool shouldControlFace = isPairing || 
+    (msg.status == ConnectionStatus::SHOW_URL_FACE);
 
   // Enable pairing screen if status is anything besides NONE, COUNT, and END_PAIRING
   // Should do nothing if called multiple times with same argument such as when transitioning from
   // START_PAIRING to SHOW_PRE_PIN
-  FaceInfoScreenManager::getInstance()->EnablePairingScreen((msg.status != ConnectionStatus::NONE &&
-                                                             msg.status != ConnectionStatus::COUNT &&
-                                                             msg.status != ConnectionStatus::END_PAIRING));
+  FaceInfoScreenManager::getInstance()->EnablePairingScreen(isPairing);
+
+  // Disable face keepalive, but don't re-enable it when ending pairing. The engine will send a message
+  // when it's ready to re-enable it, since it needs time to send its first animation upon resuming
+  if (shouldControlFace) {
+    animStreamer->Abort();
+    animStreamer->EnableKeepFaceAlive(false, 0);
+
+    // Always look up since we're displaying something that user will want to see
+    RobotInterface::SetHeadAngle msg;
+    msg.angle_rad             = MAX_HEAD_ANGLE;
+    msg.max_speed_rad_per_sec = DEG_TO_RAD(60);
+    msg.accel_rad_per_sec2    = DEG_TO_RAD(360);
+    msg.duration_sec          = 0;
+    msg.actionID              = 0;
+    SendAnimToRobot(std::move(msg));
+  }
+
 
   switch(msg.status)
   {
@@ -223,10 +210,9 @@ void UpdateConnectionFlow(const SwitchboardInterface::SetConnectionStatus& msg,
 
     }
     break;
+    case ConnectionStatus::SHOW_URL_FACE:
     case ConnectionStatus::START_PAIRING:
     {
-      // Throttling square is annoying when trying to inspect the display so disable
-      NativeAnkiUtilConsoleSetValueWithString("DisplayThermalThrottling", "false");
       DrawStartPairingScreen(animStreamer);
     }
     break;
@@ -262,19 +248,18 @@ void UpdateConnectionFlow(const SwitchboardInterface::SetConnectionStatus& msg,
     break;
     case ConnectionStatus::END_PAIRING:
     {
-      NativeAnkiUtilConsoleSetValueWithString("DisplayThermalThrottling", "true");
-      animStreamer->Abort();
+      if(s_enteredAnyScreen)
+      {
+        animStreamer->Abort();
+      }
+      s_enteredAnyScreen = false;
+      
 
       // Probably will never get here because we will restart
       // while updating os
       if(FACTORY_TEST)
       {
         DrawStartPairingScreen(animStreamer);
-      }
-      else
-      {
-        // Reenable keep face alive
-        animStreamer->EnableKeepFaceAlive(true, 0);
       }
     }
     break;

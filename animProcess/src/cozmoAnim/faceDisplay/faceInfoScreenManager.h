@@ -20,9 +20,11 @@
 #include "anki/cozmo/shared/cozmoConfig.h"
 #include "coretech/common/shared/types.h"
 #include "coretech/common/engine/colorRGBA.h"
-#include "coretech/common/engine/math/point.h"
+#include "coretech/common/shared/math/point_fwd.h"
 #include "cozmoAnim/faceDisplay/faceInfoScreenTypes.h"
 #include "clad/robotInterface/messageEngineToRobot.h"
+#include "clad/cloud/mic.h"
+#include "clad/types/tofDisplayTypes.h"
 
 #include "util/singleton/dynamicSingleton.h"
 
@@ -37,10 +39,12 @@ namespace Vision {
   class ImageRGB565;
 }
 
-namespace Cozmo {
+namespace Vector {
 
-class AnimContext;
-class AnimationStreamer;
+namespace Anim {
+  class AnimContext;
+  class AnimationStreamer;
+}
 class FaceInfoScreen;
   
 namespace RobotInterface {
@@ -60,7 +64,7 @@ class FaceInfoScreenManager : public Util::DynamicSingleton<FaceInfoScreenManage
 public:
   FaceInfoScreenManager();
 
-  void Init(AnimContext* context, AnimationStreamer* animStreamer);
+  void Init(Anim::AnimContext* context, Anim::AnimationStreamer* animStreamer);
   void Update(const RobotState& state);
   
   // Debug drawing is expected from only one thread
@@ -73,6 +77,7 @@ public:
 
   void SetShouldDrawFAC(bool draw);
   void SetCustomText(const RobotInterface::DrawTextOnScreen& text);  
+  void SetNetworkStatus(const CloudMic::ConnectionCode& code);
 
   // When BLE pairing mode is enabled/disabled, this screen should
   // be called so that the physical inputs (head, lift, button) wheels
@@ -80,7 +85,21 @@ public:
   // The FaceInfoScreenManager otherwise does nothing since drawing on 
   // screen is handled by ConnectionFlow when in pairing mode.
   void EnablePairingScreen(bool enable);
+  
+  // When enabled, switches to a screen showing the alexa pairing code, and optionally the URL,
+  // depending on how the auth process originated (app or voice command)
+  void EnableAlexaScreen(ScreenName screenName, const std::string& code, const std::string& url);
 
+  // turn mute on or off (reason sent to DAS)
+  void ToggleMute(const std::string& reason);
+  
+  void StartAlexaNotification();
+
+  // When enabled, switches to a special camera screen used to show
+  // the vision system's "mirror mode", which displays the camera feed
+  // and detections live on the robot's face. 
+  void EnableMirrorModeScreen(bool enable);
+  
   // Begin drawing functionality
   // These functions update the screen only if they are relevant to the current screen
   void DrawConfidenceClock(const RobotInterface::MicDirection& micData,
@@ -89,12 +108,24 @@ public:
                            bool triggerRecognized);
   void DrawMicInfo(const RobotInterface::MicData& micData);
   void DrawCameraImage(const Vision::ImageRGB565& img);
+
+  void DrawToF(const RangeDataDisplay& data);
   
   // Sets the power mode message to send when returning to none screen
   void SetCalmPowerModeOnReturnToNone(const RobotInterface::CalmPowerMode& msg) { _calmModeMsgOnNone = msg; }
 
+  void SelfTestEnd(Anim::AnimationStreamer* animStreamer);
+
+  // Note when the engine has finished loading for internal use
+  void OnEngineLoaded() {_engineLoaded = true;}
+
+  void SetSysconVersion(const std::string& version) { _sysconVersion = version; }
+  
+  // Forcibly exit any screen
+  void ExitCCScreen(Anim::AnimationStreamer* animStreamer);
+
 private:
-  const AnimContext* _context = nullptr;
+  const Anim::AnimContext* _context = nullptr;
   
   std::unique_ptr<Vision::ImageRGB565> _scratchDrawingImg;
 
@@ -109,6 +140,27 @@ private:
   // Resets the lift and head angles observed thus far.
   // Called everytime the screen changes.
   void ResetObservedHeadAndLiftAngles();
+
+  // Detects various button events
+  // Beyond return pressed and released events it also detects when a single button press
+  // is detected vs. a double button press. Note that a doublePressDetected does not 
+  // coincide with two singlePressDetected's.
+  void CheckForButtonEvent(const bool buttonPressed, 
+                           bool& buttonPressedEvent,
+                           bool& buttonReleasedEvent,
+                           bool& singlePressDetected, 
+                           bool& doublePressDetected);
+  
+  // Returns true if screenName is one of the screens that allow the user to enter pairing when
+  // double pressing the backpack and on the charger
+  bool CanEnterPairingFromScreen( const ScreenName& screenName) const;
+  
+  // Returns true if screenName is an Alexa screen
+  bool IsAlexaScreen(const ScreenName& screenName) const;
+  
+  // Returns true if screenName is a screen that should cause the behavior system to Wait.
+  // Note that Pairing is handled another way, so is not included here.
+  bool ScreenNeedsWait(const ScreenName& screenName) const;
 
   // Process wheel, head, lift, button motion for menu navigation
   void ProcessMenuNavigation(const RobotState& state);
@@ -127,20 +179,19 @@ private:
   std::unordered_map<ScreenName, FaceInfoScreen> _screenMap;
   FaceInfoScreen* _currScreen;
 
-  // If the given future is not already associated with a running function
-  // or a function that has completed, it runs the given function asynchronously and returns true.
-  // If the given future is associated with a function that has not yet completed it returns false.
-  bool AsyncExec(std::future<void>& fut, std::function<void()> func);
-
   // Internal draw functions that
   void DrawFAC();
   void DrawMain();
   void DrawNetwork();
   void DrawSensorInfo(const RobotState& state);
+  void DrawBuildInfo();
   void DrawIMUInfo(const RobotState& state);
   void DrawMotorInfo(const RobotState& state);
   void DrawCustomText();
-
+  void DrawAlexaFace();
+  void DrawMuteAnimation();
+  void DrawAlexaNotification();
+  
   // Draw the _scratchDrawingImg to the face
   void DrawScratch();
 
@@ -162,13 +213,17 @@ private:
                         f32 textScale = kDefaultTextScale);
 
   struct ColoredText {
-    ColoredText(const std::string& text, const ColorRGBA& color = NamedColors::WHITE)
+    ColoredText(const std::string& text,
+                const ColorRGBA& color = NamedColors::WHITE,
+                bool leftAlign = true)
     : text(text)
     , color(color)
+    , leftAlign(leftAlign)
     {}
 
     const std::string text;
     const ColorRGBA color;
+    const bool leftAlign;
   };
 
   using ColoredTextLines = std::vector<std::vector<ColoredText> >;
@@ -181,14 +236,22 @@ private:
   RobotInterface::DrawTextOnScreen _customText;
   WebService::WebService* _webService;
   
+  Anim::AnimationStreamer* _animationStreamer = nullptr;
+  
+  std::string _alexaCode;
+  std::string _alexaUrl;
+  
   bool _drawFAC = false;
+  bool _engineLoaded = false;
+
+  std::string _sysconVersion = "";
   
   // Reboot Linux
   void Reboot();
 
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AnimProcess_CozmoAnim_FaceDisplay_FaceInfoScreenManager_H_

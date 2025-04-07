@@ -14,51 +14,53 @@
 #include "util/entityComponent/componentTypeEnumMap.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward declarations
+class AlexaComponent;
 class BehaviorComponent;
 class ContinuityComponent;
 class FaceSelectionComponent;
-class FreeplayDataTracker;
-class AIInformationAnalyzer;
 class ObjectInteractionInfoCache;
 class PuzzleComponent;
 class TimerUtility;
 class AIWhiteboard;
+class SalientPointsComponent;
 
-} // namespace Cozmo
+} // namespace Vector
 
 // Template specializations mapping enums from the _fwd.h file to the class forward declarations above
-LINK_COMPONENT_TYPE_TO_ENUM(BehaviorComponent,          AIComponentID, BehaviorComponent)
-LINK_COMPONENT_TYPE_TO_ENUM(ContinuityComponent,        AIComponentID, ContinuityComponent)
-LINK_COMPONENT_TYPE_TO_ENUM(FaceSelectionComponent,     AIComponentID, FaceSelection)
-LINK_COMPONENT_TYPE_TO_ENUM(FreeplayDataTracker,        AIComponentID, FreeplayDataTracker)
-LINK_COMPONENT_TYPE_TO_ENUM(AIInformationAnalyzer,      AIComponentID, InformationAnalyzer)
-LINK_COMPONENT_TYPE_TO_ENUM(ObjectInteractionInfoCache, AIComponentID, ObjectInteractionInfoCache)
-LINK_COMPONENT_TYPE_TO_ENUM(PuzzleComponent,            AIComponentID, Puzzle)
-LINK_COMPONENT_TYPE_TO_ENUM(TimerUtility,               AIComponentID, TimerUtility)
-LINK_COMPONENT_TYPE_TO_ENUM(AIWhiteboard,               AIComponentID, Whiteboard)
+LINK_COMPONENT_TYPE_TO_ENUM(AlexaComponent,                    AIComponentID, AlexaComponent)
+LINK_COMPONENT_TYPE_TO_ENUM(BehaviorComponent,                 AIComponentID, BehaviorComponent)
+LINK_COMPONENT_TYPE_TO_ENUM(ContinuityComponent,               AIComponentID, ContinuityComponent)
+LINK_COMPONENT_TYPE_TO_ENUM(FaceSelectionComponent,            AIComponentID, FaceSelection)
+LINK_COMPONENT_TYPE_TO_ENUM(ObjectInteractionInfoCache,        AIComponentID, ObjectInteractionInfoCache)
+LINK_COMPONENT_TYPE_TO_ENUM(PuzzleComponent,                   AIComponentID, Puzzle)
+LINK_COMPONENT_TYPE_TO_ENUM(TimerUtility,                      AIComponentID, TimerUtility)
+LINK_COMPONENT_TYPE_TO_ENUM(AIWhiteboard,                      AIComponentID, Whiteboard)
+LINK_COMPONENT_TYPE_TO_ENUM(SalientPointsComponent,            AIComponentID, SalientPointsDetectorComponent)
 
 // Translate entity into string
 template<>
-std::string GetEntityNameForEnumType<Cozmo::AIComponentID>(){ return "AIComponents"; }
+std::string GetEntityNameForEnumType<Vector::AIComponentID>(){ return "AIComponents"; }
 
 template<>
-std::string GetComponentStringForID<Cozmo::AIComponentID>(Cozmo::AIComponentID enumID)
+std::string GetComponentStringForID<Vector::AIComponentID>(Vector::AIComponentID enumID)
 {
-  switch(enumID){
-    case Cozmo::AIComponentID::BehaviorComponent:          { return "BehaviorComponent";}
-    case Cozmo::AIComponentID::ContinuityComponent:        { return "ContinuityComponent";}
-    case Cozmo::AIComponentID::FaceSelection:              { return "FaceSelection";}
-    case Cozmo::AIComponentID::FreeplayDataTracker:        { return "FreeplayDataTracker";}
-    case Cozmo::AIComponentID::InformationAnalyzer:        { return "InformationAnalyzer";}
-    case Cozmo::AIComponentID::ObjectInteractionInfoCache: { return "ObjectInteractionInfoCache";}
-    case Cozmo::AIComponentID::Puzzle:                     { return "Puzzle";}
-    case Cozmo::AIComponentID::TimerUtility:               { return "TimerUtility";}
-    case Cozmo::AIComponentID::Whiteboard:                 { return "Whiteboard";}
-    case Cozmo::AIComponentID::Count:                      { return "Count";}
+  #define CASE(id) case Vector::AIComponentID::id: { return #id; }
+  switch (enumID) {
+    CASE(AlexaComponent)
+    CASE(BehaviorComponent)
+    CASE(ContinuityComponent)
+    CASE(FaceSelection)
+    CASE(ObjectInteractionInfoCache)
+    CASE(Puzzle)
+    CASE(SalientPointsDetectorComponent)
+    CASE(TimerUtility)
+    CASE(Whiteboard)
+    CASE(Count)
   }
+  #undef CASE
 }
 
 

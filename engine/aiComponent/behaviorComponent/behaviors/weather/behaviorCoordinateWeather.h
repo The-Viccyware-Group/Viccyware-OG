@@ -14,14 +14,14 @@
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorCoordinateWeather__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
-#include "clad/types/behaviorComponent/userIntent.h"
 #include "clad/types/behaviorComponent/weatherConditionTypes.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // forward declaration
-enum class BehaviorID : uint8_t;
+enum class BehaviorID : uint16_t;
+class WeatherIntentParser;
 
 class BehaviorCoordinateWeather : public ICozmoBehavior
 {
@@ -53,6 +53,8 @@ private:
     std::vector<WeatherConditionType> conditions;
 
     std::map<WeatherConditionType, ICozmoBehaviorPtr> weatherBehaviorMap;
+    std::unique_ptr<WeatherIntentParser> intentParser;
+
     ICozmoBehaviorPtr              iCantDoThatBehavior;
   };
 
@@ -66,7 +68,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorCoordinateWeather__

@@ -1,5 +1,5 @@
 /**
-* File: conditionFaceKnown.h
+* File: conditionFaceKnown.cpp
 *
 * Author:  ross
 * Created: May 15 2018
@@ -17,7 +17,7 @@
 #include "engine/faceWorld.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace{
   const char* const kMaxFaceDistKey    = "maxFaceDist_mm";
@@ -42,9 +42,10 @@ bool ConditionFaceKnown::AreConditionsMetInternal(BehaviorExternalInterface& beh
   
   std::set<Vision::FaceID_t> faces;
   if( _maxFaceAge_s >= 0 ) {
-    TimeStamp_t currTime = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
-    TimeStamp_t minAge = (currTime > 1000*_maxFaceAge_s) ? (currTime - 1000*_maxFaceAge_s) : 0;
-    faces = faceWorld.GetFaceIDsObservedSince( minAge );
+    const RobotTimeStamp_t latestImageTimestamp = behaviorExternalInterface.GetRobotInfo().GetLastImageTimeStamp();
+    const auto maxFaceAge_ms = 1000*_maxFaceAge_s;
+    RobotTimeStamp_t minAge = (latestImageTimestamp > maxFaceAge_ms) ? (latestImageTimestamp - maxFaceAge_ms) : 0;
+    faces = faceWorld.GetFaceIDs( minAge );
   } else {
     faces = faceWorld.GetFaceIDs();
   }
@@ -75,5 +76,5 @@ bool ConditionFaceKnown::AreConditionsMetInternal(BehaviorExternalInterface& beh
   return ret;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

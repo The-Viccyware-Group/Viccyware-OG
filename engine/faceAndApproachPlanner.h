@@ -14,11 +14,10 @@
 #ifndef __FACEANDAPPROACHPLANNER_H__
 #define __FACEANDAPPROACHPLANNER_H__
 
-#include "coretech/common/engine/math/point.h"
 #include "pathPlanner.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class FaceAndApproachPlanner : public IPathPlanner
 {
@@ -35,7 +34,7 @@ protected:
                                          const Pose3d& targetPose) override;
 
   Vec3f _targetVec;
-  float _finalTargetAngle;
+  float _finalTargetAngle = 0.f;
 };
 
 }

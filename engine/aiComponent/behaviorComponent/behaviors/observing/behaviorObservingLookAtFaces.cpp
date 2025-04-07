@@ -21,44 +21,99 @@
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
 #include "engine/faceWorld.h"
 
+#include "coretech/common/engine/utils/timer.h"
+
+#define LOG_CHANNEL "Behaviors"
+
 #define SET_STATE(s) SetState_internal(State::s, #s)
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 static const u32 kMaxTimeSinceSeenFaceToLook_ms = 5000;
-static const float kStaringTime_s = 6.0f; // TODO:(bn) randomize
+static const float kDefaultStaringTime_s = 6.0f; // TODO:(bn) randomize
 static const float kMinTrackingTiltAngle_deg = 4.0f;
 static const float kMinTrackingPanAngle_deg = 4.0f;
 static const float kMinTrackingClampPeriod_s = 0.2f;
 static const float kMaxTrackingClampPeriod_s = 0.7f;
+static const float kDefaultSearchTime_s = -1.f; // Negative values disable the timeout.
 static const float kTrackingTimeout_s = 2.5f;
+const char* const kSearchBehaviorKey = "searchBehavior";
+const char* const kSearchTimeoutKey = "searchTimeout_sec";
+const char* const kStaringTimeKey = "staringTime_sec";
+}
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+BehaviorObservingLookAtFaces::InstanceConfig::InstanceConfig()
+{
+  searchBehavior = nullptr;
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+BehaviorObservingLookAtFaces::DynamicVariables::DynamicVariables()
+{
+  latestFaceSearchStartTime_sec = 0.f;
+  persistent.state = State::FindFaces;
 }
 
 BehaviorObservingLookAtFaces::BehaviorObservingLookAtFaces(const Json::Value& config)
   : ICozmoBehavior(config)
 {
+  const std::string& debugName = "Behavior" + GetDebugLabel() + ".LoadConfig";
+  _iConfig.searchBehaviorStr = JsonTools::ParseString(config, kSearchBehaviorKey, debugName);
+
+  // Parse the maximum allowed face-search time from the config if possible, otherwise
+  // assign to the default value.
+  if (JsonTools::GetValueOptional(config, kSearchTimeoutKey, _iConfig.searchTimeout_sec)) {
+    const std::string& errorStr = debugName + ".InvalidSearchTimeout";
+    DEV_ASSERT(Util::IsFltGTZero(_iConfig.searchTimeout_sec),
+               errorStr.c_str());
+    LOG_DEBUG(debugName.c_str(), "Search timeout set to %f seconds", _iConfig.searchTimeout_sec);
+  } else {
+    _iConfig.searchTimeout_sec = kDefaultSearchTime_s;
+  }
+
+  // Parse the staring time from the config if possible, otherwise assign to the default value
+  if (JsonTools::GetValueOptional(config, kStaringTimeKey, _iConfig.staringTime_sec)) {
+    const std::string& errorStr = debugName + ".InvalidStaringTime";
+    DEV_ASSERT(Util::IsFltGTZero(_iConfig.staringTime_sec),
+               errorStr.c_str());
+    LOG_DEBUG(debugName.c_str(), "Staring time set to %f seconds", _iConfig.staringTime_sec);
+  } else {
+    _iConfig.staringTime_sec = kDefaultStaringTime_s;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorObservingLookAtFaces::GetBehaviorJsonKeys(std::set<const char *> &expectedKeys) const
+{
+  const char* list[] = {
+    kSearchBehaviorKey,
+    kSearchTimeoutKey,
+    kStaringTimeKey,
+  };
+  expectedKeys.insert( std::begin(list), std::end(list) );
 }
 
 void BehaviorObservingLookAtFaces::InitBehavior()
 {
-  const auto& BC = GetBEI().GetBehaviorContainer();
-
-  BC.FindBehaviorByIDAndDowncast(BEHAVIOR_ID(ObservingFindFaces),
-                                 BEHAVIOR_CLASS(FindFaces),
-                                 _searchBehavior);
-
+  _iConfig.searchBehavior = FindBehavior(_iConfig.searchBehaviorStr);
+  DEV_ASSERT(_iConfig.searchBehavior != nullptr,
+             "BehaviorObservingLookAtFaces.InitBehavior.NullSearchBehavior");
 }
 
 void BehaviorObservingLookAtFaces::GetAllDelegates(std::set<IBehavior*>& delegates) const
 {
-  delegates.insert(_searchBehavior.get());
+  delegates.insert(_iConfig.searchBehavior.get());
 }
 
 void BehaviorObservingLookAtFaces::OnBehaviorActivated()
 {
-  _faceIdsLookedAt.clear();
+  const auto persistent = _dVars.persistent;
+  _dVars = DynamicVariables();
+  _dVars.persistent = persistent;
 
   // if we have any faces, stare at one. Otherwise, search
   const auto& faceWorld = GetBEI().GetFaceWorld();
@@ -75,7 +130,7 @@ void BehaviorObservingLookAtFaces::OnBehaviorActivated()
 
 bool BehaviorObservingLookAtFaces::CanBeGentlyInterruptedNow() const
 {
-  switch (_state ) {
+  switch (_dVars.persistent.state ) {
     case State::FindFaces: {
       return true;
     }
@@ -95,13 +150,24 @@ void BehaviorObservingLookAtFaces::BehaviorUpdate()
     return;
   }
 
-  if( _state == State::FindFaces ) {
+  if( _dVars.persistent.state == State::FindFaces ) {
     // check if we have found a new face during the search
     // TODO:(bn) make a HasFaceToStareAt function?
     if( GetFaceToStareAt().IsValid() ) {
       const bool allowCallback = false;
       CancelDelegates(allowCallback);
       TransitionToTurnTowardsAFace();
+    } else if (_iConfig.searchTimeout_sec >= 0.f) {
+      const float faceSearchTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds()
+                                   - _dVars.latestFaceSearchStartTime_sec;
+      if (faceSearchTime >= _iConfig.searchTimeout_sec) {
+        LOG_INFO("BehaviorObservingLookAtFaces.Update.FaceSearchTimeout",
+                 "Behavior %s cancelling self after search for faces timed out",
+                 GetDebugLabel().c_str());
+        const bool allowCallback = false;
+        CancelDelegates(allowCallback);
+        CancelSelf();
+      }
     }
   }
 }
@@ -111,13 +177,14 @@ void BehaviorObservingLookAtFaces::TransitionToFindFaces()
 {
   SET_STATE(FindFaces);
   
-  if( _searchBehavior->WantsToBeActivated() ) {
-    DelegateIfInControl(_searchBehavior.get());
+  if( _iConfig.searchBehavior->WantsToBeActivated() ) {
+    _dVars.latestFaceSearchStartTime_sec = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    DelegateIfInControl(_iConfig.searchBehavior.get());
   }
   else {
-    PRINT_NAMED_WARNING("BehaviorObservingLookAtFaces.FindFaces.DoesntWantToActivate",
-                        "Behavior %s doesn't want to activate, so face interaction will end",
-                        _searchBehavior->GetDebugLabel().c_str());
+    LOG_WARNING("BehaviorObservingLookAtFaces.FindFaces.DoesntWantToActivate",
+                "Behavior %s doesn't want to activate, so face interaction will end",
+                _iConfig.searchBehavior->GetDebugLabel().c_str());
   }
 }
 
@@ -128,8 +195,11 @@ void BehaviorObservingLookAtFaces::TransitionToTurnTowardsAFace()
   const SmartFaceID face = GetFaceToStareAt();
   if( face.IsValid() ) {
     
-    TurnTowardsFaceAction* action = new TurnTowardsFaceAction(face);
-
+    auto & sayNameTable = GetAIComp<AIWhiteboard>().GetSayNameProbabilityTable();
+    TurnTowardsFaceAction* action = new TurnTowardsFaceAction(face, M_PI_F, sayNameTable);
+    action->SetNoNameAnimationTrigger(AnimationTrigger::InteractWithFacesInitialUnnamed);
+    action->SetSayNameAnimationTrigger(AnimationTrigger::InteractWithFacesInitialNamed);
+    
     DelegateIfInControl(action, [this, face](ActionResult res) {
         if( res == ActionResult::SUCCESS &&
             face.IsValid() ) {
@@ -158,13 +228,13 @@ void BehaviorObservingLookAtFaces::TransitionToStareAtFace(SmartFaceID face)
       ShouldStareAtFace(face) ) {
     // if the face is still valid and one we want to look at, go ahead and stare for a bit
     
-    PRINT_CH_INFO("Behaviors", "BehaviorObservingLookAtFaces.StareAtFace",
-                  "Adding %s as a 'stared at' face",
-                  face.GetDebugStr().c_str());
+    LOG_INFO("BehaviorObservingLookAtFaces.StareAtFace",
+             "Adding %s as a 'stared at' face",
+             face.GetDebugStr().c_str());
     
-    _faceIdsLookedAt.push_back( face );
+    _dVars.faceIdsLookedAt.push_back( face );
 
-    WaitAction* waitAction = new WaitAction(kStaringTime_s);
+    WaitAction* waitAction = new WaitAction(_iConfig.staringTime_sec);
     TrackFaceAction* trackAction = new TrackFaceAction(face);
     trackAction->StopTrackingWhenOtherActionCompleted( waitAction->GetTag() );
     trackAction->SetTiltTolerance(DEG_TO_RAD(kMinTrackingTiltAngle_deg));
@@ -172,15 +242,24 @@ void BehaviorObservingLookAtFaces::TransitionToStareAtFace(SmartFaceID face)
     trackAction->SetClampSmallAnglesToTolerances(true);
     trackAction->SetClampSmallAnglesPeriod(kMinTrackingClampPeriod_s, kMaxTrackingClampPeriod_s);
     trackAction->SetUpdateTimeout(kTrackingTimeout_s);
+    // Some variations of this behavior run in the user's palm, so we need to allow the tracking
+    // action to run in the InAir tread state as well.
+    trackAction->SetValidOffTreadsStates({OffTreadsState::OnTreads, OffTreadsState::InAir});
 
+    // If the track action component fails, the entire action should end. Otherwise the robot
+    // will just sit there staring at a point in space that may not correspond to the face's
+    // location any more until the wait action expires.
+    CompoundActionParallel* waitAndTrackAction = new CompoundActionParallel({waitAction, trackAction});
+    waitAndTrackAction->SetShouldEndWhenFirstActionCompletes(true);
+    
     // stare for a while, then turn towards another face
-    DelegateIfInControl( new CompoundActionParallel({waitAction, trackAction}),
+    DelegateIfInControl( waitAndTrackAction,
                          &BehaviorObservingLookAtFaces::TransitionToTurnTowardsAFace );
   }
   else {
-    PRINT_CH_INFO("Behaviors", "BehaviorObservingLookAtFaces.StareAtFace.Invalid",
-                  "After turning, we see that face %s is not valid for staring",
-                  face.GetDebugStr().c_str());
+    LOG_INFO("BehaviorObservingLookAtFaces.StareAtFace.Invalid",
+             "After turning, we see that face %s is not valid for staring",
+             face.GetDebugStr().c_str());
     
     // otherwise, pick another face to look at (or fall back to searching)
     TransitionToTurnTowardsAFace();
@@ -189,19 +268,19 @@ void BehaviorObservingLookAtFaces::TransitionToStareAtFace(SmartFaceID face)
 
 SmartFaceID BehaviorObservingLookAtFaces::GetFaceToStareAt()
 {
-  // NOTE: because face ids can start out different and then become equal, _faceIdsLookedAt may have multiple
+  // NOTE: because face ids can start out different and then become equal, faceIdsLookedAt may have multiple
   // entries that are now equal
 
   const auto& faceWorld = GetBEI().GetFaceWorld();
-  const auto& faces = faceWorld.GetFaceIDsObservedSince( GetRecentFaceTime() );
+  const auto& faces = faceWorld.GetFaceIDs( GetRecentFaceTime() );
 
   for( const auto& rawFaceID : faces ) {
     const SmartFaceID faceID = faceWorld.GetSmartFaceID(rawFaceID);
     if( ShouldStareAtFace(faceID) ) {
-      PRINT_CH_INFO("Behaviors", "BehaviorObservingLookAtFaces.GetFaceToStareAt",
-                    "Face %s is a valid one (didn't match any of the %zu we've already seen)",
-                    faceID.GetDebugStr().c_str(),
-                    _faceIdsLookedAt.size());
+      LOG_INFO("BehaviorObservingLookAtFaces.GetFaceToStareAt",
+               "Face %s is a valid one (didn't match any of the %zu we've already seen)",
+               faceID.GetDebugStr().c_str(),
+               _dVars.faceIdsLookedAt.size());
       
       // TODO:(bn) track the nearest face? Or the furthest? For now make it arbitrary
       return faceID;
@@ -215,7 +294,7 @@ SmartFaceID BehaviorObservingLookAtFaces::GetFaceToStareAt()
 
 bool BehaviorObservingLookAtFaces::ShouldStareAtFace(const SmartFaceID& face) const
 {
-  for( const auto& boringFace : _faceIdsLookedAt ) {
+  for( const auto& boringFace : _dVars.faceIdsLookedAt ) {
     if( face == boringFace ) {
       // already looked at this face during this run, so don't do it again
       return false;
@@ -226,13 +305,13 @@ bool BehaviorObservingLookAtFaces::ShouldStareAtFace(const SmartFaceID& face) co
   return true;
 }
 
-TimeStamp_t BehaviorObservingLookAtFaces::GetRecentFaceTime()
+RobotTimeStamp_t BehaviorObservingLookAtFaces::GetRecentFaceTime()
 {
 
-  const TimeStamp_t lastImgTime = GetBEI().GetRobotInfo().GetLastImageTimeStamp();
-  const TimeStamp_t recentTime = lastImgTime > kMaxTimeSinceSeenFaceToLook_ms ?
-                                 ( lastImgTime - kMaxTimeSinceSeenFaceToLook_ms ) :
-                                 0;
+  const RobotTimeStamp_t lastImgTime = GetBEI().GetRobotInfo().GetLastImageTimeStamp();
+  const RobotTimeStamp_t recentTime = lastImgTime > kMaxTimeSinceSeenFaceToLook_ms ?
+                                      ( lastImgTime - kMaxTimeSinceSeenFaceToLook_ms ) :
+                                      0;
   return recentTime;
 }
 
@@ -242,7 +321,7 @@ void BehaviorObservingLookAtFaces::SetState_internal(
   BehaviorObservingLookAtFaces::State state,
   const std::string& stateName)
 {
-  _state = state;
+  _dVars.persistent.state = state;
   SetDebugStateName(stateName);
 }  
 

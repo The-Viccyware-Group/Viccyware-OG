@@ -17,7 +17,6 @@
 
 #include "engine/aiComponent/beiConditions/iBEICondition_fwd.h"
 
-#include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior_fwd.h"
 #include "engine/components/visionScheduleMediator/iVisionModeSubscriber.h"
 #include "engine/components/visionScheduleMediator/visionScheduleMediator_fwd.h"
 
@@ -28,7 +27,7 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorExternalInterface;
 class IExternalInterface;
@@ -114,7 +113,7 @@ private:
   static bool _checkDebugFactors;
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_StateConceptStrategies_IBEICondition_H__

@@ -7,6 +7,13 @@
   "interruptActiveBehavior" : true,
   "linkScope": true,
 
+  "wantsToBeActivatedCondition" : {
+    "conditionType": "Compound",
+    "not": {
+      "conditionType": "OnCharger"
+    }
+  },
+
   "wantsToCancelSelfCondition": {
     "conditionType": "Compound",
     "not": {
@@ -27,7 +34,7 @@
       "cooldown_s" : 0.0
     },
     {
-      "behavior" : "FindAndRequestHome",
+      "behavior" : "FindHome",
       "cooldown_s" : 0.0
     }
   ]

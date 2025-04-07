@@ -18,7 +18,6 @@
 #include "engine/actions/actionInterface.h"
 #include "engine/actions/compoundActions.h"
 #include "coretech/planning/shared/goalDefs.h"
-#include "clad/externalInterface/messageEngineToGame.h"
 #include "clad/types/actionTypes.h"
 #include "clad/types/animationTrigger.h"
 #include "clad/types/dockingSignals.h"
@@ -28,7 +27,7 @@
 namespace Anki {
   class Pose3d;
 
-  namespace Cozmo {
+  namespace Vector {
 
     // forward declarations
     class BlockWorld;
@@ -37,72 +36,63 @@ namespace Anki {
     class DriveToPoseAction : public IAction
     {
     public:
-      DriveToPoseAction(const Pose3d& pose,
-                        const bool forceHeadDown,
-                        const Point3f& distThreshold = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM,
-                        const Radians& angleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD,
-                        const float maxPlanningTime = DEFAULT_MAX_PLANNER_COMPUTATION_TIME_S,
-                        const float maxReplanPlanningTime = DEFAULT_MAX_PLANNER_REPLAN_COMPUTATION_TIME_S);
+      DriveToPoseAction(); // Note that SetGoal(s) must be called before Update()!
       
-      DriveToPoseAction(const bool forceHeadDown); // Note that SetGoal(s) must be called before Update()!
+      DriveToPoseAction(const Pose3d& pose);
       
-      DriveToPoseAction(const std::vector<Pose3d>& poses,
-                        const bool forceHeadDown,
-                        const Point3f& distThreshold = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM,
-                        const Radians& angleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD,
-                        const float maxPlanningTime = DEFAULT_MAX_PLANNER_COMPUTATION_TIME_S,
-                        const float maxReplanPlanningTime = DEFAULT_MAX_PLANNER_REPLAN_COMPUTATION_TIME_S);
+      DriveToPoseAction(const std::vector<Pose3d>& poses);
       virtual ~DriveToPoseAction();
-      
-      // TODO: Add methods to adjust the goal thresholds from defaults
-      
-      // Set single goal
-      Result SetGoal(const Pose3d& pose,
-                     const Point3f& distThreshold  = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM,
-                     const Radians& angleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD);
-      
+            
       // Set possible goal options
-      Result SetGoals(const std::vector<Pose3d>& poses,
-                      const Point3f& distThreshold  = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM,
-                      const Radians& angleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD);
+      Result SetGoals(const std::vector<Pose3d>& poses);
       
-      // Set possible goal options that were generated from an object's pose (predock poses)
-      Result SetGoals(const std::vector<Pose3d>& poses,
-                      const Pose3d& objectPoseGoalsGeneratedFrom,
-                      const Point3f& distThreshold  = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM,
-                      const Radians& angleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD);
+      // Set goal thresholds
+      void SetGoalThresholds(const Point3f& distThreshold,
+                             const Radians& angleThreshold);
+      
+      // Call this to indicate that the goal options were generated from an object's pose (predock poses). The object's
+      // pose should be given as the argument.
+      void SetObjectPoseGoalsGeneratedFrom(const Pose3d& objectPoseGoalsGeneratedFrom);
       
       // If true and if multiple goals were provided, only the originally-selected goal will be used
       void SetMustContinueToOriginalGoal(bool mustUse) { _mustUseOriginalGoal = mustUse; }
 
+      // If shouldPlay, the robot will play planning animations while it computes a plan or replans,
+      // for any planner that doesn't return a path immediately.
+      // If !shouldPlay, the robot will plan and start driving in one fell swoop, without any logic for planning animations.
+      // Default is true.
+      void SetUsePlanningAnims(bool shouldPlay) { _precompute = shouldPlay; }
+
     protected:
       virtual void GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const override;
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual f32 GetTimeoutInSeconds() const override;
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
     private:
-      bool     _isGoalSet;
-      bool     _driveWithHeadDown;
+      
+      ActionResult HandleComputingPath();
+      ActionResult HandleFollowingPath();
+      
+      bool     _isGoalSet = false;
+      bool     _precompute = true;
       
       std::vector<Pose3d> _goalPoses;
       std::shared_ptr<Planning::GoalID> _selectedGoalIndex;
             
-      Point3f  _goalDistanceThreshold;
-      Radians  _goalAngleThreshold;
+      Point3f  _goalDistanceThreshold = DEFAULT_POSE_EQUAL_DIST_THRESOLD_MM;
+      Radians  _goalAngleThreshold = DEFAULT_POSE_EQUAL_ANGLE_THRESHOLD_RAD;
       
-      float _maxPlanningTime;
-      float _maxReplanPlanningTime;
+      float _maxPlanningTime = DEFAULT_MAX_PLANNER_COMPUTATION_TIME_S;
       
-      float _timeToAbortPlanning;
+      float _timeToAbortPlanning = -1.f;
             
       // The pose of the object that the _goalPoses were generated from
       Pose3d _objectPoseGoalsGeneratedFrom;
       bool _useObjectPose = false;
       
       bool _mustUseOriginalGoal = false;
-      
-      int _debugPrintCtr = 0;
       
     }; // class DriveToPoseAction
 
@@ -164,10 +154,13 @@ namespace Anki {
                                     std::vector<Pose3d>& possiblePoses,
                                     bool& alreadyInPosition);
       
+      void SetVisuallyVerifyWhenDone(const bool b) { _visuallyVerifyWhenDone = b; }
+      
       virtual void GetCompletionUnion(ActionCompletedUnion& completionUnion) const override;
       
     protected:
       
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
@@ -197,6 +190,7 @@ namespace Anki {
       bool _shouldSetCubeLights = false;
       bool _lightsSet = false;
       
+      bool _visuallyVerifyWhenDone = true;
     }; // DriveToObjectAction
 
   
@@ -289,9 +283,6 @@ namespace Anki {
       
       const bool GetUseApproachAngle() const;
       
-      // Whether or not we should look up to check if there is an object above the dockObject
-      void SetShouldCheckForObjectOnTopOf(const bool b);
-      
     protected:
 
       virtual Result UpdateDerived() override;
@@ -361,7 +352,7 @@ namespace Anki {
       
       void SetDockingMethod(DockingMethod dockingMethod);
       
-      void SetPostDockLiftMovingAnimation(Anki::Cozmo::AnimationTrigger trigger);
+      void SetPostDockLiftMovingAudioEvent(AudioMetaData::GameEvent::GenericEvent event);
       
     private:
       std::weak_ptr<IActionRunner> _pickupAction;
@@ -482,18 +473,6 @@ namespace Anki {
                              const bool sayName = false);
       
       virtual ~DriveToFacePlantAction() { }
-    };
-
-    // Common compound action
-    class DriveToAndTraverseObjectAction : public IDriveToInteractWithObject
-    {
-    public:
-      DriveToAndTraverseObjectAction(const ObjectID& objectID,
-                                     Radians maxTurnTowardsFaceAngle_rad = 0.f,
-                                     const bool sayName = false);
-      
-      virtual ~DriveToAndTraverseObjectAction() { }
-      
     };
     
     class DriveToRealignWithObjectAction : public CompoundActionSequential

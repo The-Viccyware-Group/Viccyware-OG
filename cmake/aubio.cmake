@@ -1,17 +1,15 @@
-if (ANDROID)
-  set(LIBAUBIO_INCLUDE_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-linux/include")
-  set(LIBAUBIO_LIB_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-linux/lib/libaubio.a")
-elseif (VICOS)
-  set(LIBAUBIO_INCLUDE_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-vicos/include")
-  set(LIBAUBIO_LIB_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-vicos/lib/libaubio.a")
+if (VICOS)
+  set(LIBAUBIO_INCLUDE_PATH "${ANKI_THIRD_PARTY_DIR}/aubio/vicos/include")
+  set(LIBAUBIO_LIB_PATH "${ANKI_THIRD_PARTY_DIR}/aubio/vicos/lib/libaubio.a")
 elseif (MACOSX)
-  set(LIBAUBIO_INCLUDE_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-mac/include")
-  set(LIBAUBIO_LIB_PATH "${CORETECH_EXTERNAL_DIR}/build/aubio-mac/lib/libaubio.a")
+  set(LIBAUBIO_INCLUDE_PATH "${ANKI_THIRD_PARTY_DIR}/aubio/mac/include")
+  set(LIBAUBIO_LIB_PATH "${ANKI_THIRD_PARTY_DIR}/aubio/mac/lib/libaubio.a")
 endif()
 
 set(AUBIO_LIBS aubio)
 
 add_library(aubio STATIC IMPORTED)
+anki_build_target_license(aubio "Commercial")
 
 set_target_properties(aubio PROPERTIES
   IMPORTED_LOCATION "${LIBAUBIO_LIB_PATH}"

@@ -20,9 +20,10 @@
 #include "clad/externalInterface/messageEngineToGame.h"
 
 #include "util/console/consoleInterface.h"
+#include "util/logging/DAS.h"
 
 namespace  Anki {
-namespace Cozmo {
+namespace Vector {
 
 CONSOLE_VAR(f32, kHeadTurnSpeedThreshPet_degs, "WasRotatingTooFast.Pet.Head_deg/s", 10.f);
 CONSOLE_VAR(f32, kBodyTurnSpeedThreshPet_degs, "WasRotatingTooFast.Pet.Body_deg/s", 30.f);
@@ -37,7 +38,7 @@ PetWorld::PetWorld()
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PetWorld::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents)
+void PetWorld::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps)
 {
   _robot = robot;
 }
@@ -72,8 +73,9 @@ Result PetWorld::Update(const std::list<Vision::TrackedPet>& pets)
         // New pet ID, make sure we weren't rotating too fast while seeing it
         const bool rotatingTooFastCheckEnabled = (Util::IsFltGT(kBodyTurnSpeedThreshPet_degs, 0.f) ||
                                                   Util::IsFltGT(kHeadTurnSpeedThreshPet_degs, 0.f));
+        auto const& imuHistory = _robot->GetImuComponent().GetImuHistory();
         const bool wasRotatingTooFast = (rotatingTooFastCheckEnabled &&
-                                         _robot->GetVisionComponent().WasRotatingTooFast(petDetection.GetTimeStamp(),
+                                         imuHistory.WasRotatingTooFast(petDetection.GetTimeStamp(),
                                                                                         DEG_TO_RAD(kBodyTurnSpeedThreshPet_degs),
                                                                                         DEG_TO_RAD(kHeadTurnSpeedThreshPet_degs),
                                                                                         (petDetection.IsBeingTracked() ? kNumImuDataToLookBackPet : 0)));
@@ -120,7 +122,10 @@ Result PetWorld::Update(const std::list<Vision::TrackedPet>& pets)
         }
       }
 
-      Util::sInfoF("robot.vision.detected_pet", {{DDATA, EnumToString(knownPet.GetType())}}, "%d", knownPet.GetID());
+      DASMSG(robot.vision.detected_pet, "robot.vision.detected_pet", "Detected a pet");
+      DASMSG_SET(s1, EnumToString(knownPet.GetType()), "PetType");
+      DASMSG_SET(i1, knownPet.GetID(), "PetID");
+      DASMSG_SEND();
     }
 
     // Broadcast the detection for Game/SDK
@@ -197,5 +202,5 @@ const Vision::TrackedPet* PetWorld::GetPetByID(Vision::FaceID_t faceID) const
   }
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

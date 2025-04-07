@@ -13,15 +13,19 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/weather/behaviorCoordinateWeather.h"
 
-#include "clad/types/behaviorComponent/userIntent.h"
+#include "clad/types/featureGateTypes.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
+#include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
 #include "engine/aiComponent/behaviorComponent/userIntentComponent.h"
-#include "engine/aiComponent/behaviorComponent/weatherIntentParser.h"
+#include "engine/aiComponent/behaviorComponent/weatherIntents/weatherIntentParser.h"
 #include "engine/components/dataAccessorComponent.h"
+#include "engine/cozmoContext.h"
+#include "engine/utils/cozmoFeatureGate.h"
+
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace{
 const char* kResponseMapKey =  "responseMap";
@@ -87,6 +91,7 @@ bool BehaviorCoordinateWeather::WantsToBeActivatedBehavior() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorCoordinateWeather::GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const
 {
+  modifiers.wantsToBeActivatedWhenOffTreads = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -119,6 +124,11 @@ void BehaviorCoordinateWeather::InitBehavior()
 
   _iConfig.iCantDoThatBehavior = behaviorContainer.FindBehaviorByID(BEHAVIOR_ID(SingletonICantDoThat));
 
+  _iConfig.intentParser = std::make_unique<WeatherIntentParser>(
+    GetBEI().GetDataAccessorComponent().GetWeatherResponseMap(),
+    GetBEI().GetDataAccessorComponent().GetWeatherRemaps()
+  );
+
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -140,13 +150,10 @@ void BehaviorCoordinateWeather::OnBehaviorActivated()
 
   // Respond with appropriate weather response
   bool cantDoThat = false;
-  if(WeatherIntentParser::IsForecast(weatherResponse)){
+  if(_iConfig.intentParser->IsForecast(weatherResponse)){
     cantDoThat = true;
   }else{
-    auto& dataAccessorComp = GetBEI().GetComponentWrapper(BEIComponentID::DataAccessor).GetValue<DataAccessorComponent>();
-
-    const auto condition = WeatherIntentParser::GetCondition(dataAccessorComp.GetWeatherResponseMap(), 
-                                                             weatherResponse);
+    const auto condition = _iConfig.intentParser->GetCondition(weatherResponse);
     const auto iter = _iConfig.weatherBehaviorMap.find(condition);
     if((iter != _iConfig.weatherBehaviorMap.end()) &&
        iter->second->WantsToBeActivated()){
@@ -181,5 +188,5 @@ void BehaviorCoordinateWeather::OnBehaviorActivated()
 
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

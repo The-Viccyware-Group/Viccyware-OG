@@ -4,6 +4,7 @@
  */
 
 
+#include "clad/types/alexaTypes.clad"
 #include "clad/audio/audioCallbackMessage.clad"
 #include "clad/types/beatDetectorTypes.clad"
 #include "clad/types/robotStatusAndActions.clad"
@@ -11,38 +12,56 @@
 #include "clad/types/dockingSignals.clad"
 #include "clad/types/imu.clad"
 #include "clad/types/proxMessages.clad"
-#include "clad/robotInterface/otaMessages.clad"
 #include "clad/robotInterface/messageFromAnimProcess.clad"
 #include "clad/types/pathEventTypes.clad"
-#include "clad/types/factoryFWOnly.clad"
 #include "clad/types/robotToSwitchboard.clad"
 #include "clad/robotInterface/factoryMessages.clad"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace RobotInterface {
 
 message SyncRobotAck
 {
+  uint_8 sysconVersion[16] // Must match VersionInfo::app_version in schema/messages.h
 }
 
 message RobotServerDisconnect
 {
 }
 
+// Message for HAL to send to anim when it's taking 
+// a little too long to get data from spine
+message StillAlive
+{
+}
+
 message PrepForShutdown
 {
+  ShutdownReason reason
 }
 
 message RobotPoked
 {
 }
 
+message AlexaAuthChanged {
+  AlexaAuthState state,
+  string extra,
+}
+
+message AlexaUXChanged {
+  AlexaUXState state,
+}
+
 // Indicates the robot has heard the trigger word
 message TriggerWordDetected
 {
-  uint_32 timestamp,
-  uint_16 direction
+  uint_32 triggerScore,
+  uint_16 direction,
+  bool isButtonPress,
+  bool fromMute,
+  bool willOpenStream,
 }
 
 message MicDirection
@@ -58,30 +77,32 @@ message MicDirection
   float_32  latestNoiseFloor,
 }
 
+message MicDataState
+{
+  float_32 rawBufferFullness
+}
+
 // This message indicates that the robot experienced a freefall event
 message FallingEvent {
   uint_32 timestamp,       // When the fall started (as a robot timestamp)
-  uint_32 duration_ms,     // The approximate freefall duration
-  float_32 impactIntensity // A measure of how 'hard' the impact was (this is computed as the
-                           // maximum experienced high-pass filtered accelerometer value)
+  uint_32 duration_ms      // The approximate freefall duration
+}
+
+message FallImpactEvent 
+{
 }
 
 message RobotStopped
 {
-  uint_8 reason  // reserved for later in case we need reasons
+  StopReason reason,
+  uint_8 cliffDetectedFlags,
+  uint_8 whiteDetectedFlags
 }
 
 message PathFollowingEvent
 {
   uint_16        pathID,
   PathEventType  eventType
-}
-
-message ManufacturingID
-{ // See definitions in syscon/hal/hardware.h
-  uint_32 esn,
-  int_32  hw_version,
-  int_32  body_color,
 }
 
 message LiftLoad
@@ -97,10 +118,25 @@ message MotorActionAck
 
 message MicData
 {
-  int_16  data[320], // 80 samples of audio 4 channels
+  int_16  data[640], // one 10ms chunks of 160 samples, times 4 audio channels
   uint_32 timestamp,
   uint_32 robotStatusFlags, // RobotStatusFlag packs as a uint_32
   float_32 robotRotationAngle,
+}
+
+message AudioPlaybackBegin
+{
+  string path
+}
+
+message AudioPlaybackEnd
+{
+  string path
+}
+
+message MicRecordingComplete
+{
+  string path
 }
 
 message AudioFFTResult
@@ -122,6 +158,16 @@ message DisplayedFaceImageRGBChunk {
 message BeatDetectorState
 {
   BeatInfo latestBeat
+}
+
+message StartSelfTest
+{
+
+}
+
+message SendRangeData
+{
+  bool enable
 }
 
 /// *************** Overall message pipe ******************************* ///
@@ -155,13 +201,10 @@ union RobotToEngine {
   LiftLoad                   liftLoad               = 0xBA,
   PickAndPlaceResult         pickAndPlaceResult     = 0xBB,
   ChargerMountComplete       chargerMountCompleted  = 0xBC,
-  RampTraverseStart          rampTraverseStarted    = 0xBD,
-  RampTraverseComplete       rampTraverseCompleted  = 0xBE,
-  BridgeTraverseStart        bridgeTraverseStarted  = 0xBF,
-  BridgeTraverseComplete     bridgeTraverseCompleted= 0xC0,
+  CliffAlignComplete         cliffAlignComplete     = 0xBD,
 
   // Sensors
-  // FREE SLOT                                      = 0xC1,
+  FallImpactEvent            fallImpactEvent        = 0xC1,
   IMUDataChunk               imuDataChunk           = 0xC2,
   IMURawDataChunk            imuRawDataChunk        = 0xC3,
   IMUTemperature             imuTemperature         = 0xC4,
@@ -170,18 +213,19 @@ union RobotToEngine {
   FallingEvent               fallingEvent           = 0xC7,
   RobotPoked                 robotPoked             = 0xC8,
 
-  // TODO: Can probably get rid of these eventually since engine
-  //       can access most of this info directly now.
-  FWVersionInfo              factoryFirmwareVersion = 0xC9, ///< DEPRECATED, only used by factory firmware
   RunFactoryTest             runFactoryTest         = 0xCA,
-  ManufacturingID            mfgId                  = 0xCB,
-  FirmwareVersion            firmwareVersion        = 0xCC,
+  StartSelfTest              startSelfTest          = 0xCB,
 
   RobotServerDisconnect      robotServerDisconnect  = 0xCD,
 
-  // FREE SLOTS 0xCE to 0xD2
+  StillAlive                 stillAlive             = 0xCE,
+
 
   // Messages from animation process to engine
+  StartShutdownAnim          startShutdownAnim      = 0xD0,
+
+  ReportCloudConnectivity    reportCloudConnectivity = 0xD1,
+
   AnimationAdded             animAdded              = 0xD3,
   RobotAvailable             robotAvailable         = 0xD4,
   AnimationEvent             animEvent              = 0xD5,
@@ -193,11 +237,11 @@ union RobotToEngine {
   // Messages relating to trigger word detection
   TriggerWordDetected        triggerWordDetected    = 0xD9,
   MicDirection               micDirection           = 0xDA,
-  
+
   TextToSpeechEvent          textToSpeechEvent      = 0xDB,
 
   SwitchboardInterface::EnterPairing  enterPairing  = 0xDC,
-  SwitchboardInterface::ExitPairing   exitPairing   = 0xDD,  
+  SwitchboardInterface::ExitPairing   exitPairing   = 0xDD,
   StreamCameraImages         streamCameraImages     = 0xDE,
   DebugScreenMode            debugScreenMode        = 0xDF,
 
@@ -208,13 +252,28 @@ union RobotToEngine {
   AudioEngine::Multiplexer::AudioCallbackError    audioCallbackError    = 0xE3,
 
   DisplayedFaceImageRGBChunk displayedFaceImageRGBChunk = 0xE4,
-  
+
   BeatDetectorState          beatDetectorState      = 0xE5,
+
+  AudioPlaybackBegin         audioPlaybackBegin     = 0xE6,
+  AudioPlaybackEnd           audioPlaybackEnd       = 0xE7,
+  MicRecordingComplete       micRecordingComplete   = 0xE8,
+  MicDataState               micDataState           = 0xE9,
+
+  SendRangeData              sendRangeData          = 0xEA,
+
+  // SDK Streaming Audio Playback
+  AudioStreamStatusEvent     audioStreamStatusEvent = 0xEB,
+
+  // Alexa
+  AlexaAuthChanged           alexaAuthChanged       = 0xEC,
+  AlexaUXChanged             alexaUXChanged         = 0xED,
+
 
   // ====== 0xF0 to 0x FE: Unreliable message to the Engine =====
   // From robot process
   RobotState                 state                  = 0xF0,
-  ImageImuData               imageGyro              = 0xF1,
+  // FREE SLOT
   MicData                    micData                = 0xF2,
 
   // From anim process
@@ -224,5 +283,5 @@ union RobotToEngine {
 
 
 } // namespace RobotInterface
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

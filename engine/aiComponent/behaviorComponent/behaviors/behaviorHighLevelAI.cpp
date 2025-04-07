@@ -18,23 +18,28 @@
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
-#include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/delegationComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorTimers.h"
-#include "engine/aiComponent/behaviorComponent/userIntentComponent.h"
-#include "engine/aiComponent/beiConditions/conditions/conditionAnyStimuli.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionLambda.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/faceWorld.h"
 #include "util/console/consoleInterface.h"
 #include "util/helpers/boundedWhile.h"
+#include "util/logging/DAS.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+
+#define LOG_CHANNEL "Behaviors"
+
+#define CONSOLE_GROUP "BehaviorHighLevelAI"
 
 // speed up high level AI with this. Be careful -- some conditions that check for time
 // within a short interval [a,b] may not be met if you choose too fast a speedup factor
-CONSOLE_VAR_RANGED(float, kTimeMultiplier, "BehaviorHighLevelAI", 1.0f, 1.0f, 300.0f);
+CONSOLE_VAR_RANGED(float, kTimeMultiplier, CONSOLE_GROUP, 1.0f, 1.0f, 300.0f);
+
+// This is the _minumum_ cooldown to go from Observing to Exploring
+CONSOLE_VAR(float, kHLAI_MinObservingBeforeExploring_s, CONSOLE_GROUP, 10.0f);
   
 namespace {
 
@@ -109,37 +114,10 @@ BehaviorHighLevelAI::~BehaviorHighLevelAI()
 {
   
 }
-
-bool BehaviorHighLevelAI::IsBehaviorActive( BehaviorID behaviorID ) const
-{
-  const auto& BC = GetBEI().GetBehaviorContainer();
-  const ICozmoBehaviorPtr targetBehavior = BC.FindBehaviorByID( behaviorID );
-  if( targetBehavior != nullptr ) {
-    const IBehavior* behavior = this;
-    BOUNDED_WHILE( 100, (behavior != nullptr) && "Stack too deep to find behavior" ) {
-      behavior = GetBEI().GetDelegationComponent().GetBehaviorDelegatedTo( behavior );
-      if( behavior == targetBehavior.get() ) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
   
 void BehaviorHighLevelAI::BehaviorUpdate()
 {
-  const bool wasSleepingActive = IsBehaviorActive( BEHAVIOR_ID(Sleeping) );
-  
   InternalStatesBehavior::BehaviorUpdate();
-  
-  const bool triggerWordPending = GetBehaviorComp<UserIntentComponent>().IsTriggerWordPending();
-  if( triggerWordPending && wasSleepingActive ) {
-    DEV_ASSERT( !IsBehaviorActive( BEHAVIOR_ID(Sleeping) ), "Expected a transition out of sleeping" );
-    // the global interrupts coordinator is letting us handle the trigger word, since it should wake
-    // the robot. The above behavior robot should have woken the robot
-    GetBehaviorComp<UserIntentComponent>().ClearPendingTriggerWord();
-  }
-  
 }
 
 CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
@@ -162,7 +140,7 @@ CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
           }
           
           auto& faceWorld = bei.GetFaceWorld();
-          const auto& faces = faceWorld.GetFaceIDs(true);
+          const auto& faces = faceWorld.GetFaceIDs(0, true);
           for( const auto& faceID : faces ) {
             const auto* face = faceWorld.GetFace(faceID);
             if( face != nullptr ) {
@@ -179,7 +157,7 @@ CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
           return false;
         },
         ConditionLambda::VisionModeSet{
-          { VisionMode::DetectingFaces, EVisionUpdateFrequency::Low }
+          { VisionMode::Faces, EVisionUpdateFrequency::Low }
         },
         emptyOwnerLabel )));
 
@@ -190,14 +168,14 @@ CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
         [](BehaviorExternalInterface& bei) {
           BlockWorldFilter filter;
           filter.SetFilterFcn( [](const ObservableObject* obj){
-              return IsCharger(obj->GetType(), false) && obj->IsPoseStateKnown();
+              return IsChargerType(obj->GetType(), false) && obj->IsPoseStateKnown();
             });
           const auto& blockWorld = bei.GetBlockWorld();
           const auto* block = blockWorld.FindLocatedMatchingObject(filter);
           return block != nullptr;
         },
         ConditionLambda::VisionModeSet{
-          { VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low }
+          { VisionMode::Markers, EVisionUpdateFrequency::Low }
         },
         emptyOwnerLabel )));
   
@@ -215,9 +193,11 @@ CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
           // for playing, but it recently played with a cube, then it shouldn't try to drive off the charger
           // again.
           const bool valueIfNeverRun = false;
-          const bool hasntDrivenOffChargerForPlay = StateExitCooldownExpired(GetStateID("ObservingDriveOffCharger"),
-                                                                             _params.playWithCubeOnChargerCooldown_s / kTimeMultiplier,
-                                                                             valueIfNeverRun);
+          const bool hasntDrivenOffChargerForPlay = StateExitCooldownExpired(
+            GetStateID("ObservingDriveOffCharger"),
+            _params.playWithCubeOnChargerCooldown_s / kTimeMultiplier,
+            InternalStatesBehavior::StateCooldownDefault::False);
+
           const auto& timer = GetBEI().GetBehaviorTimerManager().GetTimer( BehaviorTimerTypes::PlayingWithCube );
           const bool hasntPlayed = timer.HasCooldownExpired(_params.playWithCubeCooldown_s / kTimeMultiplier, valueIfNeverRun);
           
@@ -247,18 +227,48 @@ CustomBEIConditionHandleList BehaviorHighLevelAI::CreateCustomConditions()
           return block != nullptr;
         },
         ConditionLambda::VisionModeSet{
-          { VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low }
+          { VisionMode::Markers, EVisionUpdateFrequency::Low }
+        },
+        emptyOwnerLabel )));
+
+  handles.emplace_back(
+    BEIConditionFactory::InjectCustomBEICondition(
+      "ExploringCooldownMet",
+      std::make_shared<ConditionLambda>(
+        [this](BehaviorExternalInterface& bei) {
+
+          const float stateStartTime_s = GetLastTimeStarted( GetCurrentStateID() );
+          const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+
+          if( currTime_s - stateStartTime_s < kHLAI_MinObservingBeforeExploring_s ) {
+            // haven't been in observing for long enough
+            return false;
+          }
+
+          const float cooldown_s = GetAIComp<AIWhiteboard>().GetExploringCooldown_s();
+
+          if( _params.lastExploringCooldownPrinted != cooldown_s ) {
+            LOG_INFO("BehaviorHighLevelAI.ExploringState.NewCooldown",
+                     "Observing -> Exploring cooldown is now %f",
+                     cooldown_s);
+            _params.lastExploringCooldownPrinted = cooldown_s;
+          }
+
+          const bool cooldownPassed = StateExitCooldownExpired(
+            GetStateID("Exploring"),
+            cooldown_s,
+            InternalStatesBehavior::StateCooldownDefault::UseFirstBehaviorActivationTime);
+          return cooldownPassed;
         },
         emptyOwnerLabel )));
 
   return handles;
 }
   
-void BehaviorHighLevelAI::OverrideResumeState( StateID& resumeState ) const
+void BehaviorHighLevelAI::OverrideResumeState( StateID& resumeState )
 {
   // get the most recent post-behavior suggestion that we care about
   size_t maxTick = 0;
-  PostBehaviorSuggestions suggestion = PostBehaviorSuggestions::Invalid;
   StateID maxTickState = InvalidStateID;
   for( const auto& configSuggestion : _params.pbsResumeOverrides ) {
     size_t tick = 0;
@@ -266,7 +276,6 @@ void BehaviorHighLevelAI::OverrideResumeState( StateID& resumeState ) const
         && (tick >= maxTick) )
     {
       maxTick = tick;
-      suggestion = configSuggestion.first;
       maxTickState = configSuggestion.second;
     }
   }
@@ -279,6 +288,16 @@ void BehaviorHighLevelAI::OverrideResumeState( StateID& resumeState ) const
       GetAIComp<AIWhiteboard>().ClearPostBehaviorSuggestions();
     }
   }
+}
+
+void BehaviorHighLevelAI::OnStateNameChange( const std::string& oldStateName, const std::string& newStateName ) const
+{
+  // send a DAS msg. A lot of this is captured by the feature start/ending, but if a state holds more than one feature,
+  // or if some states are transient, this helps to understand the whole behavior
+  DASMSG(behavior_hlai_change, "behavior.hlai.change", "HLAI changed its state");
+  DASMSG_SET(s1, newStateName, "The new state name");
+  DASMSG_SET(s2, oldStateName, "The old state name");
+  DASMSG_SEND();
 }
 
 }

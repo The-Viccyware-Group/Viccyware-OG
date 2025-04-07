@@ -9,6 +9,7 @@
 
 #include "util/logging/victorLogger.h"
 #include "util/logging/DAS.h"
+#include "util/global/globalDefinitions.h"
 
 #include <android/log.h>
 #include <assert.h>
@@ -121,9 +122,37 @@ void VictorLogger::LogEvent(android_LogPriority prio,
   static_assert(Anki::Util::DAS::FIELD_MARKER == '\x1F', "DAS field marker does not match declarations");
   static_assert(Anki::Util::DAS::FIELD_COUNT == 9, "DAS field count does not match declarations");
 
-  __android_log_print(prio, _tag.c_str(), "@%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s",
-                      name, str1, str2, str3, str4, int1, int2, int3, int4);
+  const auto uptime_ms = DAS::UptimeMS();
 
+  __android_log_print(prio, _tag.c_str(), "@%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%llu",
+                      name, str1, str2, str3, str4, int1, int2, int3, int4, uptime_ms);
+
+}
+
+void VictorLogger::LogError(android_LogPriority prio,
+  const char * name,
+  const KVPairVector & keyvals,
+  const char * strval)
+{
+#if ANKI_REPORT_ERRORS_TO_DAS
+  // Normally errors just go to the local log system, but with this enabled
+  // we will send them up to the DAS server.
+  KVPairVector kv;
+  kv.emplace_back(DAS::STR1, name);
+#if ANKI_REPORT_ERRORS_WITH_STRVAL_TO_DAS
+  // Move strval to s2 value for DAS event.  This can be useful for
+  // debugging the error.  It is expected that this will NOT be used
+  // in shipping builds.
+  std::string escaped = Anki::Util::DAS::Escape(strval);
+  kv.emplace_back(DAS::STR2, escaped.c_str());
+  // Append any existing keyvals to the end of kv.  If keyvals has a value for s1 or s2,
+  // they will supersede what is in kv when processed by LogEvent
+#endif // ANKI_REPORT_ERRORS_WITH_STRVAL_TO_DAS
+  kv.insert(std::end(kv), std::begin(keyvals), std::end(keyvals));
+  LogEvent(prio, "log.error", kv);
+#else
+  Log(prio, name, keyvals, strval);
+#endif // ANKI_REPORT_ERRORS_TO_DAS
 }
 
 //
@@ -181,9 +210,11 @@ void VictorLogger::LogEvent(LogLevel level, const DasMsg & dasMsg)
   static_assert(Anki::Util::DAS::FIELD_MARKER == '\x1F', "DAS field marker does not match declarations");
   static_assert(Anki::Util::DAS::FIELD_COUNT == 9, "DAS field count does not match declarations");
 
-  __android_log_print(prio, _tag.c_str(), "@%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s",
+  const auto uptime_ms = Anki::Util::DAS::UptimeMS();
+
+  __android_log_print(prio, _tag.c_str(), "@%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%s\x1F%llu",
                       dasMsg.event.c_str(), dasMsg.s1.c_str(), dasMsg.s2.c_str(), dasMsg.s3.c_str(), dasMsg.s4.c_str(),
-                      dasMsg.i1.c_str(), dasMsg.i2.c_str(), dasMsg.i3.c_str(), dasMsg.i4.c_str());
+                      dasMsg.i1.c_str(), dasMsg.i2.c_str(), dasMsg.i3.c_str(), dasMsg.i4.c_str(), uptime_ms);
 
 }
 

@@ -13,16 +13,22 @@
 
 #include "cozmoAnim/faceDisplay/faceDisplayImpl.h"
 
+#include "anki/cozmo/shared/factory/faultCodes.h"
+
 #include "core/lcd.h"
 
 #include "util/logging/logging.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
   FaceDisplayImpl::FaceDisplayImpl()
   {
-    lcd_init();
+    int res = lcd_init();
+    if(res < 0)
+    {
+      FaultCode::DisplayFaultCode(FaultCode::DISPLAY_FAILURE);
+    }
   }
 
   FaceDisplayImpl::~FaceDisplayImpl()
@@ -46,7 +52,12 @@ namespace Cozmo {
     // Stub
   }
 
-} // namespace Cozmo
+  void FaceDisplayImpl::SetFaceBrightness(int level)
+  {
+    lcd_set_brightness(level);
+  }
+
+} // namespace Vector
 } // namespace Anki
 
 extern "C" void core_common_on_exit(void)

@@ -14,9 +14,6 @@
   // image save scale: any scale valid with ImageCache::StringToSize
   "image_scale": "full",
 
-  // image scaling method: any method valid with ImageCache::StringToSize
-  "resize_method": "linear",
-
   // whether or not to use capacitive touch to trigger saving
   // if 0, uses power button istead
   "use_capacitive_touch": false,
@@ -28,5 +25,8 @@
   "pre_event_capture_time": 5.0,
 
   // Time to capture data after event
-  "post_event_capture_time": 5.0
+  "post_event_capture_time": 5.0,
+
+  // Whether to randomly tilt the head upon starting sequence
+  "enable_random_head_tilt": true
 }

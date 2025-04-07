@@ -23,7 +23,7 @@
 #include <vector>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward declarations
 class ActionList;
@@ -38,7 +38,6 @@ enum class QueueActionPosition : uint8_t;
 template <typename Type>
 class AnkiEvent;
 
-
 class RobotEventHandler : private Util::noncopyable
 {
 public:
@@ -50,8 +49,6 @@ public:
   using ActionUnionFcn  = IActionRunner* (*)(Robot& robot, const ExternalInterface::RobotActionUnion& actionUnion);
   using GameToEngineFcn = IActionRunner* (*)(Robot& robot, const ExternalInterface::MessageGameToEngine& msg);
   
-  void SetAllowedToHandleActions(bool allowedToHandleActions);
-
 protected:
   const CozmoContext* _context;
   std::vector<Signal::SmartHandle> _signalHandles;
@@ -68,12 +65,10 @@ private:
   std::map<ExternalInterface::MessageGameToEngineTag, std::pair<GameToEngineFcn,s32> >  _gameToEngineHandlerLUT;
 
   static u32 _gameActionTagCounter;
-
-  bool _allowedToHandleActions;
 };
 
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_RobotEventHandler_H__

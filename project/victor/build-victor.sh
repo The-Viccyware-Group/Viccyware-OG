@@ -20,7 +20,8 @@ function usage() {
     echo "  -d                      DEBUG: generate file lists and exit"
     echo "  -x [CMAKE_EXE]          path to cmake executable"
     echo "  -C                      generate build config and exit without building"
-    echo "  -D                      allow #defines to be specified from the command-line"
+    echo "  -D                      Define a cmake variable from the command-line"
+    echo "                          Those that match the ANKI_* pattern will be made into #defines for all targets"
     echo "  -F [FEATURE]            enable feature {factoryTest,factoryTestDev}"
     echo "  -T                      list all cmake targets"
     echo "  -t [target]             build specified cmake target"
@@ -37,6 +38,7 @@ CONFIGURE=0
 GEN_SRC_ONLY=0
 RM_BUILD_ASSETS=0
 RUN_BUILD=1
+RUN_INSTALL=1
 CMAKE_TARGET=""
 EXPORT_COMPILE_COMMANDS=0
 IGNORE_EXTERNAL_DEPENDENCIES=0
@@ -96,10 +98,12 @@ while getopts ":x:c:p:a:t:g:F:D:hvfdCTeISX" opt; do
             GENERATOR="${OPTARG}"
             ;;
         F)
+            CONFIGURE=1
             FEATURES="${FEATURES} ${OPTARG}"
             ;;
         t)
             CMAKE_TARGET="${OPTARG}"
+            RUN_INSTALL=0
             ;;
         e)
             EXPORT_COMPILE_COMMANDS=1
@@ -129,13 +133,37 @@ shift $(($OPTIND - 1))
 cd ${TOPLEVEL}
 
 #
+# Verify tflite files were downloaded correctly via git lfs
+#
+
+function usage_fix_lfs() {
+    echo "$1 is not a valid .tflite file!!!"
+    echo "Probably a problem with your git lfs setup.  Try the following to fix it...."
+    echo ""
+    echo "git lfs uninstall  # Remove Git LFS hooks and filters"
+    echo "rm $f              # Delete borked file"
+    echo "git stash          # Save your work in progress"
+    echo "git reset --hard   # This will wipe out your work in progress, hope you stashed"
+    echo "git lfs install    # Install Git LFS configuration"
+    echo "git lfs pull       # Fetch Git LFS changes from remote & checkout required files"
+    echo "git stash apply    # This will grab changes from your stash"
+    exit 1
+}
+
+for f in `git ls-files *.tflite`; do
+    egrep -q TFL3 $f || usage_fix_lfs $f
+done
+
+
+#
 # settings
 #
 
 if [ -z "${CMAKE_EXE+x}" ]; then
     echo "Attempting to install cmake"
-    ${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py --install-cmake 3.9.6
-    CMAKE_EXE=`${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py --find-cmake 3.9.6`
+    ${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py --install-cmake 3.20.6
+    CMAKE_EXE=`${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py --find-cmake 3.20.6`
+    echo ${CMAKE_EXE}
 fi
 
 if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ]; then
@@ -257,28 +285,12 @@ fi
 
 : ${CMAKE_MODULE_DIR:="${TOPLEVEL}/cmake"}
 
-if [ ! -f ${CMAKE_EXE} ]; then
+if [[ ! -f ${CMAKE_EXE} ]]; then
   echo "Missing CMake executable: ${CMAKE_EXE}"
   echo "Fetch the required CMake version by running ${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py"
   echo "Alternatively, specify a CMake executable using the -x flag."
   exit 1
 fi
-
-if [ -z "${GOROOT+x}" ]; then
-    GO_EXE=`${TOPLEVEL}/tools/build/tools/ankibuild/go.py`
-    export GOROOT=$(dirname $(dirname $GO_EXE))
-else
-    GO_EXE=$GOROOT/bin/go
-fi
-export GOPATH=${TOPLEVEL}/cloud/go:${TOPLEVEL}/generated/cladgo:${TOPLEVEL}/generated/go:${TOPLEVEL}/tools/message-buffers/support/go
-
-if [ ! -f ${GO_EXE} ]; then
-  echo "Missing Go executable: ${GO_EXE}"
-  echo "Fetch the required Go version by running ${TOPLEVEL}/tools/build/tools/ankibuild/go.py"
-  exit 1
-fi
-
-${TOPLEVEL}/tools/build/tools/ankibuild/go.py --check-version $GO_EXE
 
 #
 # Remove assets in build directory if requested. This will force the
@@ -308,26 +320,47 @@ if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ] || [ $CONFIGURE -eq 1 ] ; then
     # Scan for BUILD.in files
     METABUILD_INPUTS=`find . -name BUILD.in`
 
-    # Process BUILD.in files (creates list of Go projects to fetch)
-    ${BUILD_TOOLS}/metabuild/metabuild.py --go-output \
-      -o ${GEN_SRC_DIR} \
-      ${METABUILD_INPUTS}
+    # # Process BUILD.in files (creates list of Go projects to fetch)
+    # PATH="$(dirname $GO_EXE):$PATH" ${BUILD_TOOLS}/metabuild/metabuild.py --go-output \
+    #   -o ${GEN_SRC_DIR} \
+    #   ${METABUILD_INPUTS}
 fi
 
-if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ]; then
-  echo "Getting Go dependencies"
-  # Check out specified revisions of repositories we've versioned
-  # Append a dummy dir to the GOPATH so that `go get` doesn't barf
-  # on nonexistent clad files
-  GODUMMY=${TOPLEVEL}/cloud/dummy
-  (cd ${TOPLEVEL}; PATH="$PATH:$(dirname $GO_EXE)" GOPATH="$GOPATH:$GODUMMY" ./godeps.js execute ${GEN_SRC_DIR})
-else
-  echo "Ignore Go dependencies"
+# Set protobuf location
+HOST=`uname -a | awk '{print tolower($1);}' | sed -e 's/darwin/mac/'`
+if [[ `uname -a` == *"aarch64"* && $HOST == "linux" ]]; then
+	HOST+="-arm64"
+fi
+echo $HOST
+PROTOBUF_HOME=${TOPLEVEL}/3rd/protobuf/${HOST}
+
+# Build protocCppPlugin if needed
+if [[ ! -x ${TOPLEVEL}/tools/protobuf/plugin/protocCppPlugin ]]; then
+  BUILD_PROTOC_PLUGIN=1
+else 
+  BUILD_PROTOC_PLUGIN=0
+  for f in `find ${TOPLEVEL}/tools/protobuf/plugin -type f`; do
+    if [ "$f" -nt ${TOPLEVEL}/tools/protobuf/plugin/protocCppPlugin ]; then
+      BUILD_PROTOC_PLUGIN=1
+    fi
+  done
+fi
+if [[ $BUILD_PROTOC_PLUGIN -eq 1 ]]; then
+    ${TOPLEVEL}/tools/protobuf/plugin/make.sh
 fi
 
-# install build tool binaries + set protoc location
-PROTOC_EXE=`${TOPLEVEL}/tools/build/tools/ankibuild/protobuf.py --install --helpers | tail -1`
-PROTOBUF_HOME=`cd $(dirname "${PROTOC_EXE}")/.. && pwd`
+
+# Build/Install the protoc generators for go
+# GOBIN="${TOPLEVEL}/cloud/go/bin"
+# if [[ ! -x $GOBIN/protoc-gen-go ]] || [[ ! -x $GOBIN/protoc-gen-grpc-gateway ]]; then
+#     echo "Building/Installing protoc-gen-go and protoc-gen-grpc-gateway"
+#     GOBIN=$GOBIN \
+#     CC=/usr/bin/cc \
+#     CXX=/usr/bin/c++ \
+#     "${GOROOT}/bin/go" install \
+#     github.com/golang/protobuf/protoc-gen-go \
+#     github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+# fi
 
 #
 # generate source file lists
@@ -375,7 +408,7 @@ if [ $CONFIGURE -eq 1 ]; then
         # If VICOS_SDK is set, use it, else provide default location
         #
         if [ -z "${VICOS_SDK+x}" ]; then
-            VICOS_SDK=$(${TOPLEVEL}/tools/build/tools/ankibuild/vicos.py --install 0.9-r03 | tail -1)
+            VICOS_SDK=$(${TOPLEVEL}/tools/build/tools/ankibuild/vicos.py --install 1.1.0-r04 | tail -1)
         fi
 
         PLATFORM_ARGS=(
@@ -394,13 +427,12 @@ if [ $CONFIGURE -eq 1 ]; then
 
     # Append additional platrom args
     PLATFORM_ARGS+=(${ADDITIONAL_PLATFORM_ARGS[@]})
+    echo "PLATFORM ARGS $PLATFORM_ARGS"
     $CMAKE_EXE ${TOPLEVEL} \
         ${VERBOSE_ARG} \
         -G"${GENERATOR}" \
         -DCMAKE_BUILD_TYPE=${CONFIGURATION} \
         -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} \
-        -DGOPATH=${GOPATH} \
-        -DGOROOT=${GOROOT} \
         -DPROTOBUF_HOME=${PROTOBUF_HOME} \
         -DANKI_BUILD_SHA=${ANKI_BUILD_SHA} \
         ${EXPORT_FLAGS} \
@@ -433,7 +465,7 @@ else
     TARGET_ARG="--target $CMAKE_TARGET"
   fi
   $CMAKE_EXE --build . $TARGET_ARG $*
-  if [ "$PLATFORM" != "mac" ]; then
+  if [[ "$PLATFORM" == "vicos" && $RUN_INSTALL -eq 1 ]]; then
     # run install target on robot-platforms
     $CMAKE_EXE --build . --target install
   fi

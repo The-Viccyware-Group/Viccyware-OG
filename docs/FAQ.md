@@ -38,6 +38,7 @@ Open the web server (see above) and look for "console vars/funcs".
   - Manually deploy the full libraries (with symbols) to the robot; they are located in `_build/vicos/<Debug/Release>/lib/*.so.full`
   - `scp _build/vicos/<Debug/Release>/lib/<one_or_more_of_the_libraries>.so.full /anki/lib/<one_or_more_of_the_libraries>.so`
   - Reproduce the crash and you should now see symbols
+  - [Follow these detailed instructions for using the Tombstone file (with stack trace)](https://ankiinc.atlassian.net/wiki/spaces/VD/pages/404652111/Victor+Crash+Reports)
   
 ### How do I do performance analysis/benchmarking on robot?
   - Use simpleperf to generate list of highest overhead functions in a process by running [`project/victor/simpleperf/HOW-simpleperf.sh`](/project/victor/simpleperf/HOW-simpleperf.sh)
@@ -64,6 +65,35 @@ rsync error: error in socket IO (code 10) at /BuildRoot/Library/Caches/com.apple
   
 ### How do I run unit tests?
   - https://ankiinc.atlassian.net/wiki/spaces/VD/pages/149363555/Victor+Unit+Tests
+
+### Unit tests are failing locally
+
+For example failing with these error messages:
+
+```
+2: (t:01) [Error] TFLiteLogReporter.Report Model provided has model identifier 'ion ', should be 'TFL3'
+2:  
+2: (t:01) [Error] TFLiteModel.LoadModelInternal.FailedToBuildFromFile /Users/arjun/Code/victor/_build/mac/Debug/test/engine/resources/config/engine/vision/dnn_models/dfp_victor_6x6_tiny_128x128_36b906234ae4405dbf479d42d87787da.tflite 
+2: (t:01) [Error] NeuralNetRunner.Init.LoadModelFailed  
+2: (t:01) [Error] VisionSystem.Init.NeuralNetInitFailed Name: person_detector 
+```
+
+*Resolution*
+
+This can be caused by a bad checkout by git lfs, so the fix is to either:
+
+- delete the offending folder but from the *resources* directory (NOT build)
+- check that folder out again
+- double check the file sizes match what is on github to be certain
+
+Importantly, no need to clean and build again. Tests should run fine after this.
+
+Alternatively these steps should work with getting a good checkout.
+
+- git lfs uninstall
+- rm  *that file*
+- git reset --hard
+- git lfs install && git lfs pull
 
 ### I get permission denied during build `error: can't exec 'victor/_build/mac/Debug-Xcode/launch-c' (Permission denied)`
   - `chmod u=rwx victor/_build/mac/Debug-Xcode/launch-c`
@@ -113,6 +143,19 @@ Call Stack (most recent call first):
 ```
 
   * you forgot `-p mac`
+  
+### CMake configuration runs twice in the same build
+```
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /my_victor_dir/_build/vicos/Release
+[0/1] Re-running CMake...
+-- The C compiler identification is Clang 5.0.1
+-- The CXX compiler identification is Clang 5.0.1
+-- CMAKE_C_COMPILER=/Users/username/.anki/vicos-sdk/dist/0.9-r03/prebuilt/bin/arm-oe-linux-gnueabi-clang
+-- CMAKE_CXX_COMPILER=/Users/username/.anki/vicos-sdk/dist/0.9-r03/prebuilt/bin/arm-oe-linux-gnueabi-clang++
+```
+This can cause unpredictable build behavior, and can be fixed by deleting `_build/<platform>/<configuration>/.ninja_log`
 
 ### When profiling I see "...doesn't contain symbol table"
   - This is just a warning, there are no symbol tables for the .so files on the device, instead we use symbols from the symbol cache
@@ -155,3 +198,24 @@ to get:
 ```
 ### How do I increase the max files limit on macos Sierra and greater? (when seeing an error like `[Errno 24] Too many open files`)
   - Follow instructions at https://gist.github.com/tombigel/d503800a282fcadbee14b537735d202c
+
+### Is this Open Source license ok for use?
+  - https://ankiinc.atlassian.net/wiki/spaces/ET/pages/380436502/Open+Source+Software
+
+### I just downloaded this library from github, can I use it?
+  - https://ankiinc.atlassian.net/wiki/spaces/ET/pages/380436502/Open+Source+Software
+
+### How do I add licensing information to a library I just added?
+  More information [here](/docs/development/licenses.md)
+
+### BaseStationTimer, WallTime, UniversalTime, I'm confused!? Which timer should I use?
+  - See the [Time, Clocks, and Timers](/docs/development/time.md) doc
+  
+### I want to use Linux, instead of macOS.  Which version should I use?
+  - Use Ubuntu 16.04
+
+### Why did I get a 915 error?
+
+  - There is a client/server connection between `vic-engine` and `vic-anim` through [`LocalUdpServer.cpp`](/coretech/messaging/shared/LocalUdpServer.cpp) and [`LocalUdpClient.cpp`](/coretech/messaging/shared/LocalUdpClient.cpp) and sockets `/dev/socket/_engine_anim_server_0` and `/dev/socket/_engine_anim_client_0`
+  - `vic-engine` sends enough data to `vic-anim` that it fills the queue (256KB) which causes function `LocalUdpClient.Send` to get a `Resource temporarily unavailable` error from the socket which in turn disconnects. All future attempts to send from `vic-engine` fail.
+  - `vic-anim` tries to send to `vic-engine` but the function `LocalUdpServer.Send` gets a `Connection refused` because it was disconnected, `vic-anim` also disconnects and issues a 915 error.

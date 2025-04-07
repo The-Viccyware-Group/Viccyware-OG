@@ -20,20 +20,30 @@
  **/
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sodium.h>
 #include <signals/simpleSignal.hpp>
 #include <linux/reboot.h>
 #include <sys/reboot.h>
 #include <fstream>
+#include <iomanip>
 
 #include "anki-ble/common/log.h"
 #include "anki-ble/common/anki_ble_uuids.h"
 #include "anki-ble/common/ble_advertise_settings.h"
 #include "anki-wifi/wifi.h"
+#include "anki-wifi/exec_command.h"
+#include "auto-test/autoTest.h"
 #include "cutils/properties.h"
 #include "switchboardd/christen.h"
 #include "platform/victorCrashReports/victorCrashReporter.h"
+#include "util/fileUtils/fileUtils.h"
+#include "util/logging/DAS.h"
+#include "util/logging/logging.h"
+#include "util/logging/victorLogger.h"
 #include "switchboardd/daemon.h"
+
+#define LOG_PROCNAME "vic-switchboard"
 
 // --------------------------------------------------------------------------------------------------------------------
 // Switchboard Daemon
@@ -45,17 +55,20 @@ namespace Anki {
 namespace Switchboard {
 
 void Daemon::Start() {
+  setAndroidLoggingTag("vic-switchboard");
   Log::Write("Loading up Switchboard Daemon");
+
   _loop = ev_default_loop(0);
-  _taskExecutor = std::make_unique<Anki::TaskExecutor>(_loop);
 
-  // Christen
-  Christen();
+  _taskExecutor = std::make_shared<Anki::TaskExecutor>(_loop);
+  _connectionIdManager = std::make_shared<ConnectionIdManager>();
 
-  InitializeEngineComms();
-  _websocketServer = std::make_unique<WebsocketServer>(_engineMessagingClient);
-  _websocketServer->Start();
-  Log::Write("Finished Starting");
+  // Saved session manager
+  int rc = SavedSessionManager::MigrateKeys();
+  if (rc) {
+    Log::Error("Failed to Migrate Keys. Exiting. rc = %d", rc);
+    exit(EXIT_FAILURE);
+  }
 
   // Initialize Ble Ipc Timer
   ev_timer_init(&_ankibtdTimer, HandleAnkibtdTimer, kRetryInterval_s, kRetryInterval_s);
@@ -69,6 +82,24 @@ void Daemon::Start() {
   _pairingTimer.signal = &_pairingPreConnectionSignal;
   _pairingPreConnectionSignal.SubscribeForever(std::bind(&Daemon::HandlePairingTimeout, this));
   ev_timer_init(&_pairingTimer.timer, &Daemon::sEvTimerHandler, kPairingPreConnectionTimeout_s, 0);
+
+  // Initialize wifi listeners
+  Anki::Wifi::Initialize(_taskExecutor);
+  _wifiWatcher = std::make_shared<WifiWatcher>(_loop);
+  _wifiChangedHandle = Anki::Wifi::GetWifiChangedSignal().ScopedSubscribe(std::bind(&Daemon::OnWifiChanged, this, std::placeholders::_1, std::placeholders::_2));
+
+  // Initialize IPC connections
+  InitializeCloudComms();   // must come before gateway comms
+  InitializeGatewayComms();
+  InitializeEngineComms();
+
+  // Initialize Cloud Stack Status
+  _usesEscapePod = IsVectorConnectedToEscapePod();
+  Log::Write("Vector %s escape pod", _usesEscapePod ? "uses" : "does not use");
+
+  // Log the initial wifi state
+  LogWifiState();
+  Log::Write("Finished Starting");
 }
 
 void Daemon::Stop() {
@@ -79,62 +110,48 @@ void Daemon::Stop() {
 
   if(_engineMessagingClient != nullptr) {
     Log::Write("End pairing state.");
-    _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+    _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
   }
 
   ev_timer_stop(_loop, &_engineTimer);
   ev_timer_stop(_loop, &_handleOtaTimer.timer);
 }
 
-void Daemon::Christen() {
-  static const size_t NAME_LEN = 12;
-  Log::Write("[Chr] Christening");
-  RtsKeys savedSession = SavedSessionManager::LoadRtsKeys();
-  bool hasName = false;
-
-  if(savedSession.keys.version == SB_PAIRING_PROTOCOL_VERSION) {
-    // if saved session file is valid, retrieve saved hasName field
-    hasName = savedSession.keys.id.hasName;
-    Log::Write("[Chr] Valid version.");
+void Daemon::OnWifiChanged(bool connected, std::string manufacturerMac) {
+  if(!connected) {
+    Log::Write("Daemon: OnWifiChanged -- trying to connect to wifi");
+    _wifiWatcher->ConnectIfNoWifi();
   }
+}
 
-  if(!hasName) {
-    Log::Write("[Chr] No name, we must Christen.");
+void Daemon::LogWifiState() {
+  Anki::Wifi::WiFiState wifiState = Anki::Wifi::GetWiFiState();
 
-    // the name field has enough space for 11 characters,
-    // and an additional null character
-    char name[NAME_LEN] = {0};
+  bool connected = (wifiState.connState == Anki::Wifi::WiFiConnState::CONNECTED) ||
+                   (wifiState.connState == Anki::Wifi::WiFiConnState::ONLINE);
 
-    std::string nameString = Christen::GenerateName();
-    strcpy(name, nameString.c_str());
+  std::string event = "wifi.initial_state";
 
-    if(nameString.length() <= sizeof(name)) {
-      strcpy((char*)&savedSession.keys.id.name, (char*)&name);
+  DASMSG(wifi_initial_connection_status, event,
+          "WiFi connection state on Switchboard load up.");
+
+  uint8_t apMac[6];
+  bool hasMac = Anki::Wifi::GetApMacAddress(apMac);
+
+  std::string apMacManufacturerBytes = "";
+
+  if(hasMac) {
+    // Strip ap MAC of last three bytes
+    for(int i = 0; i < 3; i++) {
+      std::stringstream ss;
+      ss << std::setfill('0') << std::setw(2) << std::hex << (int)apMac[i];
+      apMacManufacturerBytes += ss.str();
     }
-
-    Log::Write("[Chr] and his name shall be called, \"%s\"!", nameString.c_str());
-
-    savedSession.keys.id.hasName = true;
-
-    // explicit null termination
-    savedSession.keys.id.name[sizeof(name) - 1] = 0;
-
-    SavedSessionManager::SaveRtsKeys(savedSession);
   }
 
-  // Set name property
-  (void)property_set("anki.robot.name", savedSession.keys.id.name);
-
-  // Set hostname
-  {
-    // Transform space to -
-    char hostname[NAME_LEN] = {0};
-    for (size_t i=0; i<NAME_LEN; ++i) {
-      if (savedSession.keys.id.name[i] == ' ') hostname[i] = '-';
-      else hostname[i] = savedSession.keys.id.name[i];
-    }
-    (void)sethostname(hostname, strnlen(hostname, NAME_LEN));
-  }
+  DASMSG_SET(s1, connected?"connected":"disconnected", "Connection state.");
+  DASMSG_SET(s2, apMacManufacturerBytes, "Mac address prefix.");
+  DASMSG_SEND();
 }
 
 void Daemon::InitializeEngineComms() {
@@ -144,6 +161,43 @@ void Daemon::InitializeEngineComms() {
   _engineTimer.data = this;
   ev_timer_init(&_engineTimer, HandleEngineTimer, kRetryInterval_s, kRetryInterval_s);
   ev_timer_start(_loop, &_engineTimer);
+}
+
+bool Daemon::IsVectorConnectedToEscapePod() {
+  std::string jsonContents = Anki::Util::FileUtils::ReadFile(kServerConfigFilePath);
+  Json::Reader reader;
+  Json::Value config;
+  if (!reader.parse(jsonContents, config)) {
+    Log::Write("Failed to Initialize CloudStackStatus ...");
+    const std::string& errors = reader.getFormattedErrorMessages();
+    if (!errors.empty()) {
+     Log::Write("Json reader errors [%s]", errors.c_str());
+    }
+   
+    return false;
+  }
+
+  if (!config.isMember("chipper")) {
+    Log::Write("Failed to Find chipper url in config file ... ");
+    return false;
+  }
+
+  std::string chipperUrl = config["chipper"].asCString();
+  return chipperUrl.find("escapepod.local") != std::string::npos;
+}
+
+void Daemon::InitializeGatewayComms() {
+  _gatewayMessagingServer = std::make_shared<GatewayMessagingServer>(_loop, _taskExecutor, _tokenClient, _connectionIdManager);
+  _gatewayMessagingServer->Init();
+}
+
+void Daemon::InitializeCloudComms() {
+  _tokenClient = std::make_shared<TokenClient>(_loop, _taskExecutor);
+  _tokenClient->Init();
+
+  _tokenTimer.data = this;
+  ev_timer_init(&_tokenTimer, HandleTokenTimer, kRetryInterval_s, kRetryInterval_s);
+  ev_timer_start(_loop, &_tokenTimer);
 }
 
 bool Daemon::TryConnectToEngineServer() {
@@ -181,8 +235,32 @@ bool Daemon::TryConnectToAnkiBluetoothDaemon() {
   return _bleClient->IsConnected();
 }
 
+bool Daemon::TryConnectToTokenServer() {
+  bool connected = _tokenClient->Connect();
+
+  if (connected) {
+    Log::Write("Initialize TokenClient");
+    _tokenConnectionFailureCounter = kFailureCountToLog;
+
+    (void)_tokenClient->SendJwtRequest([this](Anki::Vector::TokenError error, std::string jwt){
+      Log::Write("Received response from TokenClient.");
+      _hasCloudOwner = (error != Anki::Vector::TokenError::NullToken);
+      _isTokenClientFullyInitialized = true;
+    });
+  } else {
+    if(++_tokenConnectionFailureCounter >= kFailureCountToLog) {
+      Log::Write("Failed to Initialize EngineMessagingClient ... trying again.");
+      _tokenConnectionFailureCounter = 0;
+    }
+  }
+
+  return connected;
+}
+
 void Daemon::InitializeBleComms() {
   Log::Write("Initialize BLE");
+
+  _engineMessagingClient->HandleHasBleKeysRequest();
 
   if(_bleClient.get() == nullptr) {
     _bleClient = std::make_unique<Anki::Switchboard::BleClient>(_loop);
@@ -203,6 +281,13 @@ void Daemon::UpdateAdvertisement(bool pairing) {
     return;
   }
 
+  if(AutoTest::IsAutoTestBot()) {
+    if(!pairing) {
+      Log::Write("automation: UpdatingAdvertisement - overriding pairing state. Forcing into pairing mode.");
+    }
+    pairing = true;
+  }
+
   // update state
   _isPairing = pairing;
 
@@ -211,18 +296,15 @@ void Daemon::UpdateAdvertisement(bool pairing) {
   }
 
   Anki::BLEAdvertiseSettings settings;
-  std::vector<uint8_t> mdata;
   settings.GetAdvertisement().SetServiceUUID(Anki::kAnkiSingleMessageService_128_BIT_UUID);
   settings.GetAdvertisement().SetIncludeDeviceName(true);
-  mdata = Anki::kAnkiBluetoothSIGCompanyIdentifier;
-  mdata.push_back(Anki::kVictorProductIdentifier); // distinguish from future Anki products
+  std::vector<uint8_t> mdata = Anki::kAnkiBluetoothSIGCompanyIdentifier;
+  mdata.push_back(_usesEscapePod ? Anki::kVictorProductEscapePodIdentifier : Anki::kVictorProductIdentifier); // distinguish from future Anki products
   mdata.push_back(pairing?'p':0x00); // to indicate whether we are pairing
   settings.GetAdvertisement().SetManufacturerData(mdata);
 
-  RtsKeys rtsSession = SavedSessionManager::LoadRtsKeys();
-  const char* name = rtsSession.keys.id.name;
-
-  _bleClient->SetAdapterName(std::string(name));
+  std::string robotName = SavedSessionManager::GetRobotName();
+  _bleClient->SetAdapterName(robotName);
   _bleClient->StartAdvertising(settings);
 }
 
@@ -236,37 +318,79 @@ void Daemon::OnConnected(int connId, INetworkStream* stream) {
     _connectionId = connId;
 
     if(_securePairing == nullptr) {
-      _securePairing = std::make_unique<Anki::Switchboard::SecurePairing>(stream, _loop, _engineMessagingClient, _isPairing, _isOtaUpdating);
+      _securePairing = std::make_unique<Anki::Switchboard::RtsComms>(stream, _loop, _engineMessagingClient, _gatewayMessagingServer, _tokenClient, _connectionIdManager, _wifiWatcher, _taskExecutor, _isPairing, _isOtaUpdating, _hasCloudOwner);
       _pinHandle = _securePairing->OnUpdatedPinEvent().ScopedSubscribe(std::bind(&Daemon::OnPinUpdated, this, std::placeholders::_1));
       _otaHandle = _securePairing->OnOtaUpdateRequestEvent().ScopedSubscribe(std::bind(&Daemon::OnOtaUpdatedRequest, this, std::placeholders::_1));
       _endHandle = _securePairing->OnStopPairingEvent().ScopedSubscribe(std::bind(&Daemon::OnEndPairing, this));
       _completedPairingHandle = _securePairing->OnCompletedPairingEvent().ScopedSubscribe(std::bind(&Daemon::OnCompletedPairing, this));
     }
 
-    // Initiate pairing process
-    _securePairing->BeginPairing();
-    Log::Write("Done task");
+    (void)_tokenClient->SendJwtRequest([this](Anki::Vector::TokenError error, std::string jwt){
+      if(_securePairing == nullptr) {
+        return;
+      }
+
+      // there is owner if JWT is not null
+      // (this might need to be modified for re-associate case
+      // to include invalid token)
+      _hasCloudOwner = error != Anki::Vector::TokenError::NullToken;
+
+      // Initiate pairing process
+      _securePairing->SetHasOwner(_hasCloudOwner);
+      _securePairing->BeginPairing();
+    });
+
+    // tell engine that we have BLE connection
+    _engineMessagingClient->SendBLEConnectionStatus(true);
   });
   Log::Write("Done OnConnected");
+
+  DASMSG(ble_connection_status, "ble.connection",
+          "BLE connection status has changed.");
+  DASMSG_SEND();
 }
 
 void Daemon::OnDisconnected(int connId, INetworkStream* stream) {
-  // do any clean up needed
-  if(_securePairing != nullptr) {
-    _securePairing->StopPairing();
-    Log::Write("BLE Central disconnected.");
-    if(!_isOtaUpdating) {
-      _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
-    }
-    Log::Write("Destroying secure pairing object.");
-    _pinHandle = nullptr;
-    _otaHandle = nullptr;
-    _endHandle = nullptr;
-    _completedPairingHandle = nullptr;
-    _securePairing = nullptr;
-  }
+  _taskExecutor->Wake([this](){
+    _connectionIdManager->Clear();
 
-  UpdateAdvertisement(false);
+    // do any clean up needed
+    if(_securePairing != nullptr) {
+      _securePairing->StopPairing();
+      Log::Write("BLE Central disconnected.");
+      if(!_isOtaUpdating) {
+        _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+      }
+      Log::Write("Destroying secure pairing object.");
+      _pinHandle = nullptr;
+      _otaHandle = nullptr;
+      _endHandle = nullptr;
+      _completedPairingHandle = nullptr;
+      _securePairing = nullptr;
+    }
+
+    UpdateAdvertisement(false);
+
+    // Re-enable autoconnect in case BLE disconnected before 
+    // RtsHandler could re-enable WifiWatcher
+    _wifiWatcher->Enable();
+
+    // tell engine that we lost BLE connection
+    _engineMessagingClient->SendBLEConnectionStatus(false);
+
+    DASMSG(ble_connection_status, "ble.disconnection",
+            "BLE connection status has changed.");
+    DASMSG_SEND();
+
+    DASMSG(ble_conn_id_stop, DASMSG_BLE_CONN_ID_STOP, "BLE connection id");
+    DASMSG_SEND();
+
+    if(_shouldRestartPairing) {
+      // if pairing should be restarted, restart it
+      _shouldRestartPairing = false;
+      StartPairing();
+    }
+  });
 }
 
 void Daemon::OnBleIpcDisconnected() {
@@ -276,7 +400,7 @@ void Daemon::OnBleIpcDisconnected() {
 
 void Daemon::OnPinUpdated(std::string pin) {
   _engineMessagingClient->SetPairingPin(pin);
-  _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::SHOW_PIN);
+  _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::SHOW_PIN);
   Log::Blue((" " + pin + " ").c_str());
 }
 
@@ -291,7 +415,7 @@ void Daemon::OnEndPairing() {
   }
 
   if(_engineMessagingClient != nullptr) {
-    _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+    _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
   }
 }
 
@@ -309,7 +433,7 @@ void Daemon::HandlePairingTimeout() {
   Log::Write("[PT] Pairing timed-out before connection made.");
   UpdateAdvertisement(false);
   if(_engineMessagingClient != nullptr) {
-    _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+    _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
   }
 }
 
@@ -323,11 +447,32 @@ void Daemon::HandleOtaUpdateProgress() {
 
     if(status == -1) {
       _securePairing->SendOtaProgress(OtaStatusCode::UNKNOWN, progressVal, expectedVal);
-      return;
+    } else {
+      Log::Write("Downloaded %llu/%llu bytes.", progressVal, expectedVal);
+      _securePairing->SendOtaProgress(OtaStatusCode::IN_PROGRESS, progressVal, expectedVal);
     }
+  }
 
-    Log::Write("Downloaded %llu/%llu bytes.", progressVal, expectedVal);
-    _securePairing->SendOtaProgress(OtaStatusCode::IN_PROGRESS, progressVal, expectedVal);
+  if (_isUpdateEngineServiceRunning) {
+    if (access(kUpdateEngineEnvPath.c_str(), F_OK) == -1) {
+      // The update-engine env file has been deleted by systemd
+      _isUpdateEngineServiceRunning = false;
+      int rc = -1;
+      if (access(kUpdateEngineDonePath.c_str(), F_OK) != -1) {
+        rc = 0;
+      }
+      if (access(kUpdateEngineErrorPath.c_str(), F_OK) != -1) {
+        rc = -1;
+        std::string exitCodeString = Anki::Util::FileUtils::ReadFile(kUpdateEngineExitCodePath);
+        if (!exitCodeString.empty()) {
+          int exitCode = std::atoi(exitCodeString.c_str());
+          if (exitCode) {
+            rc = exitCode;
+          }
+        }
+      }
+      HandleOtaUpdateExit(rc);
+    }
   }
 }
 
@@ -384,7 +529,9 @@ int Daemon::GetOtaProgress(uint64_t* progressVal, uint64_t* expectedVal) {
   return 0;
 }
 
-void Daemon::HandleOtaUpdateExit(int rc, const std::string& output) {
+void Daemon::HandleOtaUpdateExit(int rc) {
+  (void) unlink(kUpdateEngineEnvPath.c_str());
+  (void) unlink(kUpdateEngineDisablePath.c_str());
   _taskExecutor->Wake([rc, this] {
     if(rc == 0) {
       uint64_t progressVal = 0;
@@ -432,9 +579,7 @@ void Daemon::HandleOtaUpdateExit(int rc, const std::string& output) {
       if(_securePairing == nullptr) {
         // Change the face back to end pairing state *only* if
         // we didn't update successfully and there is no BLE connection
-        _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
-      } else {
-        _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::UPDATING_OS_ERROR);
+        _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
       }
     }
   });
@@ -448,49 +593,112 @@ void Daemon::OnOtaUpdatedRequest(std::string url) {
 
   _isOtaUpdating = true;
   ev_timer_again(_loop, &_handleOtaTimer.timer);
-  _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::UPDATING_OS);
 
-  // remove progress files if exist
   Log::Write("Ota Update Initialized...");
-  std::string stdout = "";
-  int clearFilesStatus = ExecCommand({ kUpdateEngineExecPath + "/update-engine"}, stdout);
-
-  if(clearFilesStatus != 0) {
-    // we *shouldn't* let progress file errors keep us from trying to update
-    Log::Write("Couldn't clear progress files. Continuing update anyway.");
+  // If the update-engine.service file is not present then we are running on an older version of
+  // the Victor OS that does not have automatic updates.  Instead, we can just directly launch
+  // /anki/bin/update-engine in the background.
+  if (access(kUpdateEngineServicePath.c_str(), F_OK) == -1) {
+    ExecCommandInBackground({kUpdateEngineExecPath, url},
+                            std::bind(&Daemon::HandleOtaUpdateExit, this, std::placeholders::_1));
+    return;
   }
 
-  Log::Write("Cleared files? %s", stdout.c_str());
-  ExecCommandInBackground({ kUpdateEngineExecPath + "/update-engine", url}, std::bind(&Daemon::HandleOtaUpdateExit, this, std::placeholders::_1, std::placeholders::_2));
+  // Disable update-engine from running automatically
+  if (!Anki::Util::FileUtils::WriteFileAtomic(kUpdateEngineDisablePath, "1")) {
+    HandleOtaUpdateExit(-1);
+    return;
+  }
+
+  // Stop any running instance of update-engine
+  int rc = ExecCommand({"sudo", "/bin/systemctl", "stop", "update-engine.service"});
+  if (rc) {
+    HandleOtaUpdateExit(rc);
+    return;
+  }
+
+  // Write out the environment file for update engine to use
+  std::ostringstream updateEngineEnv;
+  updateEngineEnv << "UPDATE_ENGINE_ENABLED=True" << std::endl;
+  updateEngineEnv << "UPDATE_ENGINE_MAX_SLEEP=1" << std::endl; // No sleep, execute right away
+  updateEngineEnv << "UPDATE_ENGINE_URL=\"" << url << "\"" << std::endl;
+  if (!Anki::Util::FileUtils::WriteFileAtomic(kUpdateEngineEnvPath, updateEngineEnv.str())) {
+    HandleOtaUpdateExit(-1);
+    return;
+  }
+
+  // Remove any previous "done" file so that we can run update-engine again
+  (void) unlink(kUpdateEngineDonePath.c_str());
+
+  // Remove the disable file so that update-engine can start
+  (void) unlink(kUpdateEngineDisablePath.c_str());
+
+  // Restart the update-engine service so that our new config will be loaded
+  rc = ExecCommand({"sudo", "/bin/systemctl", "start", "update-engine.service"});
+
+  if (rc != 0) {
+    HandleOtaUpdateExit(rc);
+    return;
+  }
+  _isUpdateEngineServiceRunning = true;
 }
 
-void Daemon::OnPairingStatus(Anki::Cozmo::ExternalInterface::MessageEngineToGame message) {
-  Anki::Cozmo::ExternalInterface::MessageEngineToGameTag tag = message.GetTag();
+void Daemon::StartPairing() {
+  Log::Write("Entering pairing mode.");
+
+  if(_securePairing != nullptr) {
+    if(_bleClient != nullptr) {
+      _shouldRestartPairing = true;
+      _securePairing->ForceDisconnect();
+      _bleClient->Disconnect(_connectionId);
+    } else {
+      Log::Error("RtsComms was alive while BleClient was null.");
+    }
+    return;
+  } 
+
+  UpdateAdvertisement(true);
+  _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::SHOW_PRE_PIN);
+  
+  ev_timer_stop(_loop, &_pairingTimer.timer);
+  ev_timer_set(&_pairingTimer.timer, kPairingPreConnectionTimeout_s, 0.);
+  ev_timer_start(_loop, &_pairingTimer.timer);
+  
+  Log::Write("[PT] Starting pairing timer... pairing will timeout in %d seconds.", kPairingPreConnectionTimeout_s);
+}
+
+void Daemon::OnPairingStatus(Anki::Vector::ExternalInterface::MessageEngineToGame message) {
+  Anki::Vector::ExternalInterface::MessageEngineToGameTag tag = message.GetTag();
 
   switch(tag){
-    case Anki::Cozmo::ExternalInterface::MessageEngineToGameTag::EnterPairing: {
-      printf("Enter pairing: %hhu\n", tag);
-      if(_securePairing != nullptr) {
-        break;
-      } 
-      
-      UpdateAdvertisement(true);
-      _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::SHOW_PRE_PIN);
-      
-      ev_timer_stop(_loop, &_pairingTimer.timer);
-      ev_timer_set(&_pairingTimer.timer, kPairingPreConnectionTimeout_s, 0.);
-      ev_timer_start(_loop, &_pairingTimer.timer);
-      
-      Log::Write("[PT] Starting pairing timer... pairing will timeout in %d seconds.", kPairingPreConnectionTimeout_s);
+    case Anki::Vector::ExternalInterface::MessageEngineToGameTag::EnterPairing: {
+      StartPairing();
       break;
     }
-    case Anki::Cozmo::ExternalInterface::MessageEngineToGameTag::ExitPairing: {
+    case Anki::Vector::ExternalInterface::MessageEngineToGameTag::ExitPairing: {
       printf("Exit pairing: %hhu\n", tag);
+      ev_timer_stop(_loop, &_pairingTimer.timer);
       UpdateAdvertisement(false);
       if(_securePairing != nullptr && _isPairing) {
         _securePairing->StopPairing();
       }
-      _engineMessagingClient->ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+      _engineMessagingClient->ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus::END_PAIRING);
+      break;
+    }
+    case Anki::Vector::ExternalInterface::MessageEngineToGameTag::WifiScanRequest: {
+      _engineMessagingClient->HandleWifiScanRequest();
+      break;
+    }
+    case Anki::Vector::ExternalInterface::MessageEngineToGameTag::WifiConnectRequest: {
+      Log::Write("Got WifiConnectRequest\n");
+      const auto& payload = message.Get_WifiConnectRequest();
+      _engineMessagingClient->HandleWifiConnectRequest(std::string((char*)&payload.ssid),
+                                                       std::string((char*)&payload.pwd),
+                                                       payload.disconnectAfterConnection);
+      break;
+    }
+    case Anki::Vector::ExternalInterface::MessageEngineToGameTag::HasBleKeysRequest: {
+      _engineMessagingClient->HandleHasBleKeysRequest();
       break;
     }
     default: {
@@ -502,6 +710,11 @@ void Daemon::OnPairingStatus(Anki::Cozmo::ExternalInterface::MessageEngineToGame
 
 void Daemon::HandleEngineTimer(struct ev_loop* loop, struct ev_timer* w, int revents) {
   Daemon* daemon = (Daemon*)w->data;
+
+  if(!daemon->IsTokenClientFullyInitialized()) {
+    return;
+  }
+
   bool connected = daemon->TryConnectToEngineServer();
 
   if(connected) {
@@ -520,6 +733,15 @@ void Daemon::HandleAnkibtdTimer(struct ev_loop* loop, struct ev_timer* w, int re
   }
 }
 
+void Daemon::HandleTokenTimer(struct ev_loop* loop, struct ev_timer* w, int revents) {
+  Daemon* daemon = (Daemon*)w->data;
+  bool connected = daemon->TryConnectToTokenServer();
+
+  if(connected) {
+    ev_timer_stop(loop, w);
+  }
+}
+
 void Daemon::HandleReboot() {
   Log::Write("Rebooting...");
 
@@ -528,10 +750,12 @@ void Daemon::HandleReboot() {
 
   // trigger reboot
   sync(); sync(); sync();
-  int status = reboot(LINUX_REBOOT_CMD_RESTART);
+  int status = ExecCommand({"sudo", "/sbin/reboot"});
 
-  if(status == -1) {
+
+  if (!status) {
     Log::Write("Error while restarting: [%d]", status);
+    (void) reboot(LINUX_REBOOT_CMD_RESTART);
   }
 }
 
@@ -556,7 +780,12 @@ std::unique_ptr<Anki::Switchboard::Daemon> _daemon;
 
 static void ExitHandler(int status = 0) {
   // todo: smoothly handle termination
-  Anki::Victor::UninstallCrashReporter();
+
+  Anki::Util::gLoggerProvider = nullptr;
+  Anki::Util::gEventProvider = nullptr;
+
+  Anki::Vector::UninstallCrashReporter();
+
   _exit(status);
 }
 
@@ -564,10 +793,14 @@ static void SignalCallback(struct ev_loop* loop, struct ev_signal* w, int revent
 {
   logi("Exiting for signal %d", w->signum);
 
+  // Deinitialize Wifi
+  Anki::Wifi::Deinitialize();
+
   if(_daemon != nullptr) {
     _daemon->Stop();
   }
 
+  // Stop timers and end our ev loop.
   ev_timer_stop(sLoop, &sTimer);
   ev_unloop(sLoop, EVUNLOOP_ALL);
   ExitHandler();
@@ -578,8 +811,17 @@ static void Tick(struct ev_loop* loop, struct ev_timer* w, int revents) {
 }
 
 int SwitchboardMain() {
-  static char const* filenamePrefix = "switchboard";
-  Anki::Victor::InstallCrashReporter(filenamePrefix);
+
+  Anki::Vector::InstallCrashReporter(LOG_PROCNAME);
+
+  Anki::Util::VictorLogger logger(LOG_PROCNAME);
+  Anki::Util::gLoggerProvider = &logger;
+  Anki::Util::gEventProvider = &logger;
+
+  DASMSG(switchboard_hello, "switchboard.hello", "Switchboard service start");
+  DASMSG_SET(s1, "hello", "Test string");
+  DASMSG_SET(i1, getpid(), "Test value");
+  DASMSG_SEND();
 
   sLoop = ev_default_loop(0);
 

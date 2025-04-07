@@ -1,5 +1,5 @@
 /**
- * File: cozmoObservableObject.pp
+ * File: cozmoObservableObject.cpp
  *
  * Author: Andrew Stein
  * Date:   2/21/2017
@@ -14,17 +14,16 @@
 #include "util/console/consoleInterface.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
-// Only localize to / identify active objects within this distance
-CONSOLE_VAR_RANGED(f32, kMaxLocalizationDistance_mm, "PoseConfirmation", 250.f, 50.f, 1000.f);
+CONSOLE_VAR_RANGED(f32, kDefaultMaxObservationDistance_mm, "PoseConfirmation", 500.f, 50.f, 1000.f);
 
 const FactoryID ObservableObject::InvalidFactoryID = "";
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-f32 ObservableObject::GetMaxLocalizationDistance_mm()
+f32 ObservableObject::GetMaxObservationDistance_mm() const
 {
-  return kMaxLocalizationDistance_mm;
+  return kDefaultMaxObservationDistance_mm;
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,7 +56,7 @@ void ObservableObject::SetID()
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void ObservableObject::InitPose(const Pose3d& pose, PoseState poseState)
+void ObservableObject::InitPose(const Pose3d& pose, PoseState poseState, const float fromDistance_mm)
 {
   // This indicates programmer error: InitPose should only be called once on
   // an object and never once SetPose has been called
@@ -66,7 +65,7 @@ void ObservableObject::InitPose(const Pose3d& pose, PoseState poseState)
                  "%s Object %d",
                  EnumToString(GetType()), GetID().GetValue());
   
-  SetPose(pose, -1.f, poseState);
+  SetPose(pose, fromDistance_mm, poseState);
   _poseHasBeenSet = true;
 }
 
@@ -79,12 +78,25 @@ void ObservableObject::SetPose(const Pose3d& newPose, f32 fromDistance, PoseStat
   // Every object's pose should always be able to find a path to a valid origin without crashing
   if(ANKI_DEV_CHEATS) {
     ANKI_VERIFY(GetPose().FindRoot().IsRoot(), "ObservableObject.SetPose.PoseRootIsNotRoot",
-                "%s %s ID:%d at %s with parent '%s'",
-                EnumToString(GetFamily()), EnumToString(GetType()), GetID().GetValue(),
+                "%s ID:%d at %s with parent '%s'",
+                EnumToString(GetType()), GetID().GetValue(),
                 GetPose().GetTranslation().ToString().c_str(),
                 GetPose().GetParentString().c_str());
   }
 }
   
-} // namespace Cozmo
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool ObservableObject::IsMoving(TimeStamp_t* t) const
+{
+  if( t != nullptr ) {
+    RobotTimeStamp_t roboTime{*t};
+    const bool ret = IsMoving( &roboTime );
+    *t = (TimeStamp_t)roboTime;
+    return ret;
+  } else {
+    return IsMoving((RobotTimeStamp_t*)nullptr);
+  }
+}
+  
+} // namespace Vector
 } // namespace Anki

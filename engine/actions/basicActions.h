@@ -22,11 +22,11 @@
 #include "anki/cozmo/shared/cozmoConfig.h"
 #include "anki/cozmo/shared/cozmoEngineConfig.h"
 #include "coretech/vision/engine/faceIdTypes.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "coretech/vision/engine/visionMarker.h"
 #include "clad/externalInterface/messageActions.h"
 #include "clad/types/actionTypes.h"
 #include "clad/types/animationTypes.h"
-#include "clad/types/toolCodes.h"
 #include "clad/types/visionModes.h"
 #include "util/bitFlags/bitFlags.h"
 #include "util/helpers/templateHelpers.h"
@@ -35,11 +35,19 @@
 #include <vector>
 
 namespace Anki {
-namespace Cozmo {
+  
+  // Forward declaration
+  namespace Vision {
+    struct SalientPoint;
+  }
+  
+namespace Vector {
   
     // Forward declaration
+    struct ImageSaverParams;
     class ObservableObject;
-
+    class SayNameProbabilityTable;
+  
     // Turn in place by a given angle, wherever the robot is when the action is executed.
     //
     // If isAbsolute==true, then angle_rad specifies the absolute body angle to turn to,
@@ -63,26 +71,33 @@ namespace Cozmo {
       void SetAccel(f32 accel_radPerSec2);
       void SetTolerance(const Radians& angleTol_rad);
       void SetVariability(const Radians& angleVar_rad)   { _variability = angleVar_rad; }
+      void SetValidOffTreadsStates(const std::set<OffTreadsState>& states) { _validTreadStates = states; }
 
       virtual bool SetMotionProfile(const PathMotionProfile& motionProfile) override;
+      virtual f32 GetTimeoutInSeconds() const override { return _timeout_s; }
       
       // Note: PROCEDURAL_EYE_LEADING is a compile-time option to enable/disable eye leading
       void SetMoveEyes(bool enable) { _moveEyes = (enable && PROCEDURAL_EYE_LEADING); }
       
     protected:
       
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
     private:
       
+      float RecalculateTimeout();
       bool IsBodyInPosition(Radians& currentAngle) const;
       Result SendSetBodyAngle();
       bool IsOffTreadsStateValid() const;
+      bool IsActionMakingProgress() const;
       
       const f32 _kDefaultSpeed        = MAX_BODY_ROTATION_SPEED_RAD_PER_SEC;
       const f32 _kDefaultAccel        = 10.f;
+      const f32 _kDefaultTimeoutFactor = 1.5f;
       const f32 _kMaxRelativeTurnRevs = 25.f; // Maximum number of revolutions allowed for a relative turn.
+      const Radians _kHeldInPalmAngleTolerance = DEG_TO_RAD(5.f);
       const std::string _kEyeShiftLayerName = "TurnInPlaceEyeShiftLayer";
       
       bool       _inPosition = false;
@@ -100,6 +115,10 @@ namespace Cozmo {
       f32        _maxSpeed_radPerSec = _kDefaultSpeed;
       f32        _accel_radPerSec2 = _kDefaultAccel;
       bool       _motionProfileManuallySet = false;
+      float      _timeout_s;
+      float      _expectedTotalAccelTime_s = 0.f;
+      float      _expectedMaxSpeedTime_s = 0.f;
+      std::set<OffTreadsState> _validTreadStates = {OffTreadsState::OnTreads, OffTreadsState::InAir};
       
       // To keep track of PoseFrameId changes mid-turn:
       PoseFrameID_t _prevPoseFrameId = 0;
@@ -137,6 +156,7 @@ namespace Cozmo {
 
     protected:
       virtual void GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const override;
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       virtual void OnRobotSet() override final;
@@ -170,14 +190,22 @@ namespace Cozmo {
       virtual ~DriveStraightAction();
 
       void SetShouldPlayAnimation(bool shouldPlay) { _shouldPlayDrivingAnimation = shouldPlay; }
+
+      // By default, this action cannot move while on the charger (platform). This function can be used to
+      // override this setting, and must be called before the action has started
+      void SetCanMoveOnCharger(bool canMove);
       
       void SetAccel(f32 accel_mmps2);
       void SetDecel(f32 decel_mmps2);
 
       virtual bool SetMotionProfile(const PathMotionProfile& motionProfile) override;
       
+      virtual f32 GetTimeoutInSeconds() const override { return _timeout_s; }
+      void SetTimeoutInSeconds(float timeout_s);
+      
     protected:
-      virtual void GetRequiredVisionModes(std::set<VisionModeRequest>&requests) const override; 
+      virtual void GetRequiredVisionModes(std::set<VisionModeRequest>&requests) const override;
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
@@ -192,6 +220,10 @@ namespace Cozmo {
       bool _hasStarted = false;
       
       bool _shouldPlayDrivingAnimation = true;
+
+      bool _canMoveOnCharger = false;
+      
+      float _timeout_s;
       
     }; // class DriveStraightAction
     
@@ -216,11 +248,13 @@ namespace Cozmo {
       void SetTiltAccel(f32 accel_radPerSec2);
       void SetTiltTolerance(const Radians& angleTol_rad);
       void SetMoveEyes(bool enable) { _moveEyes = (enable && PROCEDURAL_EYE_LEADING); }
+      void SetValidOffTreadsStates(const std::set<OffTreadsState>& states);
       
       Radians GetBodyPanAngleTolerance() const { return _panAngleTol; }
       Radians GetHeadTiltAngleTolerance() const { return _tiltAngleTol; }
 
     protected:
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
@@ -254,6 +288,7 @@ namespace Cozmo {
       f32     _tiltAccel_radPerSec2   = _kDefaultTiltAccel;
       bool    _panSpeedsManuallySet   = false;
       bool    _tiltSpeedsManuallySet  = false;
+
       
     }; // class PanAndTiltAction
     
@@ -263,7 +298,8 @@ namespace Cozmo {
     {
     public:
       CalibrateMotorAction(bool calibrateHead,
-                           bool calibrateLift);
+                           bool calibrateLift,
+                           const MotorCalibrationReason& reason);
 
       // Template for all events we subscribe to
       template<typename T>
@@ -277,6 +313,8 @@ namespace Cozmo {
     private:
       bool _calibHead;
       bool _calibLift;
+      
+      MotorCalibrationReason _calibReason;
       
       bool _headCalibStarted;
       bool _liftCalibStarted;
@@ -353,6 +391,51 @@ namespace Cozmo {
     };  // class MoveHeadToAngleAction
     
     
+    // Set the lift to specified angle with a given tolerance. Note that setting
+    // the tolerance too small will likely lead to an action timeout.
+    class MoveLiftToAngleAction : public IAction
+    {
+    public:
+      
+      MoveLiftToAngleAction(const f32 angle_rad,
+                            const f32 tolerance_rad = DEG_TO_RAD(3.f), 
+                            const f32 variability = 0.f);
+      
+      // how long this action should take (which, in turn, effects lift speed)
+      void SetDuration(float duration_sec) { _duration = duration_sec; }
+      
+      void SetMaxLiftSpeed(float speedRadPerSec) { _maxLiftSpeedRadPerSec = speedRadPerSec; }
+      void SetLiftAccel(float accelRadPerSec2) { _liftAccelRacPerSec2 = accelRadPerSec2; }
+      
+    protected:
+      
+      virtual ActionResult Init() override;
+      virtual ActionResult CheckIfDone() override;
+      
+    private:
+      
+      bool IsLiftInPosition() const;
+      
+      f32         _angle_rad;
+      f32         _angleTolerance_rad;
+      f32         _variability;
+      f32         _angleWithVariation;
+      f32         _duration = 0.0f; // 0 means "as fast as it can"
+      f32         _maxLiftSpeedRadPerSec = 10.0f;
+      f32         _liftAccelRacPerSec2 = 20.0f;
+
+      MovementComponent::MotorActionID _actionID;
+      bool        _motionCommanded = false;
+      bool        _motionCommandAcked = false;
+      
+      bool        _inPosition;
+      bool        _motionStarted = false;
+      
+      Signal::SmartHandle _signalHandle;
+      
+    }; // class MoveLiftToAngleAction
+
+
     // Set the lift to specified height with a given tolerance. Note that setting
     // the tolerance too small will likely lead to an action timeout.
     class MoveLiftToHeightAction : public IAction
@@ -369,7 +452,8 @@ namespace Cozmo {
       };
       
       MoveLiftToHeightAction(const f32 height_mm,
-                             const f32 tolerance_mm = 5.f, const f32 variability = 0);
+                             const f32 tolerance_mm = 5.f, 
+                             const f32 variability = 0);
       MoveLiftToHeightAction(const Preset preset, const f32 tolerance_mm = 5.f);
       
       // how long this action should take (which, in turn, effects lift speed)
@@ -408,37 +492,6 @@ namespace Cozmo {
       Signal::SmartHandle _signalHandle;
       
     }; // class MoveLiftToHeightAction
-    
-    
-    // This is just a selector for AscendOrDescendRampAction or
-    // CrossBridgeAction, depending on the object's type.
-    class TraverseObjectAction : public IActionRunner
-    {
-    public:
-      TraverseObjectAction(ObjectID objectID);
-      virtual ~TraverseObjectAction()
-      {
-        if(_chosenAction != nullptr)
-        {
-          _chosenAction->PrepForCompletion();
-        }
-      }
-      
-      void SetSpeedAndAccel(f32 speed_mmps, f32 accel_mmps2);
-      
-    protected:
-      
-      // Update will just call the chosenAction's implementation
-      virtual ActionResult UpdateInternal() override;
-      virtual void Reset(bool shouldUnlockTracks = true) override { }
-      
-      ObjectID       _objectID;
-      std::unique_ptr<IActionRunner> _chosenAction = nullptr;
-      f32            _speed_mmps;
-      f32            _accel_mmps2;
-      f32            _decel_mmps2;
-      
-    }; // class TraverseObjectAction
     
     
     // Tilt head and rotate body to face the given pose.
@@ -487,7 +540,11 @@ namespace Cozmo {
     {
     public:
 
-      TurnTowardsImagePointAction(const Point2f& imgPoint, const TimeStamp_t imgTimeStamp);
+      TurnTowardsImagePointAction(const Point2f& imgPoint, const RobotTimeStamp_t imgTimeStamp);
+      
+      // Constructor for turning towards a SalientPoint, whose (x,y) location is in normalized
+      // coordinates (and which has its own timestamp)
+      TurnTowardsImagePointAction(const Vision::SalientPoint& salientPoint);
       
     protected:
       virtual ActionResult Init() override;
@@ -495,7 +552,8 @@ namespace Cozmo {
     private:
       
       Point2f     _imgPoint;
-      TimeStamp_t _timestamp;
+      RobotTimeStamp_t _timestamp;
+      bool        _isPointNormalized;
       
     }; // class TurnTowardsImagePointAction
     
@@ -506,9 +564,30 @@ namespace Cozmo {
     {
     public:
       
-      // VisionMode indicates the vision mode(s) that this action wants to wait for, for numFrames instances. VisionMode::Count means any
-      WaitForImagesAction(u32 numFrames, VisionMode visionMode = VisionMode::Count, TimeStamp_t afterTimeStamp = 0);
-      virtual ~WaitForImagesAction() { }
+      // NumFrames is the number of times this action will wait for a mode
+      //  to be marked as processed, before completing.
+      // VisionMode indicates the vision mode(s) that this action wants to wait for
+      //
+      // If the specified visionMode takes more than one camera frame to complete, 
+      // or is not scheduled to run on every frame, then several images may go 
+      // through the vision system before this mode is marked as "processed".
+      WaitForImagesAction(u32 numFrames, VisionMode visionMode = VisionMode::Count, RobotTimeStamp_t afterTimeStamp = 0);
+
+      struct UseDefaultNumImages_t {};
+      static constexpr UseDefaultNumImages_t UseDefaultNumImages = UseDefaultNumImages_t{};
+      
+      // use a default number of images to give the robot a good chance to see something with the given vision modes
+      WaitForImagesAction(UseDefaultNumImages_t, VisionMode visionMode);
+      
+      // Set save params, assuming VisionMode::SaveImages is active
+      // If Mode is SingleShot, will save one image at the start of this action.
+      // If Mode is Stream, will save all images (irrespective of visionMode above) while the action
+      //   is running. In this case, the mode will be set back to off when the action ends, so anything
+      //   that was previously saving will be disabled.
+      // This is primarily useful for debugging.
+      void SetSaveParams(const ImageSaverParams& params);
+      
+      virtual ~WaitForImagesAction();
       
       virtual f32 GetTimeoutInSeconds() const override { return std::numeric_limits<f32>::max(); }
       
@@ -523,11 +602,14 @@ namespace Cozmo {
       
     private:
       u32 _numFramesToWaitFor;
-      TimeStamp_t _afterTimeStamp;
+      RobotTimeStamp_t _afterTimeStamp;
       
       Signal::SmartHandle             _imageProcSignalHandle;
       VisionMode                      _visionMode = VisionMode::Count;
+      EVisionUpdateFrequency          _updateFrequency;
       u32                             _numModeFramesSeen = 0;
+      
+      std::unique_ptr<ImageSaverParams> _saveParams;
       
     }; // WaitForImagesAction()
   
@@ -593,34 +675,55 @@ namespace Cozmo {
     {
     public:
       TurnTowardsFaceAction(const SmartFaceID& faceID, Radians maxTurnAngle = M_PI_F, bool sayName = false);
+      
+      // Use SayNameProbabilityTable to decide if the name, if any, should be said
+      TurnTowardsFaceAction(const SmartFaceID& faceID, Radians maxTurnAngle,
+                            std::shared_ptr<SayNameProbabilityTable>& sayNameProbTable);
+      
       virtual ~TurnTowardsFaceAction();
       
       // Set the maximum number of frames we are will to wait to see a face after
       // the initial blind turn to the last face pose.
       void SetMaxFramesToWait(u32 N) { _maxFramesToWait = N; }
 
-      // Sets the animation trigger to use to say the name. Only valid if sayName was true
+      // Sets the animation trigger to use to say the name. Only valid if sayName was true. Cannot be used
+      // with SetAnyFaceAnimationTrigger
       void SetSayNameAnimationTrigger(AnimationTrigger trigger);
       
       // Sets the backup animation to play if the name is not known, but there is a confirmed face. Only valid
       // if sayName is true (this is because we are trying to use an animation to say the name, but if we
-      // don't have a name, we want to use this animation instead)
+      // don't have a name, we want to use this animation instead). Cannot be used with SetAnyFaceAnimationTrigger.
       void SetNoNameAnimationTrigger(AnimationTrigger trigger);
+      
+      // Play an animation after turning to the face
+      // (Mutually exclusive with SetSayNameAnimationTrigger/SetNoNameAnimationTrigger)
+      void SetAnyFaceAnimationTrigger(AnimationTrigger trigger);
 
       // instead of manually specifying a trigger, this function allows a lambda to be called when the face is
       // turned to. It is called right before the animation should be played, only if the face is named. Input
       // is the face we are reacting to, and the return value should be the animation to play. If
-      // AnimationTrigger::Count is returned, no animation will play
+      // AnimationTrigger::Count is returned, no animation will play. Cannot be used with SetAnyFaceTriggerCallback
       using AnimTriggerForFaceCallback = std::function<AnimationTrigger(const Robot& robot, const SmartFaceID& faceID)>;
-      void SetSayNameTriggerCallback(AnimTriggerForFaceCallback callback);      
+      void SetSayNameTriggerCallback(AnimTriggerForFaceCallback&& callback);      
 
-      // same as above, but for the case when the face has no associated name
-      void SetNoNameTriggerCallback(AnimTriggerForFaceCallback callback);
+      // same as above, but for the case when the face has no associated name. Cannot be used with SetAnyFaceTriggerCallback
+      void SetNoNameTriggerCallback(AnimTriggerForFaceCallback&& callback);
+      
+      // same as above, but runs for any face.
+      // (Mutually exclusive with SetSayNameTriggerCallback and SetNoNameTriggerCallback)
+      void SetAnyFaceTriggerCallback(AnimTriggerForFaceCallback&& callback);
+      
+      // For SayName/NoName/AnyFace animations, these tracks will be locked
+      void SetAnimTracksToLock(u8 tracksToLock) { _animTracksToLock = tracksToLock; }
 
       // Sets whether or not we require a face. Default is false (it will play animations and return success
       // even if no face is found). If set to true and no face is found, the action will fail with
       // NO_FACE and no animations will be played
       void SetRequireFaceConfirmation(bool isRequired) { _requireFaceConfirmation = isRequired; }
+      
+      // After turning toward the supplied faceID, this sets whether the action locks onto the closest
+      // face in that direction (true) or if it should only lock onto the supplied faceID (false). Defaults to false.
+      void SetLockOnClosestFaceAfterTurn(bool shouldLock) { _lockOnClosestFace = shouldLock; }
       
       // Template for all events we subscribe to
       template<typename T>
@@ -638,7 +741,8 @@ namespace Cozmo {
         Turning,
         WaitingForFace,
         FineTuning,
-        SayingName, // saying name, or playing noNameAnimTrigger
+        WaitingForRecognition,
+        PlayingAnimation, // playing an recognition animation, possibly including TTS for the name
       };
       
       SmartFaceID       _faceID;
@@ -650,14 +754,24 @@ namespace Cozmo {
       bool              _sayName                 = false;
       bool              _tracksLocked            = false;
       bool              _requireFaceConfirmation = false;
+      bool              _lockOnClosestFace       = false;
+      u8                _animTracksToLock        = (u8) AnimTrackFlag::NO_TRACKS;
 
       AnimTriggerForFaceCallback _sayNameTriggerCallback;
       AnimTriggerForFaceCallback _noNameTriggerCallback;
+      AnimTriggerForFaceCallback _anyFaceTriggerCallback;
       
       std::vector<Signal::SmartHandle> _signalHandles;
 
+      std::shared_ptr<SayNameProbabilityTable> _sayNameProbTable;
+      f32 _startedWaitingForRecognition = 0.f;
+      
+      bool MightSayName() const;
+      bool ShouldSayName(const std::string& name);
+      
       void CreateFineTuneAction();
-      void SetAction(IActionRunner* action);
+      void SetAction(IActionRunner* action, bool suppressTrackLocking = true);
+      bool CreateNameAnimationAction(const Vision::TrackedFace* face);
       
     }; // TurnTowardsFaceAction
 
@@ -695,7 +809,9 @@ namespace Cozmo {
     {
     public:
       WaitAction(f32 waitTimeInSeconds);
-      
+
+      virtual f32 GetTimeoutInSeconds() const override;
+
     protected:
       
       virtual ActionResult Init() override;
@@ -760,44 +876,49 @@ namespace Cozmo {
     };
     
     
-    class ReadToolCodeAction : public IAction
+    // CliffAlignToWhite
+    //
+    // Uses cliff sensors to align both front sensors with the
+    // white border line of the habitat.
+    // Requires that one front cliff sensor is already on a white line.
+    class CliffAlignToWhiteAction : public IAction
     {
     public:
+      CliffAlignToWhiteAction();
       
-      ReadToolCodeAction(bool doCalibration = false);
-      virtual ~ReadToolCodeAction();
-      
-      virtual f32 GetTimeoutInSeconds() const override { return 5.f; }
-      
-      virtual void GetCompletionUnion(ActionCompletedUnion& completionUnion) const override;
+      virtual ~CliffAlignToWhiteAction();
       
     protected:
       
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
       virtual ActionResult Init() override;
       virtual ActionResult CheckIfDone() override;
       
     private:
-      
-      std::string       _name = "ReadToolCode";
-      bool              _doCalibration = false;
-      ToolCodeInfo      _toolCodeInfo;
-      
-      CompoundActionParallel _headAndLiftDownAction;
-      
-      //const TimeStamp_t kRequiredStillTime_ms    = 500;
-  
       enum class State : u8 {
-        WaitingToGetInPosition,
-        WaitingForRead,
-        ReadCompleted
-      } _state;
-  
-      // Handler for the tool code being read
-      Signal::SmartHandle        _toolReadSignalHandle;
+        Waiting,
+        Success,
+        FailedTimeout,
+        FailedNoTurning,
+        FailedOverturning,
+        FailedNoWhite,
+        FailedStopped,
+      };
+
+      State _state = State::Waiting;
+
+      // Handler for the cliff align action completing
+      Signal::SmartHandle        _signalHandle;
       
-    }; // class ReadToolCodeAction
-    
-} // namespace Cozmo
+      // Whether or not to restore stopOnWhite setting when
+      // action completes since it must be disabled for this
+      // action to work.
+      bool _resumeStopOnWhite = false;
+
+    }; // class CliffAlignToWhiteAction
+
+
+} // namespace Vector
 } // namespace Anki
 
 #endif /* ANKI_COZMO_BASIC_ACTIONS_H */

@@ -15,10 +15,11 @@
 
 #include "engine/robotComponents_fwd.h"
 #include "util/entityComponent/iDependencyManagedComponent.h"
+#include "clad/cloud/mic.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class MicDirectionHistory;
 class VoiceMessageSystem;
@@ -36,7 +37,7 @@ public:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // IDependencyManagedComponent functions
 
-  virtual void InitDependent( Cozmo::Robot* robot, const RobotCompMap& dependentComponents ) override;
+  virtual void InitDependent( Vector::Robot* robot, const RobotCompMap& dependentComps ) override;
   virtual void GetInitDependencies( RobotCompIDSet& dependencies ) const override;
   virtual void GetUpdateDependencies( RobotCompIDSet& dependencies ) const override {};
 
@@ -50,21 +51,22 @@ public:
   VoiceMessageSystem& GetVoiceMessageSystem() { return *_messageSystem; }
   const VoiceMessageSystem& GetVoiceMessageSystem() const { return *_messageSystem; }
 
-  void StartWakeWordlessStreaming();
-  
-  void SetShouldStreamAfterWakeWord(bool shouldStream);
+  // set / get the fullness of the audio processing buffer on the robot (float from 0 to 1)
+  void  SetBufferFullness(float val);
+  float GetBufferFullness() const { return _fullness; }
 
 private:
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Member Data
-
   MicDirectionHistory*      _micHistory;
   VoiceMessageSystem*       _messageSystem;
   Robot*                    _robot;
+  float                     _fullness;
+  
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_Components_MicComponent_H_

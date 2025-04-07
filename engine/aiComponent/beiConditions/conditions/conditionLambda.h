@@ -18,7 +18,7 @@
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class ConditionLambda : public IBEICondition
 {
@@ -27,7 +27,8 @@ public:
   using VisionModeSet = std::set<VisionModeRequest>;
   
   // NOTE: this strategy takes no config, because it can't be data defined
-  ConditionLambda(std::function<bool(BehaviorExternalInterface& bei)> areConditionsMetFunc, const std::string& ownerDebugLabel);
+  ConditionLambda(std::function<bool(BehaviorExternalInterface& bei)> areConditionsMetFunc,
+                  const std::string& ownerDebugLabel);
 
   // Alternative constructor for Lambda's which have VisionModeRequirements
   ConditionLambda(std::function<bool(BehaviorExternalInterface& bei)> areConditionsMetFunc,

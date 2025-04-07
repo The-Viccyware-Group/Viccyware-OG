@@ -4,7 +4,7 @@
 // Copyright: Anki, inc. 2017
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Identifies the BEICondition type
 // PLEASE KEEP ALPHABETIZED
@@ -13,23 +13,34 @@ enum uint_8 BEIConditionType {
 
   TrueCondition, // (note: name can't be True due to clad rules)
 
+  AlexaInteractionActive,
   AnyStimuli,
+  AnyUserIntent,
+  BatteryLevel,
+  BeatDetected,
+  BecameTrueThisTick,
+  BehaviorSuggested,
+  BehaviorTimer,
+  BeingHeld,
   CarryingCube,
   CliffDetected,
   Compound,
+  ConnectedToCube,
   ConsoleVar,
   CubeTapped,
-  BatteryLevel,
-  BeatDetected,
-  BehaviorTimer,
   Emotion,
+  EngineErrorCodeReceived,
   EyeContact,
   FaceKnown,
   FacePositionUpdated,
   FeatureGate,
+  HighTemperature,
   IlluminationDetected,
+  IsMaintenanceReboot,
+  IsNightTime,
   Lambda,
   MotionDetected,
+  MotionDetectedWithProx,
   ObjectInitialDetection,
   ObjectKnown,
   ObjectMoved,
@@ -40,20 +51,31 @@ enum uint_8 BEIConditionType {
   OnChargerPlatform,
   PetInitialDetection,
   ProxInRange,
+  RobotHeldInPalm,
+  RobotInHabitat,
+  RobotPickedUp,
+  RobotPitchInRange,
   RobotPlacedOnSlope,
+  RobotPoked,
+  RobotRollInRange,
   RobotShaken,
   RobotTouched,
+  SalientPointDetected,
+  SettingsUpdatePending,
   SimpleMood,
   StuckOnEdge,
+  TimePowerButtonPressed,
   TimedDedup,
   TimerInRange,
+  TooHotToCharge,
   TriggerWordPending,
   UnexpectedMovement,
   UserIntentActive,
   UserIntentPending,
+  UserIsHoldingCube,
 
   UnitTestCondition,
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

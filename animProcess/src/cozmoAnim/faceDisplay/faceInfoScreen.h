@@ -32,7 +32,7 @@ namespace Vision {
   class ImageRGB565;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 
 class FaceInfoScreen {
@@ -73,6 +73,9 @@ public:
   
   // Specify the timeout duration and the screen to goto when it expires
   void SetTimeout(f32 seconds, ScreenName gotoScreen);
+  
+  // Restarts the timeout, if there is one
+  void RestartTimeout();
 
   // Returns true if this screen has a menu item that was added via AppendMenuItem
   bool HasMenu() const;
@@ -83,7 +86,9 @@ public:
   
   // Draws the menu items and cursor onto the given image
   void DrawMenu(Vision::ImageRGB565& img) const;
-  
+  void DrawMenuVertical(Vision::ImageRGB565& img) const; // Stacked Menu
+  void DrawMenuHorizontal(Vision::ImageRGB565& img) const; // Menu in same row
+
   ScreenName GetButtonGotoScreen() const { return _buttonScreen;  }
   ScreenName GetTimeoutScreen()    const { return _timeoutScreen; }
   
@@ -129,7 +134,7 @@ private:
 };
   
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AnimProcess_CozmoAnim_FaceDisplay_FaceInfoScreen_H_

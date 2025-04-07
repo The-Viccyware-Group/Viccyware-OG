@@ -20,19 +20,23 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace Audio {
-  
-CONSOLE_VAR(float, kMaxTreadSpeed_mmps, "ProceduralAudioClient", MAX_WHEEL_SPEED_MMPS);
-CONSOLE_VAR(float, kMaxTurnSpeed_mmps, "ProceduralAudioClient", MAX_WHEEL_SPEED_MMPS);
-CONSOLE_VAR(float, kMaxHeadSpeed_rpms, "ProceduralAudioClient", 0.005f);
-CONSOLE_VAR(float, kMaxLiftSpeed_rpms, "ProceduralAudioClient", 0.0025f);
-CONSOLE_VAR(float, kMaxTreadAccel_mmpms2, "ProceduralAudioClient", 5.0f);
-CONSOLE_VAR(float, kMaxHeadAccel_rpms2, "ProceduralAudioClient", 0.0001f);
-CONSOLE_VAR(float, kMaxLiftAccel_rpms2, "ProceduralAudioClient", 0.0001f);
-CONSOLE_VAR(float, kTreadMovementThreshold_mmps, "ProceduralAudioClient", 0.0f);
-CONSOLE_VAR(float, kHeadMovementThreshold_rpms, "ProceduralAudioClient", 0.0f);
-CONSOLE_VAR(float, kLiftMovementThreshold_rpms, "ProceduralAudioClient", 0.0f);
+namespace {
+#define CONSOLE_PATH "Audio.Procedural"
+CONSOLE_VAR_RANGED(float, kMaxTreadSpeed_mmps, CONSOLE_PATH, MAX_WHEEL_SPEED_MMPS,
+                   MAX_WHEEL_SPEED_MMPS - 100, MAX_WHEEL_SPEED_MMPS + 100);
+CONSOLE_VAR_RANGED(float, kMaxTurnSpeed_mmps, CONSOLE_PATH, MAX_WHEEL_SPEED_MMPS,
+                   MAX_WHEEL_SPEED_MMPS - 100, MAX_WHEEL_SPEED_MMPS + 100);
+CONSOLE_VAR_RANGED(float, kMaxHeadSpeed_rpms, CONSOLE_PATH, 0.005f, 0.0f, 0.025f);
+CONSOLE_VAR_RANGED(float, kMaxLiftSpeed_rpms, CONSOLE_PATH, 0.0025f, 0.0f, 0.05f);
+CONSOLE_VAR_RANGED(float, kMaxTreadAccel_mmpms2, CONSOLE_PATH, 5.0f, 0.0f, 10.0f);
+CONSOLE_VAR_RANGED(float, kMaxHeadAccel_rpms2, CONSOLE_PATH, 0.0001f, 0.0f, 0.001f);
+CONSOLE_VAR_RANGED(float, kMaxLiftAccel_rpms2, CONSOLE_PATH, 0.0001f, 0.0f, 0.001f);
+CONSOLE_VAR_RANGED(float, kTreadMovementThreshold_mmps, CONSOLE_PATH, 0.0f, 0.0f, 0.01f);
+CONSOLE_VAR_RANGED(float, kHeadMovementThreshold_rpms, CONSOLE_PATH, 0.0f, 0.0f, 0.01f);
+CONSOLE_VAR_RANGED(float, kLiftMovementThreshold_rpms, CONSOLE_PATH, 0.0f, 0.0f, 0.01f);
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AudioProceduralFrame::UpdateFrame(const RobotState& robotState)

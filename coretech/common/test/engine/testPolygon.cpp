@@ -13,8 +13,8 @@
 #include "util/helpers/includeGTest.h" // Used in place of gTest/gTest.h directly to suppress warnings in the header
 
 #include "coretech/common/engine/math/fastPolygon2d.h"
-#include "coretech/common/engine/math/polygon_impl.h"
-#include "coretech/common/engine/math/quad_impl.h"
+#include "coretech/common/engine/math/polygon.h"
+#include "coretech/common/engine/math/quad.h"
 
 #include <vector>
 
@@ -62,7 +62,7 @@ GTEST_TEST(TestPolygon, MinAndMax)
   EXPECT_FLOAT_EQ(polyFromQuad.GetMinX(), 0.5);
 };
 
-GTEST_TEST(TestPolygon, center)
+GTEST_TEST(TestPolygon, average)
 {
 
   // means should be (0, 1, 2)
@@ -73,7 +73,7 @@ GTEST_TEST(TestPolygon, center)
     {-1.0f, 0.0f, 3.0f}
   };
 
-  Point3f centroid = poly3d.ComputeCentroid();
+  Point3f centroid = poly3d.ComputeWeightedAverage();
 
   EXPECT_FLOAT_EQ(centroid.x(), 0.0);
   EXPECT_FLOAT_EQ(centroid.y(), 1.0);

@@ -15,12 +15,12 @@
 
 #include "engine/components/cubes/cubeAccelListeners/iCubeAccelListener.h"
 
-#include "coretech/common/engine/math/rotation.h"
+#include "coretech/common/shared/math/rotation.h"
 
 #include <memory>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 struct ActiveAccel;
   

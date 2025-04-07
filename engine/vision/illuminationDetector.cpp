@@ -9,25 +9,38 @@
  * Copyright: Anki, Inc. 2018
  **/
 
+#include "clad/types/featureGateTypes.h"
+
 #include "coretech/common/engine/jsonTools.h"
-#include "coretech/common/engine/math/linearClassifier_impl.h"
+#include "coretech/common/engine/math/linearClassifier.h"
 #include "coretech/common/engine/utils/data/dataPlatform.h"
 #include "coretech/vision/engine/imageBrightnessHistogram.h"
 #include "coretech/vision/engine/imageCache.h"
 
 #include "engine/cozmoContext.h"
+#include "engine/utils/cozmoFeatureGate.h"
 #include "engine/vision/illuminationDetector.h"
 #include "engine/vision/visionPoseData.h"
 
+#include "util/console/consoleInterface.h"
 #include "util/math/math.h"
 
 #include <fstream>
 
+#define LOG_CHANNEL "VisionSystem"
+
+namespace {
+  // Enable for extra logging of features (too spammy for general use)
+  // NOTE: Uses DEBUG logging, so still visible only in Debug builds if enabled.
+  CONSOLE_VAR(bool, kEnableExtraIlluminationDetectorDebug, "Vision.Illumination", false);
+}
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 IlluminationDetector::IlluminationDetector() 
-: _classifier( new LinearClassifier() ) {}
+: _featureGate( nullptr )
+, _classifier( new LinearClassifier() ) {}
 
 Result IlluminationDetector::Init( const Json::Value& config, const CozmoContext* context )
 {
@@ -89,7 +102,10 @@ Result IlluminationDetector::Init( const Json::Value& config, const CozmoContext
   PARSE_PARAM(config, "FeaturePercentileSubsample", _featPercSubsample, s32, GetValueOptional);
   PARSE_PARAM(config, "IlluminatedMinProbability", _illumMinProb, f32, GetValueOptional);
   PARSE_PARAM(config, "DarkenedMaxProbability", _darkMaxProb, f32, GetValueOptional);
+  PARSE_PARAM(config, "AllowMovement", _allowMovement, bool, GetValueOptional);
   
+  _featureGate = context->GetFeatureGate();
+
   return RESULT_OK;
 }
 
@@ -101,6 +117,11 @@ Result IlluminationDetector::Detect( Vision::ImageCache& cache,
   illumination.timestamp = cache.GetTimeStamp();
   illumination.state = IlluminationState::Unknown;
 
+  if( !_featureGate->IsFeatureEnabled(FeatureType::ReactToIllumination) )
+  {
+    return RESULT_OK;
+  }
+  
   if( !CanRunDetection( poseData ) )
   {
     _featureBuffer.clear();
@@ -112,8 +133,11 @@ Result IlluminationDetector::Detect( Vision::ImageCache& cache,
   // If not enough buffered timepoints, bail
   if( _featureBuffer.size() < _classifier->GetInputDim() )
   {
-    PRINT_NAMED_DEBUG("IlluminationDetector.Detect.Buffering", "Buffer has %u/%u", 
-                      (u32) _featureBuffer.size(), (u32) _classifier->GetInputDim());
+    if(kEnableExtraIlluminationDetectorDebug)
+    {
+      LOG_DEBUG("IlluminationDetector.Detect.Buffering", "Buffer has %u/%u",
+                (u32) _featureBuffer.size(), (u32) _classifier->GetInputDim());
+    }
     return RESULT_OK;
   }
   while( _featureBuffer.size() > _classifier->GetInputDim() )
@@ -132,47 +156,45 @@ Result IlluminationDetector::Detect( Vision::ImageCache& cache,
     illumination.state = IlluminationState::Darkened;
   }
 
-  #ifndef NDEBUG
-  std::stringstream ss;
-  ss << "[";
-  for( unsigned int i = 0; i < _featureBuffer.size() - 1; ++i )
+  if(kEnableExtraIlluminationDetectorDebug)
   {
-    ss << _featureBuffer[i] << ", ";
+    std::stringstream ss;
+    ss << "[";
+    for( unsigned int i = 0; i < _featureBuffer.size() - 1; ++i )
+    {
+      ss << _featureBuffer[i] << ", ";
+    }
+    ss << _featureBuffer[_featureBuffer.size() - 1] << "]";
+    LOG_DEBUG("IlluminationDetector.Detect.FeaturesAndProbability",
+              "Features: %s, Probability: %.3f", ss.str().c_str(), prob);
   }
-  ss << _featureBuffer[_featureBuffer.size() - 1] << "]";
-  PRINT_NAMED_DEBUG("IlluminationDetector.Detect.Features",
-                    "Features: %s", ss.str().c_str());
-  #endif
-
-  PRINT_CH_INFO("VisionSystem", "IlluminationDetector.Detect.Result",
-                "Probability: %.3f", prob);
-
   return RESULT_OK;
 }
 
-bool IlluminationDetector::CanRunDetection( const VisionPoseData& poseData )
+bool IlluminationDetector::CanRunDetection( const VisionPoseData& poseData ) const
 {
   const HistRobotState& state = poseData.histState;
-  return !state.WasCarryingObject() && !state.WasMoving() &&
-         !state.WasHeadMoving() && !state.WasLiftMoving() &&
-         !state.WereWheelsMoving() && !state.WasPickedUp();
+  const bool notMoving = !state.WasMoving() && !state.WasHeadMoving() && 
+                         !state.WasLiftMoving() && !state.WereWheelsMoving();
+  return !state.WasCarryingObject() && !state.WasPickedUp() && (_allowMovement || notMoving);
 }
 
 void IlluminationDetector::GenerateFeatures( Vision::ImageCache& cache )
 {
   Vision::ImageBrightnessHistogram hist;
   hist.FillFromImage( cache.GetGray(), _featPercSubsample );
-  std::vector<u8> percentiles = hist.ComputePercentiles( _featPercentiles );
+  const std::vector<u8> percentiles = hist.ComputePercentiles( _featPercentiles );
   
-  #ifndef NDEBUG
-  std::string f;
-  for( auto iter = percentiles.begin(); iter != percentiles.end(); ++iter )
+  if(kEnableExtraIlluminationDetectorDebug)
   {
-    f += std::to_string(*iter) + ", ";
+    std::string f;
+    for( auto iter = percentiles.begin(); iter != percentiles.end(); ++iter )
+    {
+      f += std::to_string(*iter) + ", ";
+    }
+    LOG_DEBUG("IlluminationDetector.GenerateFeatures.Features",
+              "Percentiles: %s", f.c_str());
   }
-  PRINT_NAMED_DEBUG("IlluminationDetector.GenerateFeatures.Features",
-                    "Percentiles: %s", f.c_str());
-  #endif
 
   // NOTE Have to push percentiles in reverse order
   for( auto iter = percentiles.rbegin(); iter != percentiles.rend(); ++iter )

@@ -30,7 +30,7 @@
 
 namespace Anki {
 
-  namespace Cozmo {
+  namespace Vector {
 
     // Forward declarations:
     class Robot;
@@ -132,7 +132,7 @@ namespace Anki {
       // IDependencyManagedComponent functions
       /////
 
-      virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+      virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
       virtual void GetInitDependencies(RobotCompIDSet& dependencies) const override {};
       virtual void GetUpdateDependencies(RobotCompIDSet& dependencies) const override {
         dependencies.insert(RobotComponentID::AIComponent);
@@ -149,7 +149,8 @@ namespace Anki {
       // this action, the returned SlotHandle can be ignored.
       SlotHandle AddConcurrentAction(IActionRunner* action, u8 numRetries = 0);
 
-      // Queue an action
+      // Queue an action.  This function will take ownership over the memory pointed
+      // to by action, regardless of whether it succeeds or fails.
       Result     QueueAction(QueueActionPosition inPosition,
                              IActionRunner* action, u8 numRetries = 0);
 
@@ -245,7 +246,7 @@ namespace Anki {
       return _queues.size();
     }
 
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMO_ACTION_CONTAINERS_H

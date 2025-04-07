@@ -4,7 +4,7 @@
 // Copyright: Anki, inc. 2017
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum uint_8 WeatherConditionType {
   Cloudy,
@@ -13,11 +13,12 @@ enum uint_8 WeatherConditionType {
   Snow,
   Stars,
   Sunny,
+  Thunderstorms,
   Windy,
 
+  // Must be last element for iteration puproses
   Count
-
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

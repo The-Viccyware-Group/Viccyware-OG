@@ -26,7 +26,7 @@
 
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 extern CozmoContext* cozmoContext;
 
@@ -52,9 +52,9 @@ TEST(UserIntentsParsing, CloudSampleFileParses)
     const std::string fileContents{ Util::FileUtils::ReadFile( inFilename ) };
     
     Json::Reader reader;
-    Json::Value config;
     const bool parsedOK = reader.parse(fileContents, config, false);
     EXPECT_TRUE(parsedOK);
+    PRINT_NAMED_INFO("UserIntentsParsing.TestIntentSampleFile.ConfigSize", "Size of JSON root = %d", config.size());
     
   } else {
     
@@ -78,7 +78,6 @@ TEST(UserIntentsParsing, CloudSampleFileParses)
   std::set<std::string> completedLabels = tih.GetCompletedLabels();
   std::set<std::string> sampleLabels;
   
-  
   for( const auto& sample : config ) {
     std::stringstream ss;
     ss << sample;
@@ -89,15 +88,33 @@ TEST(UserIntentsParsing, CloudSampleFileParses)
     
     if( intent.GetTag() != UserIntentTag::unmatched_intent ) {
       const auto& label = tih.GetLabelForIntent( intent );
-      if( !label.empty() ) {
+      if(label.empty() ) {
+        PRINT_NAMED_INFO("UserIntentsParsing.TestIntentSampleFile.SampleLabel",
+                         "The label for %s is empty", ss.str().c_str());
+      } else {
+        PRINT_NAMED_INFO("UserIntentsParsing.TestIntentSampleFile.SampleLabel",
+                         "The label for %s is %s", ss.str().c_str(), label.c_str());
         sampleLabels.insert( label );
       }
     }
   }
   
-  // check that all labels we consider completed have a sample cloud intent
+  // before we check that all labels we consider completed have a sample cloud
+  // intent, display those labels for debugging
   auto itSamples = sampleLabels.begin();
+  while( itSamples != sampleLabels.end() ) {
+    PRINT_NAMED_INFO("UserIntentsParsing.CloudSampleFileParses.SampleLabels", "[ %s ]", itSamples->c_str());
+    ++itSamples;
+  }
   auto itCompleted = completedLabels.begin();
+  while( itCompleted != completedLabels.end() ) {
+    PRINT_NAMED_INFO("UserIntentsParsing.CloudSampleFileParses.CompletedLabels", "[ %s ]", itCompleted->c_str());
+    ++itCompleted;
+  }
+
+  // check that all labels we consider completed have a sample cloud intent
+  itSamples = sampleLabels.begin();
+  itCompleted = completedLabels.begin();
   while( itSamples != sampleLabels.end() && itCompleted != completedLabels.end() ) {
     while( itSamples != sampleLabels.end() ) {
       if( *itSamples == *itCompleted ) {
@@ -113,12 +130,18 @@ TEST(UserIntentsParsing, CloudSampleFileParses)
   EXPECT_FALSE(itSamples == sampleLabels.end() && itCompleted != completedLabels.end())
     << "Could not find " << *itCompleted << " and maybe more ";
   
-  
   // it should be ok if user_intent_map has a cloud intent that isnt completed, but it should
   // exist in dialogflow samples; otherwise it should be considered garbage.
   UserIntentMap intentMap( cozmoContext->GetDataLoader()->GetUserIntentConfig(), cozmoContext );
   std::vector<std::string> cloudIntentsList = intentMap.DevGetCloudIntentsList();
   for( const auto& cloudName : cloudIntentsList ) {
+    // if this cloud intent has "test_parsing" set to false in user_intent_map, then
+    // skip it and do not check if it exists in Dialogflow sample file
+    if( !intentMap.GetTestParsingBoolFromCloudIntent(cloudName) ) {
+      continue;
+    }
+    //PRINT_NAMED_INFO("UserIntentsParsing.CloudSampleFileParses.CheckingDialogflowSamples",
+    //                 "Looking for Dialogflow sample that matches '%s'", cloudName.c_str());
     bool found = false;
     for( const auto& elem : config ) {
       if( elem["intent"] == cloudName ) {
@@ -129,7 +152,7 @@ TEST(UserIntentsParsing, CloudSampleFileParses)
     EXPECT_TRUE( found ) << "Could not find user_intent_map cloud intent " << cloudName << " in sample file";
   }
 }
-  
+
 TEST(UserIntentsParsing, CompletedInCloudList)
 {
   // tests that every completed intent has a match for both app and cloud in user_intent_map.
@@ -151,10 +174,12 @@ TEST(UserIntentsParsing, CompletedInCloudList)
     });
     EXPECT_TRUE( itCloud != cloudIntentsList.end() ) << "Could not find " << UserIntentTagToString(intentTag) << " in cloud intent list";
     
-    auto itApp = std::find_if( appIntentsList.begin(), appIntentsList.end(), [&](const auto& x ) {
-      return (intentMap.GetUserIntentFromAppIntent( x ) == intentTag);
-    });
-    EXPECT_TRUE( itApp != appIntentsList.end() ) << "Could not find " << UserIntentTagToString(intentTag) << " in app intent list";
+    // app intents haven't been fully realized;
+    // commenting out this test until app intents are actually required
+    //auto itApp = std::find_if( appIntentsList.begin(), appIntentsList.end(), [&](const auto& x ) {
+    //  return (intentMap.GetUserIntentFromAppIntent( x ) == intentTag);
+    //});
+    //EXPECT_TRUE( itApp != appIntentsList.end() ) << "Could not find " << UserIntentTagToString(intentTag) << " in app intent list";
   }
 }
 

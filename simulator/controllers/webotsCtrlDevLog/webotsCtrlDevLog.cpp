@@ -30,7 +30,7 @@
 #include <cmath>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 static constexpr auto kDevLogStepTime_ms = 10;
 static const char* kLogsDirectoryFieldName = "logsDirectory";
@@ -211,7 +211,7 @@ int32_t WebotsDevLogController::Update()
 std::string WebotsDevLogController::GetDirectoryPath() const
 {
   std::string dirPath;
-  WebotsHelpers::GetFieldAsString(_selfNode, kLogsDirectoryFieldName, dirPath);
+  WebotsHelpers::GetFieldAsString(*_selfNode, kLogsDirectoryFieldName, dirPath);
   return dirPath;
 }
 
@@ -256,10 +256,10 @@ void WebotsDevLogController::EnableSaveImages(bool enable)
   const size_t MAX_MESSAGE_SIZE{(size_t)VizConstants::MaxMessageSize};
   uint8_t buffer[MAX_MESSAGE_SIZE]{0};
 
-  const size_t numWritten = (uint32_t)message.Pack(buffer, MAX_MESSAGE_SIZE);
+  const size_t numPacked = message.Pack(buffer, MAX_MESSAGE_SIZE);
 
-  if (_vizConnection->Send((const char*)buffer, (int)numWritten) <= 0) {
-    PRINT_NAMED_WARNING("VizManager.SendMessage.Fail", "Send vizMsgID %s of size %zd failed", VizInterface::MessageVizTagToString(message.GetTag()), numWritten);
+  if (_vizConnection->Send((const char*)buffer, numPacked) <= 0) {
+    PRINT_NAMED_WARNING("VizManager.SendMessage.Fail", "Send vizMsgID %s of size %zd failed", VizInterface::MessageVizTagToString(message.GetTag()), numPacked);
   }
 }
 
@@ -540,7 +540,7 @@ void WebotsDevLogController::HandleVizData(const DevLogReader::LogData& logData)
 {
   if (_vizConnection && _vizConnection->IsConnected())
   {
-    _vizConnection->Send(reinterpret_cast<const char*>(logData._data.data()), Util::numeric_cast<int>(logData._data.size()));
+    _vizConnection->Send(reinterpret_cast<const char*>(logData._data.data()), logData._data.size());
   }
 }
 
@@ -549,7 +549,7 @@ void WebotsDevLogController::HandlePrintLines(const DevLogReader::LogData& logDa
   std::cout << reinterpret_cast<const char*>(logData._data.data());
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
   loggerProvider.SetMinToStderrLevel(Anki::Util::LOG_LEVEL_WARN);
   Anki::Util::gLoggerProvider = &loggerProvider;
 
-  Anki::Cozmo::WebotsDevLogController webotsCtrlDevLog(Anki::Cozmo::kDevLogStepTime_ms);
+  Anki::Vector::WebotsDevLogController webotsCtrlDevLog(Anki::Vector::kDevLogStepTime_ms);
 
   // If log directory is already specified when we start, just go ahead and use it,
   // without needing to press 'L' key

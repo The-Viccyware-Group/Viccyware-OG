@@ -18,9 +18,11 @@
 #define __Engine_AiComponent_BeiConditions_Conditions_ConditionTimedDedup_H__
 
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
+#include "engine/engineTimeStamp.h"
+#include "coretech/common/shared/types.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class ConditionTimedDedup : public IBEICondition
 {
@@ -40,7 +42,7 @@ private:
   } _instanceParams;
 
   mutable struct {
-   TimeStamp_t nextTimeValid_ms = 0;
+   EngineTimeStamp_t nextTimeValid_ms = 0;
   } _lifetimeParams;
 
 };

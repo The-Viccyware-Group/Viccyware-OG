@@ -29,16 +29,14 @@ ActiveFeature::NoFeature). This is checked by the `DelegationTree.CheckActiveFea
 
 The default behavior is set in [victor_behavior_config.json](/resources/config/engine/behaviorComponent/victor_behavior_config.json)
 
-Using [webots](/simulator/README.md) you can run a behavior by pasting the ID (see
-[behaviorTypes.clad](../../clad/src/clad/types/behaviorComponent/behaviorTypes.clad)) into the `behaviorName`
-field and pressing "Shift+C"
+Using [webots](/simulator/README.md) you can run a behavior by pasting the ID (see [behaviorIDs.clad](../../clad/src/clad/types/behaviorComponent/behaviorIDs.clad)) into the `behaviorName` field and pressing "Shift+C"
 
 ## Examples
 
 1. The very simple ["observing without turn"](/engine/aiComponent/behaviorComponent/behaviors/observing/behaviorObservingWithoutTurn.h) behavior
    which simply looks up and down with random delays (and can run on the charger)
 
-2. The ["come here"](/engine/aiComponent/behaviorComponent/behaviors/victor/behaviorComeHere.h) behavior
+2. The ["come here"](/engine/aiComponent/behaviorComponent/behaviors/simpleFaceBehaviors/behaviorDriveToFace.h) behavior
    in response to a voice command which turns and drives towards a face, handling some edge cases
    
 ## Basic concepts
@@ -78,3 +76,5 @@ known behavior classes.
 ## See also
 
 [User/cloud/app intents in the behavior system](/docs/architecture/behaviors_intents.md)
+
+You can run the [plotBehaviorTree.sh](/tools/ai/plotBehaviorTree.sh) function with no arguments to see the entire tree, or give it a filename as the single argument to output a pdf of the tree. Look at that script to see more about underling arguments and how to plot other things. Note that plotting the behavior tree relies on artifacts from running the engine unit tests. You can run engine unit tests with [project/buildServer/steps/unittestsEngine.sh](/project/buildServer/steps/unittestsEngine.sh).

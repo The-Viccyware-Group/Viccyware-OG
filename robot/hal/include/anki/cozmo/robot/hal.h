@@ -40,7 +40,7 @@
 #define PROCESS_IMU_ON_THREAD 1
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace HAL {
 
 
@@ -65,8 +65,6 @@ Result Init(const int * shutdownSignal);
 Result Step(void);
 void Stop(void);
 
-void Shutdown();
-
 /************************************************************************
  * \section Time
  */
@@ -84,19 +82,22 @@ extern "C" TimeStamp_t GetTimeStamp(void);
 u8 GetWatchdogResetCounter(void);
 
 /************************************************************************
+ * \section Debug
+ */
+
+// Print full body data to log every specified number of tics
+// 0 disables printing
+void PrintBodyData(u32 period_tics, bool motors, bool prox, bool battery);
+
+/************************************************************************
  * \section IMU Interface
  */
 
 /// IMU_DataStructure contains 3-axis acceleration and 3-axis gyro data
 struct IMU_DataStructure
 {
-  f32 acc_x;  ///< mm/s/s
-  f32 acc_y;  ///< mm/s/s
-  f32 acc_z;  ///< mm/s/s
-  f32 rate_x; ///< rad/s
-  f32 rate_y; ///< rad/s
-  f32 rate_z; ///< rad/s
-
+  f32 accel[3];  ///< mm/s/s
+  f32 gyro[3]; ///< rad/s
   f32 temperature_degC;
 };
 
@@ -128,6 +129,7 @@ void MotorSetPower(const MotorID motor, const f32 power);
 void MotorResetPosition(const MotorID motor);
 
 /** Returns units based on the specified motor type:
+ * Note: this function must be called once per tick for each motor
  * @param[in] Motor to retrieve
  * @return Wheels are in mm/s, everything else is in radians/s.
  */
@@ -143,6 +145,21 @@ f32 MotorGetPosition(const MotorID motor);
 s32 MotorGetLoad();
 
 /************************************************************************
+ * \section Encoder state
+ */
+
+// Whether or not the encoders have been "disabled". 
+// (In reality they are operating at a lower frequency so that motion can be detected.)
+// This happens normally if the motors are not actively being driven.
+bool AreEncodersDisabled();
+
+// Whether or not the head/lift was detected to have moved while the encoders were "disabled"
+// i.e. Calibration is necessary!
+// Note: This gets cleared as soon as the motor is driven again
+bool IsHeadEncoderInvalid();
+bool IsLiftEncoderInvalid();
+
+/************************************************************************
  * \section Proximity / Cliff sensors
  */
 
@@ -156,16 +173,11 @@ typedef enum
   CLIFF_COUNT
 } CliffID; //TODO: assert matches DropSensor, or use directly
 
-/// Forward proximity sensor
+/// Face proximity sensor
 ProxSensorDataRaw GetRawProxData();
 
 /// Cliff sensors
 u16 GetRawCliffData(const CliffID cliff_id);
-
-/// Value of light sensor when IR light is off
-/// Used to do additional logic on whether or not the ambient light
-/// is too bright to trust the cliff reading
-u16 GetCliffOffLevel(const CliffID cliff_id);
 
 /************************************************************************
  * \section Microphones
@@ -196,7 +208,7 @@ typedef enum
  * @return Mechanical buttons return 0 or 1. Capacitive buttons return an analog value
  */
 u16 GetButtonState(const ButtonID button_id);
-
+ 
 /************************************************************************
  * \section Battery
  */
@@ -216,6 +228,17 @@ bool BatteryIsOnCharger();
 /// Return whether or not the battery has been disconnected from the charging circuit
 /// after being on charge base for more than 30 min.
 bool BatteryIsDisconnected();
+
+// Return temperature of battery in C
+u8 BatteryGetTemperature_C();
+
+// Whether or not the battery is overheating.
+// Syscon will shutoff 30s after this first becomes true.
+bool BatteryIsOverheated();
+
+// Battery is low. 
+// Time until shutdown: POWER_DOWN_WARNING_TIME
+bool BatteryIsLow();
 
 /// Return detected charger voltage
 f32 ChargerGetVoltage();
@@ -260,11 +283,25 @@ typedef enum
 
 /** Command syscon to enter specified power state
  */
-void PowerSetMode(const PowerState state);
+void PowerSetDesiredMode(const PowerState state);
+
+/** Get last desired syscon mode that was commanded
+ */
+PowerState PowerGetDesiredMode();
 
 /** Get syscon's current power state
  */
 PowerState PowerGetMode();
+
+/** Get syscon's current power state
+ */
+PowerState PowerGetMode();
+
+// Returns true if syscon says it's going to shutoff power soon
+bool IsShutdownImminent();
+
+// Shutoff robot power completely
+void Shutdown();
 
 /************************************************************************
  * \section "Radio" comms to/from engine
@@ -284,7 +321,7 @@ u32 RadioGetNextPacket(u8* buffer);
  * @param length [in] The number of bytes to be sent
  * @return true if the packet was queued for transmission, false if it couldn't be queued.
  */
-bool RadioSendPacket(const void *buffer, const u32 length);
+bool RadioSendPacket(const void *buffer, const size_t length);
 
 /** Wrapper method for sending messages NOT PACKETS
  * @param msgID The ID (tag) of the message to be sent
@@ -301,6 +338,8 @@ bool RadioSendMessage(const void *buffer, const u16 size, const u8 msgID);
 /// Returns the unique serial number of the robot
 u32 GetID();
 
+const uint8_t* const GetSysconVersionInfo();
+
 /************************************************************************
  * \section Error reporting
  */
@@ -310,7 +349,7 @@ void FORCE_HARDFAULT();
 #define HAL_ASSERT(c) do { if(!(c)) FORCE_HARDFAULT(); } while(0)
 
 } // namespace HAL
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMO_ROBOT_HARDWAREINTERFACE_H

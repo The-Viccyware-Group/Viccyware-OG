@@ -11,6 +11,10 @@
     "ReactToRobotOnFace",
     "ReactToRobotOnSide",
     "ReactToCliff",
+    "ReactToMotorCalibration",
+    "StuckOnPalmEdge",
+    "ReactToPalmEdge",
+    "ReactToUnexpectedMovementInAir",
     "ReactToPlacedOnSlope",
     "ReactToUnexpectedMovement"
   ]

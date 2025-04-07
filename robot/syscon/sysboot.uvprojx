@@ -298,7 +298,7 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0x2000</Size>
+                <Size>0x1ffc</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
@@ -332,7 +332,7 @@
             <v6WtE>0</v6WtE>
             <VariousControls>
               <MiscControls>--gnu</MiscControls>
-              <Define>STM32F030X8,BOOTLOADER</Define>
+              <Define>STM32F030X8,BOOTLOADER,WHISKEY</Define>
               <Undefine></Undefine>
               <IncludePath>boot;common;schema;crypto;build</IncludePath>
             </VariousControls>
@@ -349,7 +349,7 @@
             <useXO>0</useXO>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define></Define>
+              <Define>WHISKEY</Define>
               <Undefine></Undefine>
               <IncludePath></IncludePath>
             </VariousControls>
@@ -412,16 +412,16 @@
               <FileType>8</FileType>
               <FilePath>.\crypto\sha256.cpp</FilePath>
             </File>
+            <File>
+              <FileName>analog.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\boot\analog.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>common</GroupName>
           <Files>
-            <File>
-              <FileName>analog.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\common\analog.cpp</FilePath>
-            </File>
             <File>
               <FileName>flash.cpp</FileName>
               <FileType>8</FileType>

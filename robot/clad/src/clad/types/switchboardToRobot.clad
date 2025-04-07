@@ -3,7 +3,7 @@
 // EngineToRobot union in "messageEngineToRobot.clad"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace SwitchboardInterface {
 
 enum uint_8 ConnectionStatus
@@ -17,6 +17,7 @@ enum uint_8 ConnectionStatus
   UPDATING_OS,
   UPDATING_OS_ERROR,
   WAITING_FOR_APP,
+  SHOW_URL_FACE,
   END_PAIRING,
 
   COUNT
@@ -27,9 +28,30 @@ message SetConnectionStatus
   ConnectionStatus status
 }
 
+message SendBLEConnectionStatus
+{
+  bool connected,
+}
+
 message SetBLEPin
 {
   uint_32 pin
+}
+
+message WifiScanResponse
+{
+  uint_32 ssid_count,
+  uint_8  status_code
+}
+
+message WifiConnectResponse
+{
+  uint_8 status_code
+}
+
+message HasBleKeysResponse
+{
+  bool hasBleKeys
 }
 
 }

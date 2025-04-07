@@ -13,68 +13,254 @@
 #include <netdb.h> //hostent
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/wireless.h>
 #include <ifaddrs.h>
-#include "exec_command.h"
-#include "fileutils.h"
 #include "anki-ble/common/stringutils.h"
 #include "log.h"
 #include "wifi.h"
+#include "exec_command.h"
 
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
+#include <ctime>
+#include "util/logging/logging.h"
+#include "util/logging/DAS.h"
 
 namespace Anki {
+namespace Wifi {
+static GMutex connectMutex;
+static const char* const agentPath = "/tmp/vic_switchboard/connman_agent";
+static const char* WIFI_DEVICE = "wlan0";
+static GMainLoop* gLoop = nullptr;
 
-static int CalculateSignalLevel(const int strength, const int min, const int max, const int numLevels) {
-  if (strength < min) {
-    return 0;
-  } else if (strength >= max) {
-    return (numLevels - 1);
-  } else {
-    float inputRange = (max - min);
-    float outputRange = numLevels;
-    return (int)((float)(strength - min) * outputRange / inputRange);
+static gpointer ConnectionThread(gpointer data);
+static std::shared_ptr<TaskExecutor> sTaskExecutor;
+static Signal::Signal<void(bool, std::string)> sWifiChangedSignal;
+static Signal::Signal<void()> sWifiScanCompleteSignal;
+
+static std::time_t sLastWifiConnect_tm;
+static std::time_t sLastWifiDisconnect_tm;
+
+static void AgentCallback(GDBusConnection *connection,
+                      const gchar *sender,
+                      const gchar *object_path,
+                      const gchar *interface_name,
+                      const gchar *method_name,
+                      GVariant *parameters,
+                      GDBusMethodInvocation *invocation,
+                      gpointer user_data);
+
+GDBusInterfaceVTable agentVtable = {
+  .method_call = AgentCallback,
+};
+
+// Introspection data for the service we are exporting
+static const gchar introspection_xml[] =
+  "<node>"
+  "  <interface name='net.connman.Agent'>"
+  "    <method name='RequestInput'>"
+  "      <arg type='o' name='service' direction='in'/>"
+  "      <arg type='a{sv}' name='fields' direction='in'/>"
+  "      <arg type='a{sv}' name='input' direction='out'/>"
+  "    </method>"
+  "    <method name='ReportError'>"
+  "      <arg type='o' name='service' direction='in'/>"
+  "      <arg type='s' name='error' direction='in'/>"
+  "    </method>"
+  "  </interface>"
+  "</node>";
+
+Signal::Signal<void(bool, std::string)>& GetWifiChangedSignal() {
+  return sWifiChangedSignal;
+}
+
+Signal::Signal<void()>& GetWifiScanCompleteSignal() {
+  return sWifiScanCompleteSignal;
+}
+
+void OnTechnologyChanged (GDBusConnection *connection,
+                        const gchar *sender_name,
+                        const gchar *object_path,
+                        const gchar *interface_name,
+                        const gchar *signal_name,
+                        GVariant *parameters,
+                        gpointer user_data) {
+  GVariant* nameChild = g_variant_get_child_value(parameters, 0);
+  const char* propertyName = g_variant_get_string(nameChild, nullptr);
+  const char MAC_BYTES = 6;
+  const char MAC_MANUFAC_BYTES = 3;
+
+  g_variant_unref(nameChild);
+
+  if(!g_str_equal(propertyName, "Connected")) {
+    // Not the property we care about.
+    return;
   }
+
+  GVariant* valueChild = g_variant_get_child_value(parameters, 1);
+  bool connected = g_variant_get_boolean(g_variant_get_variant(valueChild));
+  double duration_s = 0;
+
+  std::time_t t = std::time(0);
+
+  if(connected) {
+    sLastWifiConnect_tm = t;
+  } else {
+    sLastWifiDisconnect_tm = t;
+  }
+
+  std::string connectionStatus = connected?"Connected.":"Disconnected.";
+
+  uint8_t apMac[MAC_BYTES];
+  bool hasMac = GetApMacAddress(apMac);
+
+  std::string apMacManufacturerBytes = "";
+
+  if(hasMac) {
+    // Strip ap MAC of last three bytes
+    for(int i = 0; i < MAC_MANUFAC_BYTES; i++) {
+      std::stringstream ss;
+      ss << std::setfill('0') << std::setw(2) << std::hex << (int)apMac[i];
+      apMacManufacturerBytes += ss.str();
+    }
+  }
+
+  sTaskExecutor->Wake([connected, apMacManufacturerBytes](){
+    sWifiChangedSignal.emit(connected, apMacManufacturerBytes);
+  });
+
+  Log::Write("WiFi connection status changed: [connected=%s / mac=%s]",
+    connected?"true":"false", apMacManufacturerBytes.c_str());
+
+  std::string event = connected?"wifi.connection":"wifi.disconnection";
+
+  duration_s = std::difftime(t, (connected? sLastWifiDisconnect_tm : sLastWifiConnect_tm));
+
+  DASMSG(wifi_connection_status, event,
+          "WiFi connection status changed.");
+  DASMSG_SET(i1, (int)duration_s, "Seconds from last connect/disconnect");
+  DASMSG_SET(s4, apMacManufacturerBytes, "AP MAC manufacturer bytes");
+  DASMSG_SEND();
+
+  if(connected) {
+    sLastWifiConnect_tm = t;
+  } else {
+    sLastWifiDisconnect_tm = t;
+  }
+
+  g_variant_unref(valueChild);
+}
+
+void Initialize(std::shared_ptr<TaskExecutor> taskExecutor) {
+  GError* error = nullptr;
+
+  static GThread *thread2 = g_thread_new("init_thread", ConnectionThread, nullptr);
+
+  if (thread2 == nullptr) {
+    Log::Write("couldn't spawn init thread");
+    return;
+  }
+
+  GDBusConnection* gdbusConn = g_bus_get_sync(G_BUS_TYPE_SYSTEM,
+                              nullptr,
+                              &error);
+
+  // Initialize wifi time trackers
+  std::time_t t = std::time(0);
+  sLastWifiConnect_tm = t;
+  sLastWifiDisconnect_tm = t;
+
+  guint handle = g_dbus_connection_signal_subscribe (gdbusConn,
+    "net.connman",
+    "net.connman.Technology",
+    "PropertyChanged",          //member
+    nullptr,                    //obj path
+    nullptr,                    //arg0
+    G_DBUS_SIGNAL_FLAGS_NONE,   //flags
+    OnTechnologyChanged,        //callback
+    nullptr,                    //user_data
+    nullptr);                   //DestroyNotify
+
+  (void)handle;
+
+  sTaskExecutor = taskExecutor;
+}
+
+void Deinitialize() {
+  // Exit our glib event listener thread so we don't
+  // have our AgentCallback and OnTechnologyChanged 
+  // methods called when we are dying.
+  if(gLoop) {
+    g_main_loop_quit(gLoop);
+  }
+
+  sTaskExecutor = nullptr;
+}
+
+void ScanCallback(GObject *source_object, GAsyncResult *result, gpointer user_data)
+{
+  sTaskExecutor->Wake([](){
+    sWifiScanCompleteSignal.emit();
+  });
 }
 
 WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) {
+  bool doScan = true;
+  return GetWiFiServices(results, doScan);
+}
+
+WifiScanErrorCode GetWiFiServices(std::vector<WiFiScanResult>& results, bool scan) {
   results.clear();
 
   bool disabledApMode = DisableAccessPointMode();
-  if(!disabledApMode) {
-    Log::Write("Not in access point mode or could not disable AccessPoint mode");
-  } else {
+  if(disabledApMode) {
     Log::Write("Disabled AccessPoint mode.");
   }
 
-  ConnManBusTechnology* tech_proxy;
-  GError* error;
+  GError* error = nullptr;
+  gboolean success;
 
-  error = nullptr;
-  tech_proxy = conn_man_bus_technology_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
-                                                              G_DBUS_PROXY_FLAGS_NONE,
-                                                              "net.connman",
-                                                              "/net/connman/technology/wifi",
-                                                              nullptr,
-                                                              &error);
-  if (error) {
-    loge("error getting proxy for net.connman /net/connman/technology/wifi");
-    return WifiScanErrorCode::ERROR_GETTING_PROXY;
-  }
-
-  gboolean success = conn_man_bus_technology_call_scan_sync(tech_proxy,
+  if(scan) {
+    ConnManBusTechnology* tech_proxy;
+    tech_proxy = conn_man_bus_technology_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+                                                            G_DBUS_PROXY_FLAGS_NONE,
+                                                            "net.connman",
+                                                            "/net/connman/technology/wifi",
                                                             nullptr,
                                                             &error);
-  g_object_unref(tech_proxy);
-  if (error) {
-    loge("error asking connman to scan for wifi access points");
-    return WifiScanErrorCode::ERROR_SCANNING;
-  }
+    if (error) {
+      loge("error getting proxy for net.connman /net/connman/technology/wifi");
+      DASMSG(connman_error, "connman.error.technology_proxy", "Connman error.");
+      DASMSG_SET(s1, DASMSG_ESCAPE(error->message), "Error message");
+      DASMSG_SEND();
 
-  if (!success) {
-    loge("connman failed to scan for wifi access points");
-    return WifiScanErrorCode::FAILED_SCANNING;
+      g_error_free(error);
+      return WifiScanErrorCode::ERROR_GETTING_PROXY;
+    }
+
+    success = conn_man_bus_technology_call_scan_sync(tech_proxy,
+                                                              nullptr,
+                                                              &error);
+    g_object_unref(tech_proxy);
+    if (error) {
+      loge("error asking connman to scan for wifi access points [%s]", error->message);
+      DASMSG(connman_error, "connman.error.call_scan", "Connman error.");
+      DASMSG_SET(s1, DASMSG_ESCAPE(error->message), "Error message");
+      DASMSG_SEND();
+
+      RecoverNetworkServices();
+
+      g_error_free(error);
+      return WifiScanErrorCode::ERROR_SCANNING;
+    }
+
+    if (!success) {
+      loge("connman failed to scan for wifi access points");
+      return WifiScanErrorCode::FAILED_SCANNING;
+    }
   }
 
   ConnManBusManager* manager_proxy;
@@ -86,6 +272,7 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
                                                               &error);
   if (error) {
     loge("error getting proxy for net.connman /");
+    g_error_free(error);
     return WifiScanErrorCode::ERROR_GETTING_MANAGER;
   }
 
@@ -108,10 +295,10 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
   // Get hidden flag
   std::string configSsid = "";
   std::string fieldString = "Hidden";
-  bool configIsHidden = GetConfigField(fieldString, configSsid) == "true";
+  bool configIsHidden = false;
 
   for (gsize i = 0 ; i < g_variant_n_children(services); i++) {
-    WiFiScanResult result{WiFiAuth::AUTH_NONE_OPEN, false, false, 0, "", false};
+    WiFiScanResult result{WiFiAuth::AUTH_NONE_OPEN, false, false, 0, "", false, false};
     GVariant* child = g_variant_get_child_value(services, i);
     GVariant* attrs = g_variant_get_child_value(child, 1);
     bool type_is_wifi = false;
@@ -130,6 +317,10 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
           type_is_wifi = true;
         } else {
           type_is_wifi = false;
+          g_variant_unref(attr);
+          g_variant_unref(key_v);
+          g_variant_unref(val_v);
+          g_variant_unref(val);
           break;
         }
       }
@@ -143,22 +334,27 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
           GVariant* ethernet_val = g_variant_get_variant(ethernet_val_v);
           const char* ethernet_key = g_variant_get_string(ethernet_key_v, nullptr);
           if (g_str_equal(ethernet_key, "Interface")) {
-            if (g_str_equal(g_variant_get_string(ethernet_val, nullptr), "wlan0")) {
+            if (g_str_equal(g_variant_get_string(ethernet_val, nullptr), WIFI_DEVICE)) {
               iface_is_wlan0 = true;
             } else {
               iface_is_wlan0 = false;
+              g_variant_unref(ethernet_attr);
+              g_variant_unref(ethernet_key_v);
+              g_variant_unref(ethernet_val_v);
+              g_variant_unref(ethernet_val);
               break;
             }
           }
+
+          g_variant_unref(ethernet_attr);
+          g_variant_unref(ethernet_key_v);
+          g_variant_unref(ethernet_val_v);
+          g_variant_unref(ethernet_val);
         }
       }
 
       if (g_str_equal(key, "Strength")) {
-        result.signal_level =
-            (uint8_t) CalculateSignalLevel((int) g_variant_get_byte(val),
-                                           0, // min
-                                           100, // max
-                                           4 /* number of levels */);
+        result.signal_level = (uint8_t)g_variant_get_byte(val);
       }
 
       if (g_str_equal(key, "Security")) {
@@ -184,9 +380,20 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
             result.auth = WiFiAuth::AUTH_WPA2_PSK;
             result.encrypted = true;
           }
+
+          g_variant_unref(security_val);
         }
       }
 
+      if (g_str_equal(key, "Favorite")) {
+        result.provisioned = g_variant_get_boolean(val);
+      }
+
+      // free
+      g_variant_unref(attr);
+      g_variant_unref(key_v);
+      g_variant_unref(val_v);
+      g_variant_unref(val);
     }
 
     if (type_is_wifi && iface_is_wlan0) {
@@ -198,83 +405,89 @@ WifiScanErrorCode ScanForWiFiAccessPoints(std::vector<WiFiScanResult>& results) 
 
       results.push_back(result);
     }
+
+    // free child and attrs
+    g_variant_unref(attrs);
+    g_variant_unref(child);
   }
+
+  // free services
+  g_variant_unref(services);
 
   return WifiScanErrorCode::SUCCESS;
 }
 
-std::vector<uint8_t> PackWiFiScanResults(const std::vector<WiFiScanResult>& results) {
-  std::vector<uint8_t> packed_results;
-  // Payload is (<auth><encrypted><wps><signal_level><ssid>\0)*
-  for (auto const& r : results) {
-    packed_results.push_back(r.auth);
-    packed_results.push_back(r.encrypted);
-    packed_results.push_back(r.wps);
-    packed_results.push_back(r.signal_level);
-    std::copy(r.ssid.begin(), r.ssid.end(), std::back_inserter(packed_results));
-    packed_results.push_back(0);
+void ScanForWiFiAccessPointsAsync() {
+  bool disabledApMode = DisableAccessPointMode();
+  if(disabledApMode) {
+    Log::Write("Disabled AccessPoint mode.");
   }
-  return packed_results;
+
+  ConnManBusTechnology* tech_proxy;
+  GError* error;
+
+  error = nullptr;
+  tech_proxy = conn_man_bus_technology_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+                                                              G_DBUS_PROXY_FLAGS_NONE,
+                                                              "net.connman",
+                                                              "/net/connman/technology/wifi",
+                                                              nullptr,
+                                                              &error);
+  if (error) {
+    loge("error getting proxy for net.connman /net/connman/technology/wifi");
+    g_error_free(error);
+    return;
+  }
+
+  conn_man_bus_technology_call_scan (tech_proxy,
+    nullptr,
+    ScanCallback,
+    nullptr);
 }
 
-void HandleOutputCallback(int rc, const std::string& output) {
+void HandleOutputCallback(int rc) {
   // noop
 }
 
-static gpointer connectionThread(gpointer data)
+static gpointer ConnectionThread(gpointer data)
 {
-  GMainLoop *loop = g_main_loop_new(NULL, true);
+  gLoop = g_main_loop_new(NULL, true);
 
-  if (!loop) {
+  if (!gLoop) {
       loge("error getting main loop");
       return nullptr;
   }
 
-  g_main_loop_run(loop);
-  g_main_loop_unref(loop);
+  g_main_loop_run(gLoop);
+  g_main_loop_unref(gLoop);
   return nullptr;
 }
 
-static GMutex connectMutex;
-
-void connectCallback(GObject *source_object, GAsyncResult *result, gpointer user_data)
+void ConnectCallback(GObject *source_object, GAsyncResult *result, gpointer user_data)
 {
-  struct ConnectAsyncData *connectData = (struct ConnectAsyncData *)user_data;
-
-  // sanity check
-  gpointer res_user_data = g_async_result_get_user_data(result);
-  if (res_user_data != user_data) {
-    loge("%s: res_user_data != user_data, bailing out", __func__);
-    return;
-  }
-
-  if (!g_cancellable_is_cancelled(connectData->cancellable)) {
-    conn_man_bus_service_call_connect_finish (connectData->service,
-                                              result,
-                                              &connectData->error);
-  }
-
   g_mutex_lock(&connectMutex);
-  connectData->completed = true;
-  g_cond_signal(connectData->cond);
+  struct ConnectInfo* data = (ConnectInfo*)user_data;
+
+  conn_man_bus_service_call_connect_finish(data->service,
+                                          result,
+                                          &data->error);
+
+  g_cond_signal(data->cond);
   g_mutex_unlock(&connectMutex);
 }
 
-static const char* const hiddenAgentPath = "/tmp/vic_switchboard/connman_agent";
-
-static void HiddenAPCallback(GDBusConnection *connection,
+static void AgentCallback(GDBusConnection *connection,
                       const gchar *sender,
                       const gchar *object_path,
                       const gchar *interface_name,
                       const gchar *method_name,
                       GVariant *parameters,
                       GDBusMethodInvocation *invocation,
-                      gpointer user_data)
-{
+                      gpointer user_data) {
   struct WPAConnectInfo *wpaConnectInfo = (struct WPAConnectInfo *)user_data;
 
-  if (strcmp(object_path, hiddenAgentPath)) {
-    return; //not us
+  if (strcmp(object_path, agentPath)) {
+    return; // not us
   }
 
   if (strcmp(interface_name, "net.connman.Agent")) {
@@ -303,6 +516,7 @@ static void HiddenAPCallback(GDBusConnection *connection,
       logi("%s: found 'Passphrase'", __func__);
       g_variant_builder_add(dict_builder, "{sv}", "Passphrase", g_variant_new_string(wpaConnectInfo->passphrase));
     }
+    
     g_variant_builder_close(dict_builder);
 
     GVariant *response = g_variant_builder_end(dict_builder);
@@ -310,34 +524,37 @@ static void HiddenAPCallback(GDBusConnection *connection,
 
     g_dbus_method_invocation_return_value(invocation, response);
   }
+
+  if (!strcmp(method_name, "ReportError")) {
+    gchar *obj;
+    gchar *err;
+
+    g_variant_get(parameters, "(os)", &obj, &err);
+
+    if (!strcmp(err, "invalid-key")) {
+      wpaConnectInfo->status = ConnectWifiResult::CONNECT_INVALIDKEY;
+      g_dbus_method_invocation_return_value(invocation, NULL);
+      return;
+    }
+
+    if(++wpaConnectInfo->retryCount < MAX_NUM_ATTEMPTS) {
+      Log::Write("Connection Error: Retrying");
+      g_dbus_method_invocation_return_dbus_error(invocation, "net.connman.Agent.Error.Retry", "");
+    }
+  }
 }
 
-GDBusInterfaceVTable hiddenAPVtable = {
-  .method_call = HiddenAPCallback,
-};
-
-/* Introspection data for the service we are exporting */
-static const gchar introspection_xml[] =
-  "<node>"
-  "  <interface name='net.connman.Agent'>"
-  "    <method name='RequestInput'>"
-  "      <arg type='o' name='service' direction='in'/>"
-  "      <arg type='a{sv}' name='fields' direction='in'/>"
-  "      <arg type='a{sv}' name='input' direction='out'/>"
-  "    </method>"
-  "  </interface>"
-  "</node>";
-
-bool RegisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
-{
+bool RegisterAgent(struct WPAConnectInfo *wpaConnectInfo) {
   GError *error = nullptr;
 
   GDBusConnection *gdbusConn = g_bus_get_sync(G_BUS_TYPE_SYSTEM,
                                               nullptr,
                                               &error);
 
-  static GDBusNodeInfo *introspection_data = g_dbus_node_info_new_for_xml (introspection_xml, NULL);
+  static GDBusNodeInfo *introspection_data = g_dbus_node_info_new_for_xml (introspection_xml, &error);
+
   if (!introspection_data) {
+    loge("error getting introspection data: %s", error->message);
     return false;
   }
 
@@ -355,9 +572,9 @@ bool RegisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
 
   guint agentId = 0;
   agentId = g_dbus_connection_register_object(gdbusConn,
-                                              hiddenAgentPath,
+                                              agentPath,
                                               introspection_data->interfaces[0],
-                                              &hiddenAPVtable,
+                                              &agentVtable,
                                               wpaConnectInfo,
                                               nullptr,
                                               &error);
@@ -367,7 +584,7 @@ bool RegisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
   }
 
   if (!conn_man_bus_manager_call_register_agent_sync(manager,
-                                                     hiddenAgentPath,
+                                                     agentPath,
                                                      nullptr,
                                                      &error)) {
     g_dbus_connection_unregister_object(gdbusConn, agentId);
@@ -378,11 +595,12 @@ bool RegisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
   wpaConnectInfo->agentId = agentId;
   wpaConnectInfo->connection = gdbusConn;
   wpaConnectInfo->manager = manager;
+  wpaConnectInfo->retryCount = 0;
+
   return true;
 }
 
-bool UnregisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
-{
+bool UnregisterAgent(struct WPAConnectInfo *wpaConnectInfo) {
   GError *error = nullptr;
 
   if (!wpaConnectInfo) {
@@ -390,47 +608,34 @@ bool UnregisterAgentHidden(struct WPAConnectInfo *wpaConnectInfo)
   }
 
   conn_man_bus_manager_call_unregister_agent_sync (wpaConnectInfo->manager,
-                                                   hiddenAgentPath,
+                                                   agentPath,
                                                    nullptr,
                                                    &error);
 
   if (error) {
+    g_error_free(error);
     return false;
   }
 
-  g_dbus_connection_unregister_object(wpaConnectInfo->connection,
+  bool unreg = g_dbus_connection_unregister_object(wpaConnectInfo->connection,
                                       wpaConnectInfo->agentId);
+
+  if(!unreg) {
+    loge("!!!! could not unregister object");
+  }
 
   g_object_unref(wpaConnectInfo->manager);
   g_object_unref(wpaConnectInfo->connection);
   return true;
 }
 
-bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidden, GAsyncReadyCallback cb, gpointer userData) {
-  ConnManBusTechnology* tech_proxy;
+bool RemoveWifiService(std::string ssid) {
   GError* error;
   bool success;
-
-  static GThread *thread = g_thread_new("connect", connectionThread, nullptr);
-
-  if (thread == nullptr) {
-    loge("couldn't spawn connection thread");
-    return false;
-  }
 
   std::string nameFromHex = hexStringToAsciiString(ssid);
 
   error = nullptr;
-  tech_proxy = conn_man_bus_technology_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
-                                                              G_DBUS_PROXY_FLAGS_NONE,
-                                                              "net.connman",
-                                                              "/net/connman/technology/wifi",
-                                                              nullptr,
-                                                              &error);
-  if (error) {
-    loge("error getting proxy for net.connman /net/connman/technology/wifi");
-    return false;
-  }
 
   ConnManBusManager* manager_proxy;
   manager_proxy = conn_man_bus_manager_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
@@ -441,6 +646,7 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
                                                               &error);
   if (error) {
     loge("error getting proxy for net.connman /");
+    g_error_free(error);
     return false;
   }
 
@@ -453,12 +659,174 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
   g_object_unref(manager_proxy);
   if (error) {
     loge("Error getting services from connman");
+    g_error_free(error);
     return false;
   }
 
   if (!success) {
     loge("connman failed to get list of services");
     return false;
+  }
+
+  GVariant* serviceVariant = nullptr;
+  bool foundService = false;
+
+  for (gsize i = 0 ; i < g_variant_n_children(services); i++) {
+    if(foundService) {
+      break;
+    }
+
+    GVariant* child = g_variant_get_child_value(services, i);
+    GVariant* attrs = g_variant_get_child_value(child, 1);
+
+    bool hasName = false;
+    bool matchedName = false;
+    bool matchedInterface = false;
+    bool matchedType = false;
+
+    for (gsize j = 0 ; j < g_variant_n_children(attrs); j++) {
+      GVariant* attr = g_variant_get_child_value(attrs, j);
+      GVariant* key_v = g_variant_get_child_value(attr, 0);
+      GVariant* val_v = g_variant_get_child_value(attr, 1);
+      GVariant* val = g_variant_get_variant(val_v);
+      const char* key = g_variant_get_string(key_v, nullptr);
+
+      if(g_str_equal(key, "Name")) {
+        if(std::string(g_variant_get_string(val, nullptr)) == nameFromHex) {
+          matchedName = true;
+        } else {
+          matchedName = false;
+        }
+        hasName = true;
+      }
+
+      if(g_str_equal(key, "Type")) {
+        if (g_str_equal(g_variant_get_string(val, nullptr), "wifi")) {
+          matchedType = true;
+        } else {
+          matchedType = false;
+        }
+      }
+
+      // Make sure this is for the wlan0 interface and not p2p0
+      if (g_str_equal(key, "Ethernet")) {
+        for (gsize k = 0 ; k < g_variant_n_children(val); k++) {
+          GVariant* ethernet_attr = g_variant_get_child_value(val, k);
+          GVariant* ethernet_key_v = g_variant_get_child_value(ethernet_attr, 0);
+          GVariant* ethernet_val_v = g_variant_get_child_value(ethernet_attr, 1);
+          GVariant* ethernet_val = g_variant_get_variant(ethernet_val_v);
+          const char* ethernet_key = g_variant_get_string(ethernet_key_v, nullptr);
+          if (g_str_equal(ethernet_key, "Interface")) {
+            if (g_str_equal(g_variant_get_string(ethernet_val, nullptr), WIFI_DEVICE)) {
+              matchedInterface = true;
+            } else {
+              matchedInterface = false;
+              g_variant_unref(ethernet_attr);
+              g_variant_unref(ethernet_key_v);
+              g_variant_unref(ethernet_val_v);
+              g_variant_unref(ethernet_val);
+              break;
+            }
+          }
+
+          g_variant_unref(ethernet_attr);
+          g_variant_unref(ethernet_key_v);
+          g_variant_unref(ethernet_val_v);
+          g_variant_unref(ethernet_val);
+        }
+      }
+
+      g_variant_unref(attr);
+      g_variant_unref(key_v);
+      g_variant_unref(val_v);
+      g_variant_unref(val);
+    }
+
+    if(matchedName && matchedInterface && matchedType) {
+      // this is our service
+      serviceVariant = child;
+      foundService = true;
+    }
+
+    g_variant_unref(attrs);
+    if(child != serviceVariant) {
+      g_variant_unref(child);
+    }
+  }
+
+  if(!foundService) {
+    loge("Could not find service...");
+    g_variant_unref(services);
+    return false;
+  }
+
+  std::string servicePath = GetObjectPathForService(serviceVariant);
+  Log::Write("Removing %s.", servicePath.c_str());
+
+  // Get the ConnManBusService for our object path
+  Log::Write("Service path: %s", servicePath.c_str());
+  ConnManBusService* service = GetServiceForPath(servicePath);
+  if(service == nullptr) {
+    g_variant_unref(services);
+    g_variant_unref(serviceVariant);
+    return false;
+  }
+
+  success = conn_man_bus_service_call_remove_sync(
+    service,
+    nullptr,
+    &error);
+
+  g_object_unref(service);
+  g_variant_unref(services);
+  g_variant_unref(serviceVariant);
+
+  return success && !error;
+}
+
+ConnectWifiResult ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidden, GAsyncReadyCallback cb, gpointer userData) {
+  GError* error;
+  bool success;
+
+  std::string nameFromHex = hexStringToAsciiString(ssid);
+
+  error = nullptr;
+
+  if (error) {
+    loge("error getting proxy for net.connman /net/connman/technology/wifi");
+    g_error_free(error);
+    return ConnectWifiResult::CONNECT_FAILURE;
+  }
+
+  ConnManBusManager* manager_proxy;
+  manager_proxy = conn_man_bus_manager_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+                                                              G_DBUS_PROXY_FLAGS_NONE,
+                                                              "net.connman",
+                                                              "/",
+                                                              nullptr,
+                                                              &error);
+  if (error) {
+    loge("error getting proxy for net.connman /");
+    g_error_free(error);
+    return ConnectWifiResult::CONNECT_FAILURE;
+  }
+
+  GVariant* services = nullptr;
+  success = conn_man_bus_manager_call_get_services_sync(manager_proxy,
+                                                        &services,
+                                                        nullptr,
+                                                        &error);
+
+  g_object_unref(manager_proxy);
+  if (error) {
+    loge("Error getting services from connman");
+    g_error_free(error);
+    return ConnectWifiResult::CONNECT_FAILURE;
+  }
+
+  if (!success) {
+    loge("connman failed to get list of services");
+    return ConnectWifiResult::CONNECT_FAILURE;
   }
 
   GVariant* serviceVariant = nullptr;
@@ -516,9 +884,18 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
               matchedInterface = true;
             } else {
               matchedInterface = false;
+              g_variant_unref(ethernet_attr);
+              g_variant_unref(ethernet_key_v);
+              g_variant_unref(ethernet_val_v);
+              g_variant_unref(ethernet_val);
               break;
             }
           }
+
+          g_variant_unref(ethernet_attr);
+          g_variant_unref(ethernet_key_v);
+          g_variant_unref(ethernet_val_v);
+          g_variant_unref(ethernet_val);
         }
       }
 
@@ -529,6 +906,11 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
           serviceOnline = true;
         }
       }
+
+      g_variant_unref(attr);
+      g_variant_unref(key_v);
+      g_variant_unref(val_v);
+      g_variant_unref(val);
     }
 
     if(matchedName && matchedInterface && matchedType) {
@@ -538,21 +920,27 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
 
       if(serviceOnline) {
         // early out--we are already connected!
-        return true;
+        return ConnectWifiResult::CONNECT_SUCCESS;
       }
     } else if(hidden && !hasName) {
       serviceVariant = child;
       foundService = true;
     }
+
+    g_variant_unref(attrs);
+    if(child != serviceVariant && child != currentServiceVariant) {
+      g_variant_unref(child);
+    }
   }
 
   if(!foundService) {
     loge("Could not find service...");
-    return false;
+    g_variant_unref(services);
+    if(currentServiceVariant != nullptr) {
+      g_variant_unref(currentServiceVariant);
+    }
+    return ConnectWifiResult::CONNECT_FAILURE;
   }
-
-  // Set config
-  SetWiFiConfig(ssid, pw, (WiFiAuth)auth, hidden);
 
   std::string servicePath = GetObjectPathForService(serviceVariant);
   Log::Write("Initiating connection to %s.", servicePath.c_str());
@@ -567,41 +955,78 @@ bool ConnectWiFiBySsid(std::string ssid, std::string pw, uint8_t auth, bool hidd
     if(disconnected) {
       Log::Write("Disconnected from %s.", currentOPath.c_str());
     }
+
+    g_object_unref(currentService);
+    g_variant_unref(currentServiceVariant);
   }
 
   // Get the ConnManBusService for our object path
   Log::Write("Service path: %s", servicePath.c_str());
   ConnManBusService* service = GetServiceForPath(servicePath);
   if(service == nullptr) {
-    return false;
+    g_variant_unref(services);
+    g_variant_unref(serviceVariant);
+    return ConnectWifiResult::CONNECT_FAILURE;
   }
 
   WPAConnectInfo connectInfo = {};
   bool agent_registered = false;
-  if(hidden) {
-    connectInfo.name = nameFromHex.c_str();
-    connectInfo.passphrase = pw.c_str();
 
-    agent_registered = RegisterAgentHidden(&connectInfo);
-    if (!agent_registered) {
-      loge("could not register agent, bailing out");
-      return false;
-    }
+  // Register agent
+  connectInfo.name = nameFromHex.c_str();
+  connectInfo.passphrase = pw.c_str();
+  connectInfo.status = ConnectWifiResult::CONNECT_NONE;
+
+  agent_registered = RegisterAgent(&connectInfo);
+  if (!agent_registered) {
+    loge("could not register agent, bailing out");
+    g_variant_unref(services);
+    g_variant_unref(serviceVariant);
+    g_object_unref(service);
+    return ConnectWifiResult::CONNECT_FAILURE;
   }
 
-  // Try to connect to our service
-  bool connect = ConnectToWifiService(service);
+  ConnectWifiResult connectStatus = ConnectToWifiService(service);
 
-  if (!connect) {
-    Log::Write("Retry connecting one more time");
-    connect = ConnectToWifiService(service);
+  if(connectInfo.status != ConnectWifiResult::CONNECT_NONE) {
+    // If we set the status in the agent callback, use it
+    // (it is probably the invalid key error)
+    connectStatus = connectInfo.status;
   }
+
+  std::string statusString = "failure";
+  std::string errorString = "None";
+
+  switch(connectStatus) {
+    case ConnectWifiResult::CONNECT_SUCCESS:
+      statusString = "success";
+      break;
+    case ConnectWifiResult::CONNECT_INVALIDKEY:
+      errorString = "invalid password";
+      break;
+    default:
+      statusString = "failure";
+      errorString = "unknown";
+      break;
+  }
+
+  DASMSG(wifi_connection_status, "wifi.manual_connect_attempt",
+          "WiFi connection attempt.");
+  DASMSG_SET(s1, statusString, "Connection attempt result");
+  DASMSG_SET(s2, errorString, "Error reason");
+  DASMSG_SET(s3, hidden?"hidden":"visible", "SSID broadcast");
+  DASMSG_SEND();
 
   if (agent_registered) {
     Log::Write("unregistering agent");
-    UnregisterAgentHidden(&connectInfo);
+    UnregisterAgent(&connectInfo);
   }
-  return connect;
+
+  g_variant_unref(services);
+  g_variant_unref(serviceVariant);
+  g_object_unref(service);
+
+  return connectStatus;
 }
 
 ConnManBusService* GetServiceForPath(std::string objectPath) {
@@ -618,74 +1043,62 @@ ConnManBusService* GetServiceForPath(std::string objectPath) {
     Log::Write("Could not find service for object path: %s", objectPath.c_str());
   }
 
+  if(error) {
+    g_error_free(error);
+  }
+
   return service;
 }
 
-bool ConnectToWifiService(ConnManBusService* service) {
+ConnectWifiResult ConnectToWifiService(ConnManBusService* service) {
 
   if(service == nullptr) {
-    return false;
+    return ConnectWifiResult::CONNECT_FAILURE;
   }
 
   GCond connectCond;
   g_cond_init(&connectCond);
-
   g_mutex_lock(&connectMutex);
 
-  struct ConnectAsyncData connAsyncData;
+  struct ConnectInfo data;
 
-  connAsyncData.completed = false;
-  connAsyncData.error = nullptr;
-  connAsyncData.cond = &connectCond;
-  connAsyncData.service = service;
-  connAsyncData.cancellable = g_cancellable_new();
-  if (connAsyncData.cancellable == nullptr) {
-    loge("%s: out of memory", __func__);
-    return false;
-  }
-  conn_man_bus_service_call_connect (service,
-                                     connAsyncData.cancellable,
-                                     connectCallback,
-                                     (gpointer)&connAsyncData);
+  data.error = nullptr;
+  data.cond = &connectCond;
+  data.service = service;
 
-  gint64 end_time = g_get_monotonic_time () + 10 * G_TIME_SPAN_SECOND;
-  bool timedOut = false;
-  while (!connAsyncData.completed) {
-    timedOut = !g_cond_wait_until(&connectCond, &connectMutex, end_time);
-    if (timedOut) {
-      g_cancellable_cancel(connAsyncData.cancellable);
-      g_cond_wait(&connectCond, &connectMutex);
-      break;
-    }
-  }
+  conn_man_bus_service_call_connect (
+    service,
+    nullptr,
+    ConnectCallback,
+    (gpointer)&data);
+
+  g_cond_wait(&connectCond, &connectMutex);
   g_mutex_unlock(&connectMutex);
 
-  bool didConnect = !timedOut && connAsyncData.error == nullptr;
-  if(!didConnect) {
-    Log::Write("Error connecting to wifi: %s",
-               timedOut ?
-               "timed out waiting on conditional" : connAsyncData.error->message);
+  if(data.error != nullptr) {
+    DASMSG(connman_error, "connman.error.connect", "Connman error.");
+      DASMSG_SET(s1, DASMSG_ESCAPE(data.error->message), "Error message");
+      DASMSG_SEND();
+    Log::Write("Connect error: %s", data.error->message);
   }
-  g_object_unref(connAsyncData.cancellable);
-  return didConnect;
+
+  return (data.error == nullptr)? ConnectWifiResult::CONNECT_SUCCESS:
+    ConnectWifiResult::CONNECT_FAILURE;
 }
 
 bool DisconnectFromWifiService(ConnManBusService* service) {
   if(service == nullptr) {
     return false;
   }
-  
-  GError* error = nullptr;
-  return conn_man_bus_service_call_disconnect_sync (service, nullptr, &error);
-}
 
-void EnableWiFiInterface(const bool enable, ExecCommandCallback callback) {
-  if (enable) {
-    ExecCommandInBackground({"connmanctl", "enable", "wifi"}, callback);
-  } else {
-    ExecCommandInBackground({"connmanctl", "disable", "wifi"}, callback);
-    ExecCommandInBackground({"ifconfig", "wlan0"}, callback);
+  GError* error = nullptr;
+  bool success = conn_man_bus_service_call_disconnect_sync (service, nullptr, &error);
+
+  if(error) {
+    g_error_free(error);
   }
+
+  return success;
 }
 
 std::string GetObjectPathForService(GVariant* service) {
@@ -706,112 +1119,6 @@ std::string GetObjectPathForService(GVariant* service) {
   return std::string(objectPath);
 }
 
-static std::string GetPathToWiFiConfigFile()
-{
-  return "/data/lib/connman/wifi.config";
-}
-
-std::map<std::string, std::string> UnPackWiFiConfig(const std::vector<uint8_t>& packed) {
-  std::map<std::string, std::string> networks;
-  // The payload is (<SSID>\0<PSK>\0)*
-  for (auto it = packed.begin(); it != packed.end(); ) {
-    auto terminator = std::find(it, packed.end(), 0);
-    if (terminator == packed.end()) {
-      break;
-    }
-    std::string ssid(it, terminator);
-    it = terminator + 1;
-    terminator = std::find(it, packed.end(), 0);
-    if (terminator == packed.end()) {
-      break;
-    }
-    std::string psk(it, terminator);
-    networks.emplace(ssid, psk);
-    it = terminator + 1;
-  }
-  return networks;
-}
-
-void SetWiFiConfig(std::string ssid, std::string password, WiFiAuth auth, bool isHidden) {
-  std::vector<WiFiConfig> networks;
-  WiFiConfig config;
-  config.auth = auth;
-  config.hidden = isHidden;
-  config.ssid = ssid;
-  config.passphrase = password;
-
-  networks.push_back(config);
-  SetWiFiConfig(networks, HandleOutputCallback);
-}
-
-void SetWiFiConfig(const std::vector<WiFiConfig>& networks, ExecCommandCallback callback) {
-  std::ostringstream wifiConfigStream;
-
-  int count = 0;
-  for (auto const& config : networks) {
-    if (count > 0) {
-      wifiConfigStream << std::endl;
-    }
-    // Exclude networks with ssids that are not in hex format
-    if (!IsHexString(config.ssid)) {
-      loge("SetWiFiConfig. '%s' is NOT a hexadecimal string.", config.ssid.c_str());
-      continue;
-    }
-    // Exclude networks with unsupported auth types
-    if ((config.auth != WiFiAuth::AUTH_NONE_OPEN)
-        && (config.auth != WiFiAuth::AUTH_NONE_WEP)
-        && (config.auth != WiFiAuth::AUTH_NONE_WEP_SHARED)
-        && (config.auth != WiFiAuth::AUTH_WPA_PSK)
-        && (config.auth != WiFiAuth::AUTH_WPA2_PSK)) {
-      loge("SetWiFiConfig. Unsupported auth type : %d for '%s'",
-           config.auth,
-           hexStringToAsciiString(config.ssid).c_str());
-      continue;
-    }
-
-    std::string security;
-    switch (config.auth) {
-      case WiFiAuth::AUTH_NONE_WEP:
-        /* fall through */
-      case WiFiAuth::AUTH_NONE_WEP_SHARED:
-        security = "wep";
-        break;
-      case WiFiAuth::AUTH_WPA_PSK:
-        /* fall through */
-      case WiFiAuth::AUTH_WPA2_PSK:
-        security = "psk";
-        break;
-      case WiFiAuth::AUTH_NONE_OPEN:
-        /* fall through */
-      default:
-        security = "none";
-        break;
-    }
-
-    std::string hidden(config.hidden ? "true" : "false");
-    wifiConfigStream << "[service_wifi_" << count++ << "]" << std::endl
-                     << "Type = wifi" << std::endl
-                     << "IPv4 = dhcp" << std::endl
-                     << "IPv6 = auto" << std::endl
-                     << "SSID=" << config.ssid << std::endl
-                     << "Security=" << security << std::endl
-                     << "Hidden=" << hidden << std::endl;
-    if (!config.passphrase.empty()) {
-      wifiConfigStream << "Passphrase=" << config.passphrase << std::endl;
-    }
-  }
-
-  int rc = WriteFileAtomically(GetPathToWiFiConfigFile(), wifiConfigStream.str());
-
-  if (rc) {
-    std::string error = "Failed to write wifi config. rc = " + std::to_string(rc);
-    callback(rc, "Failed to write wifi config.");
-    return;
-  }
-
-  ExecCommandInBackground({"connmanctl", "enable", "wifi"}, callback);
-}
-
 WiFiState GetWiFiState() {
   // Return WiFiState object
   WiFiState wifiState;
@@ -829,6 +1136,7 @@ WiFiState GetWiFiState() {
                                                               &error);
   if (error) {
     loge("error getting proxy for net.connman /");
+    g_error_free(error);
     return wifiState;
   }
 
@@ -840,6 +1148,7 @@ WiFiState GetWiFiState() {
   g_object_unref(manager_proxy);
   if (error) {
     loge("Error getting services from connman");
+    g_error_free(error);
     return wifiState;
   }
 
@@ -866,6 +1175,10 @@ WiFiState GetWiFiState() {
       // Make sure this is a wifi service and not something else
       if (g_str_equal(key, "Type")) {
         if (!g_str_equal(g_variant_get_string(val, nullptr), "wifi")) {
+          g_variant_unref(attr);
+          g_variant_unref(key_v);
+          g_variant_unref(val_v);
+          g_variant_unref(val);
           break;
         }
       }
@@ -879,11 +1192,21 @@ WiFiState GetWiFiState() {
           GVariant* ethernet_val = g_variant_get_variant(ethernet_val_v);
           const char* ethernet_key = g_variant_get_string(ethernet_key_v, nullptr);
           if (g_str_equal(ethernet_key, "Interface")) {
-            if (!g_str_equal(g_variant_get_string(ethernet_val, nullptr), "wlan0")) {
+            if (!g_str_equal(g_variant_get_string(ethernet_val, nullptr), WIFI_DEVICE)) {
               isAssociated = false;
+
+              g_variant_unref(ethernet_attr);
+              g_variant_unref(ethernet_key_v);
+              g_variant_unref(ethernet_val_v);
+              g_variant_unref(ethernet_val);
               break;
             }
           }
+
+          g_variant_unref(ethernet_attr);
+          g_variant_unref(ethernet_key_v);
+          g_variant_unref(ethernet_val_v);
+          g_variant_unref(ethernet_val);
         }
       }
 
@@ -900,14 +1223,26 @@ WiFiState GetWiFiState() {
           connState = WiFiConnState::ONLINE;
         }
       }
+
+      g_variant_unref(attr);
+      g_variant_unref(key_v);
+      g_variant_unref(val_v);
+      g_variant_unref(val);
     }
 
     if(isAssociated) {
       wifiState.ssid = connectedSsid;
       wifiState.connState = connState;
+      g_variant_unref(attrs);
+      g_variant_unref(child);
       break;
     }
+
+    g_variant_unref(attrs);
+    g_variant_unref(child);
   }
+
+  g_variant_unref(services);
 
   return wifiState;
 }
@@ -975,7 +1310,7 @@ bool CanConnectToHostName(char* hostName) {
   }
 
   close(sockfd);
-  
+
   // success, return true!
   return true;
 }
@@ -1016,6 +1351,7 @@ bool IsAccessPointMode() {
                                                               &error);
 
   if(error != nullptr) {
+    g_error_free(error);
     return false;
   }
 
@@ -1025,7 +1361,14 @@ bool IsAccessPointMode() {
     nullptr,
     &error);
 
-  if(error != nullptr || !success) {
+  if(error != nullptr) {
+    g_error_free(error);
+    return false;
+  }
+
+  g_object_unref(tech_proxy);
+
+  if(!success) {
     return false;
   }
 
@@ -1036,12 +1379,21 @@ bool IsAccessPointMode() {
     GVariant* val = g_variant_get_variant(val_v);
     const char* key = g_variant_get_string(key_v, nullptr);
 
+    g_variant_unref(attr);
+    g_variant_unref(key_v);
+    g_variant_unref(val_v);
+    g_variant_unref(val);
+
     // Make sure this is a wifi service and not something else
     if (g_str_equal(key, "Tethering")) {
-      return (bool)g_variant_get_boolean(val);
+      bool valBool = (bool)g_variant_get_boolean(val);
+      g_variant_unref(properties);
+      return valBool;
     }
+
   }
 
+  g_variant_unref(properties);
   return false;
 }
 
@@ -1066,6 +1418,7 @@ bool EnableAccessPointMode(std::string ssid, std::string pw) {
                                                               &error);
 
   if(error != nullptr) {
+    g_error_free(error);
     return false;
   }
 
@@ -1077,6 +1430,8 @@ bool EnableAccessPointMode(std::string ssid, std::string pw) {
     &error);
 
   if(error != nullptr) {
+    g_error_free(error);
+    g_object_unref(tech_proxy);
     return false;
   }
 
@@ -1088,6 +1443,8 @@ bool EnableAccessPointMode(std::string ssid, std::string pw) {
     &error);
 
   if(error != nullptr) {
+    g_error_free(error);
+    g_object_unref(tech_proxy);
     return false;
   }
 
@@ -1099,8 +1456,12 @@ bool EnableAccessPointMode(std::string ssid, std::string pw) {
     &error);
 
   if(error != nullptr) {
+    g_error_free(error);
+    g_object_unref(tech_proxy);
     return false;
   }
+
+  g_object_unref(tech_proxy);
 
   return true;
 }
@@ -1120,6 +1481,7 @@ bool DisableAccessPointMode() {
                                                               &error);
 
   if(error != nullptr) {
+    g_error_free(error);
     return false;
   }
 
@@ -1130,11 +1492,68 @@ bool DisableAccessPointMode() {
     nullptr,
     &error);
 
+  g_object_unref(tech_proxy);
+
   if(error != nullptr) {
+    g_error_free(error);
     return false;
   }
 
   return true;
+}
+
+void RecoverNetworkServices() {
+  DASMSG(recover_network_services, "wifi.recover_network_services", "Attempt to recover network services");
+    DASMSG_SEND();
+
+  ExecCommandInBackground({"sudo", "/bin/systemctl", "restart", "wpa_supplicant", "connman" }, nullptr);
+}
+
+void WpaSupplicantScan() {
+  // Perform a wifi scan talking to Wpa Supplicant directly
+  GDBusConnection *gdbusConn = g_bus_get_sync(G_BUS_TYPE_SYSTEM,
+                                                nullptr,
+                                                nullptr);
+
+  FiW1Wpa_supplicant1* wpa_sup = fi_w1_wpa_supplicant1_proxy_new_sync (
+      gdbusConn,
+      G_DBUS_PROXY_FLAGS_NONE,
+      "fi.w1.wpa_supplicant1",
+      "/fi/w1/wpa_supplicant1",
+      nullptr,
+      nullptr);
+
+  gchar* interface_path;
+  gboolean success = fi_w1_wpa_supplicant1_call_get_interface_sync (
+      wpa_sup,
+      "wlan0",
+      &interface_path,
+      nullptr,
+      nullptr);
+
+  FiW1Wpa_supplicant1Outerface* interfacePath = fi_w1_wpa_supplicant1_outerface_proxy_new_sync(
+    gdbusConn,
+    G_DBUS_PROXY_FLAGS_NONE,
+    "fi.w1.wpa_supplicant1",
+    interface_path,
+    nullptr,
+    nullptr);
+
+  GVariantBuilder *b;
+  GVariant *dict;
+
+  b = g_variant_builder_new (G_VARIANT_TYPE ("a{sv}"));
+  g_variant_builder_add (b, "{sv}", "Type", g_variant_new_string ("passive"));
+  g_variant_builder_add (b, "{sv}", "AllowRoam", g_variant_new_boolean (false));
+  dict = g_variant_builder_end (b);
+
+  gboolean scanSuccess = fi_w1_wpa_supplicant1_outerface_call_scan_sync (
+    interfacePath,
+    dict,
+    nullptr,
+    nullptr);
+
+  Log::Write("Dbus-WpaSupplicant interface path [%d][%d][%s]", (int)scanSuccess, (int)success, interface_path);
 }
 
 WiFiIpFlags GetIpAddress(uint8_t* ipv4_32bits, uint8_t* ipv6_128bits) {
@@ -1151,7 +1570,7 @@ WiFiIpFlags GetIpAddress(uint8_t* ipv4_32bits, uint8_t* ipv6_128bits) {
   memset(ipv4_32bits, 0, 4);
   memset(ipv6_128bits, 0, 16);
 
-  const char* interface = IsAccessPointMode()? "tether" : "wlan0";
+  const char* interface = IsAccessPointMode()? "tether" : WIFI_DEVICE;
 
   while(current != nullptr) {
     int family = current->ifa_addr->sa_family;
@@ -1179,44 +1598,38 @@ WiFiIpFlags GetIpAddress(uint8_t* ipv4_32bits, uint8_t* ipv6_128bits) {
   return wifiFlags;
 }
 
-std::string GetConfigField(std::string& field, std::string& outSsid) {
-  // This method returns the value of given 'field' (and sets SSID) in 'outSsid'
-  // Currently this method assumes that there is only one wifi network in the config.
+bool GetApMacAddress(uint8_t* mac_48bits) {
+  // Get IPv4 driver socket fd
+  int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  const int MAC_SIZE = 6;
 
-  std::vector<uint8_t> bytes;
-  bool readSuccess = ReadFileIntoVector(GetPathToWiFiConfigFile(), bytes);
-
-  if(!readSuccess) {
-    // If we can't read file, return empty string
-    return "";
+  if(sockfd == -1) {
+    Log::Write("Can't connect to socket");
+    return false;
   }
 
-  std::string fileContents(reinterpret_cast<char const*>(bytes.data()), bytes.size());
+  // iwreq struct comes from linux/wireless.h
+  struct iwreq data;
 
-  std::string configField = "";
+  // the iwreq struct must be populated with
+  // the device name before making ioctl request
+  strncpy(data.ifr_name, WIFI_DEVICE, IFNAMSIZ);
 
-  std::string line;
-  std::stringstream ss(fileContents);
-  const std::string delim = "=";
-  const std::string ssid = "SSID";
+  // make ioctl request for AP mac address
+  int req = ioctl(sockfd, SIOCGIWAP, &data);
 
-  while(std::getline(ss, line, '\n')) {
-    size_t index = line.find(delim);
-
-    if(index == std::string::npos) {
-      continue;
-    }
-
-    std::string fieldName = line.substr(0, index);
-
-    if(fieldName == field) {
-      configField = line.substr(index + 1);
-    } else if(fieldName == ssid) {
-      outSsid = line.substr(index + 1);
-    }
+  if(req == -1) {
+    Log::Write("ioctl request for AP MAC addr failed: %d", errno);
+    close(sockfd);
+    return false;
   }
 
-  return configField;
+  // Copy mac address to given pointer
+  memcpy(mac_48bits, &(data.u.ap_addr.sa_data), MAC_SIZE);
+
+  close(sockfd);
+  return true;
 }
 
-} // namespace Anki
+} // Wifi
+} // Anki

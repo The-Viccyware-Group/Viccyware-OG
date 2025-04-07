@@ -1,8 +1,8 @@
 /**
  * File: BehaviorDisplayWeather.cpp
  *
- * Author: Kevin M. Karol
- * Created: 2018-04-25
+ * Author: Kevin M. Karol refactored by Sam Russell
+ * Created: 2018-04-25 refactor 2019-4-12
  *
  * Description: Displays weather information by compositing temperature information and weather conditions returned from the cloud
  *
@@ -13,69 +13,96 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/weather/behaviorDisplayWeather.h"
 
+#include "clad/audio/audioSwitchTypes.h"
+#include "clad/types/featureGateTypes.h"
+
+#include "engine/actions/animActions.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
-#include "engine/aiComponent/behaviorComponent/behaviors/animationWrappers/behaviorTextToSpeechLoop.h"
+#include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/userIntentComponent.h"
 #include "engine/aiComponent/behaviorComponent/userIntentData.h"
-#include "engine/aiComponent/behaviorComponent/weatherIntentParser.h"
+#include "engine/aiComponent/behaviorComponent/weatherIntents/weatherIntentParser.h"
 #include "engine/components/animationComponent.h"
 #include "engine/components/dataAccessorComponent.h"
+#include "engine/components/localeComponent.h"
+#include "engine/components/textToSpeech/textToSpeechCoordinator.h"
 
-#include "cannedAnimLib/cannedAnims/cannedAnimationContainer.h"
-#include "cannedAnimLib/proceduralFace/proceduralFace.h"
 #include "coretech/common/engine/utils/timer.h"
-#include "coretech/vision/shared/compositeImage/compositeImage.h"
 
-#include "clad/types/behaviorComponent/userIntent.h"
+
+
+#define LOG_CHANNEL "Behaviors"
 
 namespace Anki {
-namespace Cozmo {
-  
-namespace{
-const char* kImageLayoutListKey = "imageLayouts";
-const char* kImageMapListKey    = "imageMaps";
+namespace Vector {
+
+namespace {
 const char* kAnimationNameKey   = "animationName";
 
-// staticly defined for now - can be moved into JSON easily if
-// we need to support different asset designs
-const std::vector<Vision::SpriteName> kTemperatureAssets = {
-  Vision::SpriteName::Weather_Temp_0,
-  Vision::SpriteName::Weather_Temp_1,
-  Vision::SpriteName::Weather_Temp_2,
-  Vision::SpriteName::Weather_Temp_3,
-  Vision::SpriteName::Weather_Temp_4,
-  Vision::SpriteName::Weather_Temp_5,
-  Vision::SpriteName::Weather_Temp_6,
-  Vision::SpriteName::Weather_Temp_7,
-  Vision::SpriteName::Weather_Temp_8,
-  Vision::SpriteName::Weather_Temp_9,
-};
-// Positive temperature layouts
-const std::vector<Vision::CompositeImageLayout> kPosTemperatureLayouts  = {
-  Vision::CompositeImageLayout::TemperatureSingleDig,
-  Vision::CompositeImageLayout::TemperatureDoubleDig,
-  Vision::CompositeImageLayout::TemperatureTripleDig
-};
-// Negative temperature layouts
-const std::vector<Vision::CompositeImageLayout> kNegTemperatureLayouts  = {
-  Vision::CompositeImageLayout::TemperatureNegSingleDig,
-  Vision::CompositeImageLayout::TemperatureNegDoubleDig,
-  Vision::CompositeImageLayout::TemperatureNegTripleDig
+const Vision::SpritePathMap::AssetID kFahrenheitIndicatorSpriteID =
+  Vision::SpritePathMap::GetAssetID("weather_fahrenheit_indicator");
+const Vision::SpritePathMap::AssetID kCelsiusIndicatorSpriteID =
+  Vision::SpritePathMap::GetAssetID("weather_celsius_indicator");
+const Vision::SpritePathMap::AssetID kNegativeTempIndicatorSpriteID =
+   Vision::SpritePathMap::GetAssetID("weather_negative_indicator");
+
+const std::vector<Vision::SpritePathMap::AssetID> kTemperatureAssets = {
+  Vision::SpritePathMap::GetAssetID("weather_temp_0"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_1"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_2"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_3"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_4"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_5"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_6"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_7"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_8"),
+  Vision::SpritePathMap::GetAssetID("weather_temp_9"),
 };
 
-}
+enum class DigitType : uint8_t {
+  NegativeSymbol,
+  Hundreds,
+  Tens,
+  Ones,
+  DegreeSymbol
+};
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-BehaviorDisplayWeather::InstanceConfig::InstanceConfig(const Json::Value& layoutConfig,
-                                                       const Json::Value& mapConfig)
-: compLayoutConfig(layoutConfig)
-, compMapConfig(mapConfig)
-{
+const Vision::SpriteBoxName kDigitSpriteBoxes [] {
+  Vision::SpriteBoxName::SpriteBox_1,
+  Vision::SpriteBoxName::SpriteBox_2,
+  Vision::SpriteBoxName::SpriteBox_3,
+  Vision::SpriteBoxName::SpriteBox_4,
+  Vision::SpriteBoxName::SpriteBox_5
+};
+using DigitMap = std::unordered_map<DigitType, Vision::SpriteBoxName>;
+const DigitMap kSingleDigitMap = {
+  {DigitType::NegativeSymbol, kDigitSpriteBoxes[1]},
+  {DigitType::Ones, kDigitSpriteBoxes[2]},
+  {DigitType::DegreeSymbol, kDigitSpriteBoxes[3]}
+};
+const DigitMap kDoubleDigitMap = {
+  {DigitType::NegativeSymbol, kDigitSpriteBoxes[0]},
+  {DigitType::Tens, kDigitSpriteBoxes[1]},
+  {DigitType::Ones, kDigitSpriteBoxes[2]},
+  {DigitType::DegreeSymbol, kDigitSpriteBoxes[3]}
+};
+const DigitMap kTripleDigitMap = {
+  {DigitType::NegativeSymbol, kDigitSpriteBoxes[0]},
+  {DigitType::Hundreds, kDigitSpriteBoxes[1]},
+  {DigitType::Tens, kDigitSpriteBoxes[2]},
+  {DigitType::Ones, kDigitSpriteBoxes[3]},
+  {DigitType::DegreeSymbol, kDigitSpriteBoxes[4]}
+};
+
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorDisplayWeather::DynamicVariables::DynamicVariables()
 {
+  currentIntent = nullptr;
+  utteranceID = kInvalidUtteranceID;
+  utteranceState = UtteranceState::Invalid;
+  playingWeatherResponse = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -83,16 +110,8 @@ BehaviorDisplayWeather::BehaviorDisplayWeather(const Json::Value& config)
 : ICozmoBehavior(config)
 {
   AddWaitForUserIntent(USER_INTENT(weather_response));
-  
-  if(config.isMember(kImageLayoutListKey) && config.isMember(kImageMapListKey)){
-    _iConfig =  std::make_unique<InstanceConfig>(config[kImageLayoutListKey], config[kImageMapListKey]);
-    _iConfig->animationName = JsonTools::ParseString(config, kAnimationNameKey, "BehaviorDisplayWeather.Constructor.MissingAnimName");
-    _iConfig->temperatureAssets = kTemperatureAssets;
-  }else{
-    PRINT_NAMED_ERROR("BehaviorDisplayWeather.Constructor.MissingConfigKeys",
-                      "Behavior %s does not have all layout keys defined",
-                      GetDebugLabel().c_str());
-  }  
+
+  _iConfig.animationName = JsonTools::ParseString(config, kAnimationNameKey, "BehaviorDisplayWeather.Constructor.MissingAnimName");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -110,6 +129,7 @@ bool BehaviorDisplayWeather::WantsToBeActivatedBehavior() const
 void BehaviorDisplayWeather::GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const
 {
   modifiers.behaviorAlwaysDelegates = false;
+  modifiers.wantsToBeActivatedWhenOffTreads = true;
 }
 
 
@@ -117,321 +137,193 @@ void BehaviorDisplayWeather::GetBehaviorOperationModifiers(BehaviorOperationModi
 void BehaviorDisplayWeather::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const
 {
   const char* list[] = {
-    kImageLayoutListKey,
-    kImageMapListKey,
     kAnimationNameKey
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
 
 }
 
-  
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorDisplayWeather::GetAllDelegates(std::set<IBehavior*>& delegates) const
 {
-  delegates.insert(_iConfig->textToSpeechBehavior.get());
+  delegates.insert(_iConfig.lookAtFaceInFront.get());
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorDisplayWeather::InitBehavior()
 {
-  if(_iConfig == nullptr){
-    return;
-  }
-  auto& dataAccessorComp = GetBEI().GetComponentWrapper(BEIComponentID::DataAccessor).GetValue<DataAccessorComponent>();
+  const auto& dac = GetBEI().GetDataAccessorComponent();
+  _iConfig.intentParser = std::make_unique<WeatherIntentParser>(
+    dac.GetWeatherResponseMap(),
+    dac.GetWeatherRemaps()
+  );
 
-  // Initialize composite image
-  {
-    auto* spriteCache = dataAccessorComp.GetSpriteCache();
-    Vision::HSImageHandle faceHueAndSaturation = ProceduralFace::GetHueSatWrapper();
-    _iConfig->compImg = std::make_unique<Vision::CompositeImage>(spriteCache, faceHueAndSaturation,
-                                                                 FACE_DISPLAY_WIDTH, FACE_DISPLAY_HEIGHT);
-  }
+  auto& behaviorContainer = GetBEI().GetBehaviorContainer();
+  _iConfig.lookAtFaceInFront   = behaviorContainer.FindBehaviorByID(BEHAVIOR_ID(SingletonFindFaceInFrontWallTime));
 
-  auto& compImgMap = *dataAccessorComp.GetCompImgMap();
-  auto& compLayoutMap = *dataAccessorComp.GetCompLayoutMap();
-
-  // Add the temperature layouts to iConfig
-  for(const auto& name : kPosTemperatureLayouts){
-    auto iter = compLayoutMap.find(name);
-    if(iter != compLayoutMap.end()){
-      _iConfig->temperatureLayouts.emplace_back(iter->second);
-    }
-  }
-
-  for(const auto& name : kNegTemperatureLayouts){
-    auto iter = compLayoutMap.find(name);
-    if(iter != compLayoutMap.end()){
-      _iConfig->temperatureLayouts.emplace_back(iter->second);
-    }
-  }
-
-  // Add data defined layouts to the image
-  for(const auto& layoutName : _iConfig->compLayoutConfig){
-    auto layoutEnum = Vision::CompositeImageLayoutFromString(layoutName.asString());
-    const auto iter = compLayoutMap.find(layoutEnum);
-    if(iter != compLayoutMap.end()){
-      _iConfig->compImg->MergeInImage(iter->second);
-    }else{
-      PRINT_NAMED_WARNING("BehaviorDisplayWeather.InitBehavior.InvalidLayout",
-                          "Layout %s not found in compLayoutMap",
-                          layoutName.asString().c_str());
-    }
-  }
-
-  // Add the image map assets to the composite image
-  for(const auto& mapName : _iConfig->compMapConfig){
-    auto mapEnum = Vision::CompositeImageMapFromString(mapName.asString());
-    const auto iter = compImgMap.find(mapEnum);
-    if(iter != compImgMap.end()){
-      const Vision::CompositeImage::LayerImageMap& layerMap = iter->second;
-      for(const auto& layerPair : layerMap){
-        // Get the layer from the composite image
-        const auto& layerName = layerPair.first;
-        Vision::CompositeImageLayer* layer = _iConfig->compImg->GetLayerByName(layerName);
-        if(layer == nullptr){
-          PRINT_NAMED_WARNING("BehaviorDisplayWeather.InitBehavior.LayerNotFound",
-                              "Image map has sprite boxes for layer %s which is not present in comp img for behaivor %s",
-                              Vision::LayerNameToString(layerName),
-                              GetDebugLabel().c_str());
-          continue;
-        }
-        // add sprite boxes to the layer
-        for(const auto& sbPair : layerPair.second){
-          layer->AddToImageMap(sbPair.first, sbPair.second);
-        }
-      }
-    }else{
-      PRINT_NAMED_WARNING("BehaviorDisplayWeather.InitBehavior.InvalidImageMap",
-                          "Map %s not found in compImgMap",
-                          mapName.asString().c_str());
-    }
-  }
-  
-  // If the composite image is empty, we still need to send a template (that has no image map)
-  // so that the temperature will have a layer to be displayed on
-  if(_iConfig->compImg->GetLayerLayoutMap().empty()){
-    auto* seqContainer = dataAccessorComp.GetSpriteSequenceContainer();
-    _iConfig->compImg->AddEmptyLayer(seqContainer);
-    PRINT_NAMED_INFO("BehaviorDisplayWeather.InitBehavior.AddingEmptyCompositeImage",
-                     "Composite image does not exist or behavior %s, adding one so that temperature can be displayed",
-                     GetDebugLabel().c_str());
-  }
-  
-  // Get the animation ptr
-  const auto* animContainer = dataAccessorComp.GetCannedAnimationContainer();
-  if((animContainer != nullptr) && !_iConfig->animationName.empty()){
-    _iConfig->animationPtr = animContainer->GetAnimation(_iConfig->animationName);
-  }
-  
-  if(_iConfig->animationPtr == nullptr){
-    PRINT_NAMED_WARNING("BehaviorDisplayWeather.InitBehavior.AnimationNotFoundInContainer",
-                        "Animations need to be manually loaded on engine side - %s is not", _iConfig->animationName.c_str());
-    return;
-  }
-
-  const auto& bc = GetBEI().GetBehaviorContainer();
-  bc.FindBehaviorByIDAndDowncast<BehaviorTextToSpeechLoop>(BEHAVIOR_ID(WeatherTextToSpeech),
-                                                           BEHAVIOR_CLASS(TextToSpeechLoop),
-                                                           _iConfig->textToSpeechBehavior);
-  ParseDisplayTempTimesFromAnim();
-  
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorDisplayWeather::OnBehaviorActivated() 
+void BehaviorDisplayWeather::OnBehaviorActivated()
 {
   // reset dynamic variables
   _dVars = DynamicVariables();
 
   auto& uic = GetBehaviorComp<UserIntentComponent>();
 
-  UserIntentPtr intentData = uic.GetUserIntentIfActive(USER_INTENT(weather_response));
-  DEV_ASSERT(intentData != nullptr, "BehaviorDisplayWeather.InvalidTriggeringIntent");
+  _dVars.currentIntent = uic.GetUserIntentIfActive(USER_INTENT(weather_response));
+  DEV_ASSERT(_dVars.currentIntent != nullptr, "BehaviorDisplayWeather.InvalidTriggeringIntent");
 
-  const auto& weatherResponse = intentData->intent.Get_weather_response();
-  std::string textToSay;
-  if(WeatherIntentParser::ShouldSayText(weatherResponse, textToSay)){
-    StateWeatherInformation(textToSay);
-  }else{
-    DisplayWeatherResponse();
-  }
+  const auto& weatherResponse = _dVars.currentIntent->intent.Get_weather_response();
+  _iConfig.intentParser->SendDASEventForResponse(weatherResponse);
 
+  StartTTSGeneration();
+  TransitionToFindFaceInFront();
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorDisplayWeather::StateWeatherInformation(const std::string& textToSay)
+void BehaviorDisplayWeather::BehaviorUpdate()
 {
-  _iConfig->textToSpeechBehavior->SetTextToSay(textToSay);
-  if(_iConfig->textToSpeechBehavior->WantsToBeActivated()){
-    DelegateIfInControl(_iConfig->textToSpeechBehavior.get(),
-                        &BehaviorDisplayWeather::DisplayWeatherResponse);
-  }else{
-    DisplayWeatherResponse();
+  if(!IsActivated() || _dVars.playingWeatherResponse){
+    return;
   }
 
+  if ( _dVars.utteranceState == UtteranceState::Ready
+    || _dVars.utteranceState == UtteranceState::Invalid){
+    CancelDelegates(false);
+    TransitionToDisplayWeatherResponse();
+    _dVars.playingWeatherResponse = true;
+  }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorDisplayWeather::OnBehaviorDeactivated()
+{
+  if( _dVars.utteranceID != kInvalidUtteranceID ) {
+    GetBEI().GetTextToSpeechCoordinator().CancelUtterance(_dVars.utteranceID);
+  }
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorDisplayWeather::DisplayWeatherResponse()
+void BehaviorDisplayWeather::TransitionToFindFaceInFront()
 {
-  auto& uic = GetBehaviorComp<UserIntentComponent>();
+  ANKI_VERIFY(_iConfig.lookAtFaceInFront->WantsToBeActivated(),
+              "BehaviorDisplayWeather.TransitionToFindFaceInFront.BehaviorDoesNotWantToBeActivated", "");
+  // We should see a face during this behavior if there's one in front of us to center on
+  DelegateIfInControl(_iConfig.lookAtFaceInFront.get(), [this](){
+    DelegateIfInControl(new TriggerLiftSafeAnimationAction(AnimationTrigger::LookAtUserEndearingly));
+  });
+}
 
-  UserIntentPtr intentData = uic.GetUserIntentIfActive(USER_INTENT(weather_response));
-  DEV_ASSERT(intentData != nullptr, "BehaviorDisplayWeather.InvalidTriggeringIntent");
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorDisplayWeather::TransitionToDisplayWeatherResponse()
+{
+  const auto& weatherResponse = _dVars.currentIntent->intent.Get_weather_response();
 
-  const auto& weatherResponse = intentData->intent.Get_weather_response();
-
-
-  auto animationCallback = [this](const AnimationComponent::AnimResult res){
+  auto animationCallback = [this](const AnimationComponent::AnimResult res, u32 streamTimeAnimEnded){
     CancelSelf();
   };
 
-  int outAnimationDuration = 0;
-  const bool shouldInterrupt = true;
-  GetBEI().GetAnimationComponent().PlayCompositeAnimation(_iConfig->animationName,
-                                                          *(_iConfig->compImg.get()),
-                                                          ANIM_TIME_STEP_MS,
-                                                          outAnimationDuration,
-                                                          shouldInterrupt,
-                                                          animationCallback);
-  
-  const auto temperature = weatherResponse.temperature;
-  const bool isFahrenheit = WeatherIntentParser::IsFahrenheit(weatherResponse);
-  const auto success = GenerateTemperatureImage(temperature, isFahrenheit, _dVars.temperatureImg);
+  int temperature = 0;
+  auto success = _iConfig.intentParser->GetRawTemperature(weatherResponse, temperature);
+  const bool isFahrenheit = _iConfig.intentParser->IsFahrenheit(weatherResponse);
+  AnimationComponent::RemapMap spriteBoxRemaps;
+  success &= GenerateTemperatureRemaps(temperature, isFahrenheit, spriteBoxRemaps);
   if(!success){
     return;
   }
-  
-  GetBEI().GetAnimationComponent().UpdateCompositeImage(*_dVars.temperatureImg, _iConfig->timeTempShouldAppear_ms);
-  GetBEI().GetAnimationComponent().ClearCompositeImageLayer(Vision::LayerName::Weather_Temperature,
-                                                            _iConfig->timeTempShouldDisappear_ms);
+
+  // Prepare the utterance to be triggered from the upcoming animation
+  GetBEI().GetTextToSpeechCoordinator().PlayUtterance(_dVars.utteranceID);
+
+  const bool interruptRunning = true;
+  const Result result = GetBEI().GetAnimationComponent().PlayAnimWithSpriteBoxRemaps(_iConfig.animationName,
+                                                                                     spriteBoxRemaps,
+                                                                                     interruptRunning,
+                                                                                     animationCallback);
+  // if we fail to play the anim, simply bail
+  if(Result::RESULT_FAIL == result){
+    CancelSelf();
+    return;
+  }
+
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool BehaviorDisplayWeather::GenerateTemperatureImage(int temp, bool isFahrenheit, Vision::CompositeImage*& outImg) const
+bool BehaviorDisplayWeather::GenerateTemperatureRemaps(int temp,
+                                                       bool isFahrenheit,
+                                                       AnimationComponent::RemapMap& spriteBoxRemaps) const
 {
-  if(_iConfig->temperatureLayouts.size() != 6){
-    PRINT_NAMED_ERROR("BehaviorDisplayWeather.GenerateTemperatureImage.TemperatureLayoutsNotFound",
-                      "Temperature layouts has %zu elements, expected 6",
-                      _iConfig->temperatureLayouts.size());
-    return false;
-  }
-  
-  // Grab the image from temperature layouts - indexed least -> greatest pos followed by least -> greatest neg
-  if(temp > 0){
-    if(temp < 10){
-      outImg = &_iConfig->temperatureLayouts[0];
-    }else if(temp < 100){
-      outImg = &_iConfig->temperatureLayouts[1];
-    }else{
-      outImg = &_iConfig->temperatureLayouts[2];
-    }
-  }else{
-    if(temp > -10){
-      outImg = &_iConfig->temperatureLayouts[3];
-    }else if(temp > -100){
-      outImg = &_iConfig->temperatureLayouts[4];
-    }else{
-      outImg = &_iConfig->temperatureLayouts[5];
-    }
-  }
-  if(!ANKI_VERIFY(outImg->GetLayerLayoutMap().size() == 1, 
-                  "BehaviorDisplayWeather.GenerateTemperatureImage.ImproperNumberOfLayers",
-                  "Expected one layer, but image has %zu",
-                  outImg->GetLayerLayoutMap().size())){
-    return false; 
+  // Clear out all the SBs to start
+  for(const auto& spriteBox : kDigitSpriteBoxes){
+    spriteBoxRemaps[spriteBox] = Vision::SpritePathMap::kEmptySpriteBoxID;
   }
 
-  auto& layer = outImg->GetLayerLayoutMap().begin()->second;
+  const DigitMap& digitMap = (ABS(temp) < 10) ? kSingleDigitMap :
+                             ( (ABS(temp) >= 10) && (ABS(temp) < 100) ) ? kDoubleDigitMap :
+                             kTripleDigitMap;
 
-  auto& dataAccessorComp = GetBEI().GetComponentWrapper(BEIComponentID::DataAccessor).GetValue<DataAccessorComponent>();
-
-  auto* spriteCache = dataAccessorComp.GetSpriteCache();
-  auto* seqContainer = dataAccessorComp.GetSpriteSequenceContainer();
-
-  // Add sprite boxes as appropriate to the layer
-  {
-    const auto& tempIndicator = isFahrenheit ? Vision::SpriteName::Weather_Temp_Fahr : Vision::SpriteName::Weather_Temp_Cel;
-    layer.AddToImageMap(spriteCache, seqContainer,
-                        Vision::SpriteBoxName::TemperatureDegreeIndicator, 
-                        tempIndicator);
-  }
   if(temp < 0){
-    layer.AddToImageMap(spriteCache, seqContainer,
-                        Vision::SpriteBoxName::TemperatureNegativeIndicator, 
-                        Vision::SpriteName::Weather_Temp_Neg);
+    spriteBoxRemaps[digitMap.at(DigitType::NegativeSymbol)] = kNegativeTempIndicatorSpriteID;
   }
 
-  const auto absTemp = std::abs(temp);
-  const auto onesDig = absTemp % 10;
-  const auto tensDig = (absTemp / 10) % 10;
-  const auto hundredsDig = (absTemp / 100) % 10;
-  {
-    layer.AddToImageMap(spriteCache, seqContainer,
-                        Vision::SpriteBoxName::TemperatureOnesDigit, 
-                        _iConfig->temperatureAssets[onesDig]);
+  spriteBoxRemaps[digitMap.at(DigitType::Ones)] = kTemperatureAssets[ABS(temp) % 10];
+
+  if( (kDoubleDigitMap == digitMap) || (kTripleDigitMap == digitMap) ){
+    spriteBoxRemaps[digitMap.at(DigitType::Tens)] = kTemperatureAssets[ (ABS(temp) / 10) % 10 ];
   }
-  // Don't show leading zeroes
-  if((tensDig > 0) || (hundredsDig > 0)){
-    layer.AddToImageMap(spriteCache, seqContainer,
-                        Vision::SpriteBoxName::TemperatureTensDigit, 
-                        _iConfig->temperatureAssets[tensDig]);
+
+  if(kTripleDigitMap == digitMap){
+    spriteBoxRemaps[digitMap.at(DigitType::Hundreds)] = kTemperatureAssets[ (ABS(temp) / 100) % 10 ];
   }
-  if(hundredsDig > 0){
-    layer.AddToImageMap(spriteCache, seqContainer,
-                        Vision::SpriteBoxName::TemperatureHundredsDigit, 
-                        _iConfig->temperatureAssets[hundredsDig]);
-  }
+
+  spriteBoxRemaps[digitMap.at(DigitType::DegreeSymbol)] = isFahrenheit ?
+                                                          kFahrenheitIndicatorSpriteID :
+                                                          kCelsiusIndicatorSpriteID;
 
   return true;
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorDisplayWeather::ParseDisplayTempTimesFromAnim()
+void BehaviorDisplayWeather::StartTTSGeneration()
 {
-  auto& dataAccessorComp = GetBEI().GetComponentWrapper(BEIComponentID::DataAccessor).GetValue<DataAccessorComponent>();
+  _dVars.utteranceID = kInvalidUtteranceID;
+  _dVars.utteranceState = UtteranceState::Generating;
 
-  const Animation* anim = nullptr;
-  bool gotAnim = false;
+  auto callback = [this](const UtteranceState& utteranceState)
+  {
+    _dVars.utteranceState = utteranceState;
+  };
 
-  const auto* animContainer = dataAccessorComp.GetCannedAnimationContainer();
-  if(animContainer != nullptr){
-    anim = animContainer->GetAnimation(_iConfig->animationName);
-    gotAnim = (anim != nullptr);
+  const auto& weatherResponse = _dVars.currentIntent->intent.Get_weather_response();
+  const auto condition = _iConfig.intentParser->GetCondition(weatherResponse);
+
+  int temperature = 0;
+  const auto success = _iConfig.intentParser->GetRawTemperature(weatherResponse, temperature);
+  const auto & bei = GetBEI();
+  const auto & ttsMap = bei.GetDataAccessorComponent().GetWeatherConditionTTSMap();
+  const auto ttsIter = ttsMap->find(condition);
+  if (success && ttsIter != ttsMap->end()) {
+
+    // Get localized version of "X degrees and cloudy"
+    const auto & robotInfo = bei.GetRobotInfo();
+    const auto & localeComponent = robotInfo.GetLocaleComponent();
+    const auto & ttsString = localeComponent.GetString(ttsIter->second, std::to_string(temperature));
+
+    // Generate TTS utterance for localized string using KeyFrame type trigger so that it plays
+    // at a time determined from within the animation
+    auto & ttsCoordinator = bei.GetTextToSpeechCoordinator();
+    const UtteranceTriggerType triggerType = UtteranceTriggerType::KeyFrame;
+    const AudioTtsProcessingStyle style = AudioTtsProcessingStyle::Default_Processed;
+    _dVars.utteranceID = ttsCoordinator.CreateUtterance(ttsString, triggerType, style, callback);
   }
 
-  if(!gotAnim){
-    PRINT_NAMED_WARNING("BehaviorDisplayWeather.ParseDisplayTempTimesFromAnim.AnimationNotFoundInContainer", 
-                        "Animations need to be manually loaded on engine side - %s is not", _iConfig->animationName.c_str());
-    return;
-  }
-
-  const TimeStamp_t time_ms = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
-
-  const auto& track = anim->GetTrack<EventKeyFrame>();
-  if(track.TrackLength() == 2){
-    // assumes only one keyframe per eating anim
-    _iConfig->timeTempShouldAppear_ms =  time_ms + track.GetFirstKeyFrame()->GetTriggerTime_ms();
-    _iConfig->timeTempShouldDisappear_ms = time_ms + track.GetLastKeyFrame()->GetTriggerTime_ms();
-    PRINT_CH_INFO("Behaviors",
-                  "BehaviorDisplayWeather.ParseDisplayTempTimesFromAnim.TemperatureTimes",
-                  "For animation named %s temp will appear at %d and dissapear at %d",
-                  _iConfig->animationName.c_str(),
-                  _iConfig->timeTempShouldAppear_ms,
-                  _iConfig->timeTempShouldDisappear_ms);
-  }else{
-    PRINT_NAMED_ERROR("BehaviorDisplayWeather.ParseDisplayTempTimesFromAnim.IncorrectNumberOfKeyframes",
-                      "Expected 2 keyframes in event track, but track has %d",
-                      track.TrackLength());
+  if (kInvalidUtteranceID == _dVars.utteranceID) {
+    _dVars.utteranceState = UtteranceState::Invalid;
   }
 }
-
 
 }
 }

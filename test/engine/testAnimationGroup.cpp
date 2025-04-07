@@ -13,11 +13,14 @@
 
 #include "gtest/gtest.h"
 
+#include "clad/types/animationTrigger.h"
 #include "coretech/common/engine/utils/timer.h"
 
+#include "engine/cozmoContext.h"
 #include "engine/moodSystem/moodManager.h"
 #include "engine/animations/animationGroup/animationGroup.h"
 #include "engine/animations/animationGroup/animationGroupContainer.h"
+#include "test/engine/callWithoutError.h"
 
 #include "util/entityComponent/dependencyManagedEntity.h"
 #include "util/logging/logging.h"
@@ -28,7 +31,8 @@
 #include <assert.h>
 
 
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
+extern CozmoContext* cozmoContext;
 
 static const std::string kMajorWin = "majorWin";
 static const std::string kMajorWinBeatBox = "majorWinBeatBox";
@@ -243,7 +247,10 @@ TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
   EXPECT_FALSE(group == nullptr);
   
   // now test we can't retrieve a group that doesn't exist
-  group = container.GetAnimationGroup("a");
+  const bool err = CallWithoutError( [&](){
+    group = container.GetAnimationGroup("a");
+  });
+  EXPECT_TRUE( err );
 
   EXPECT_TRUE(group == nullptr);
 }
@@ -422,9 +429,13 @@ TEST(AnimationGroup, GetNoAnimationName)
   
   AnimationGroup group = DeserializeAnimationGroupFromJson(kNoAnimationJson);
   
-  const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+  const bool err = CallWithoutError( [&](){
+    const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+    EXPECT_EQ(kEmpty, name);
+  });
+  EXPECT_TRUE( err );
   
-  EXPECT_EQ(kEmpty, name);
+  
 }
 
 TEST(AnimationGroup, GetNoDefaultAnimationName)
@@ -434,9 +445,11 @@ TEST(AnimationGroup, GetNoDefaultAnimationName)
   
   AnimationGroup group = DeserializeAnimationGroupFromJson(kOneAnimationHighStimJson);
   
-  const std::string& name = group.GetAnimationName(moodManager, groupContainer);
-  
-  EXPECT_EQ(kEmpty, name);
+  const bool err = CallWithoutError( [&](){
+    const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+    EXPECT_EQ(kEmpty, name);
+  });
+  EXPECT_TRUE( err );
 }
 
 // run a maximum of 100 times. It should be a 50-50 chance of getting
@@ -487,10 +500,14 @@ TEST(AnimationGroup, GetNeitherAnimationNameOfTwo)
   MoodManager moodManager;
   
   bool foundMajorWin = false, foundMajorWinBeatBox = false;
-  TestTwoAnimations100Times(kTwoAnimationsHighFrustratedMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  const bool err = CallWithoutError( [&](){
+    TestTwoAnimations100Times(kTwoAnimationsHighFrustratedMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  });
+  EXPECT_TRUE( err );
   
-  EXPECT_TRUE(!foundMajorWin);
-  EXPECT_TRUE(!foundMajorWinBeatBox);
+  EXPECT_FALSE(foundMajorWin);
+  EXPECT_FALSE(foundMajorWinBeatBox);
+  
 }
 
 
@@ -532,4 +549,13 @@ TEST(AnimationGroup, GetDefaultAnimationNameOfTwo)
   
   EXPECT_TRUE(!foundMajorWin);
   EXPECT_TRUE(foundMajorWinBeatBox);
+}
+
+TEST(AnimationGroup, AllCLADTriggersHaveGroups)
+{
+  auto* data = cozmoContext->GetDataLoader();
+  for( size_t i=0; i< AnimationTriggerNumEntries - 1; ++i ) {
+    const auto trigger = static_cast<AnimationTrigger>(i);
+    EXPECT_TRUE( data->HasAnimationForTrigger(trigger) ) << "Could not find anim group for trigger " << AnimationTriggerToString(trigger);
+  }
 }

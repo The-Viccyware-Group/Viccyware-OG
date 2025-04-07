@@ -1,2 +1,0 @@
-aiogrpc
-googleapis-common-protos

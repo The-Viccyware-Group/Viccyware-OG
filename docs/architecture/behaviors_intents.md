@@ -3,9 +3,15 @@
 There are three types of intents. Each represents a user's intention for the robot to perform some action, such as a fist bump. 
 
 * **User intents** are a CLAD union of structs, where each struct represents a different user request and its data. User intents are not exposed outside of the behavior system, but can be requested either by voice or through the companion app. In other words, any cloud or app intent is translated into a user intent before being handled by the behavior system. 
-* **Cloud intents** are JSON blobs received from the cloud process containing the intent type along with any parameters. The behavior system is not aware of cloud intents beyond how to translate them into user intents.
-* **App Intents** are CLAD messages received from the Switchboard (which receives them from the companion app) containing the intent type along with any parameters. The behavior system is not aware of app intents beyond how to translate them into user intents. (Note: at the time of writing, app intents arrive via the AppToEngineHandler, but this should soon switch over to the Switchboard.)
+* **Cloud intents** are received from the cloud process containing the intent type along with any parameters. The behavior system is not aware of cloud intents beyond how to translate them into user intents.
+* [DEPRECATED] **App Intents** are messages received from the companion app containing the intent type along with any parameters. The behavior system is not aware of app intents beyond how to translate them into user intents. (Note: app intents were cut from the chewie design)
 
+
+#### Simple Animated Voice responses
+
+If all you need to do is create a voice command (with no parameters / extensions) that in result causes the robot to play an animation from a single animation group, there is a shortcut to the larger process below called "simple voice responses". You can simply add your new mapping to the top of [`user_intent_map.json`](/resources/config/engine/behaviorComponent/user_intent_map.json) under the `simple_voice_responses` section. In this section, you specify a cloud intent string and optionally a feature flag (see below) and then a response. The response must contain an animation group string (checked at load time) and may optionally specify emotion events or active features (used for DAS and the app string). None of this requires touching any code or CLAD files, or even a full build (with the exception, currently, of adding a new `ActiveFeature`, if that is needed).
+
+If you need any parameters, or want a more complex / custom behavior to run, or it needs to run at a different level in the tree with a different priority, you'll need to create a new intent.
 
 #### Creating a new intent
 
@@ -31,7 +37,11 @@ Note: Don't include the CLAD-generated files `userIntent.h`/`.cpp` in your behav
 
 Sometimes, an incoming cloud intent does not have a matching user intent. This most frequently happens when the cloud cannot understand the voice command and issues an `intent_system_unsupported`, which is purposefully not listed in [`user_intent_map.json`](/resources/config/engine/behaviorComponent/user_intent_map.json). It could also occur if the version of [`user_intent_map.json`](/resources/config/engine/behaviorComponent/user_intent_map.json) is not the same as that of the cloud, i.e., if the robot is out of date. If there is no match, the `unmatched_intent` user intent is set as pending. Currently, when the `unmatched_intent` user intent is pending, it is activated, a "huh?!" animation plays, and then intent is deactivated.
 
-If a user intent goes unclaimed for more engine ticks than we allow (2-4), it means the behavior tree is not configured to handle the intent based on its current state. Usually this means we forgot to do something, so a warning is printed. To help catch these omissions, there is a behavior `BehaviorReactToUnclaimedIntent` that will play an animation if an intent goes unclaimed. This behavior is also useful when a known user intent is received, but it does not make sense in the present context. For example, if a user intent corresponding to the voice command "go to your charger" is pending when the robot is already on its charger, we could either add an explicit check for "go to your charger," or simply skip the handling of that intent when on the charger. In that case, the unclaimed intent animation would play, indicating that the robot cannot respond to that intent in its current state.
+If a user intent goes unclaimed for more engine ticks than we allow (2-4), it means the behavior tree is not configured to handle the intent based on its current state. This may be because we forgot to implement the feature, or it may be because the intent was understood but can't be carried out (e.g. you say "come here" but the robot is being held in the air). In these cases, a behavior `BehaviorReactToUnclaimedIntent` will play an animation that is meant to communicate "I can't do that" if an intent goes unclaimed.
+
+#### Feature flags
+
+If the new voice feature is feature flagged, you must specify such in [`user_intent_map.json`](/resources/config/engine/behaviorComponent/user_intent_map.json) rather than just in the behavior instance json. This way, if the intent does come in from cloud, the user intent map will map it to "unmatched" with a negative earcon, rather than _successfully_ matching the intent, but then refusing to run the behavior which results in an unclaimed intent ("I don't know") rather than the desired "huh" reaction. The way to think about this is that disabling a feature flag should have the equivalent result (as far us user-visible behavior) as saying something the robot doesn't understand.
 
 #### Unit tests
 
@@ -48,5 +58,10 @@ If the intent is handled elsewhere, a unit test will force you to write a test i
 #### Trigger words
 We handle trigger words in a similar manner to user intents. When the trigger word is detected, the `UserIntentComponent` marks it as pending, and it must be cleared (handled) by some behavior within some number of ticks. Otherwise, a warning is printed and the trigger word is cleared automatically. However, the trigger word is _not_ a user intent (as it was previously under cozmo / early victor days).
 
+#### Cloud intent details
 
+In normal operation, `vic-cloud` sends cloud intents through the BehaviorComponentCloudServer as CLAD messages of type [`CloudMic::Message`](/clad/src/clad/cloud/mic.clad). These messages can be actual intents, where the type is `result`, or other information such as an error, a "stream open" message, or debug info.
 
+If the message is a result, it contains an intent, a string of "parameters" and a string of "metadata". The parameters contain all of the extended info from cloud, e.g. the weather details, or the name of the person meeting Vector. These are sent as stringified JSON, and may contain newlines, escaped quotes, etc.
+
+The UserIntentComponent then turns this into an "expanded" JSON value, where we unpack and parse the parameters string (into a json key called "params" instead of "parameters"). This expanded JSON is then matched against user intents in the user intent map as described above.

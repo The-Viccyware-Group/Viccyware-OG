@@ -16,7 +16,7 @@
 #include "engine/actions/basicActions.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
   const char* const kHeadAngleKey = "headAngle_deg";
@@ -55,7 +55,6 @@ void BehaviorMoveHeadToAngle::GetBehaviorOperationModifiers(BehaviorOperationMod
 {
   modifiers.wantsToBeActivatedWhenCarryingObject = true;
   modifiers.wantsToBeActivatedWhenOffTreads = true;
-  modifiers.wantsToBeActivatedWhenOnCharger = true;
   modifiers.wantsToBeActivatedWhenOnCharger = true;
   modifiers.behaviorAlwaysDelegates = true;
 }

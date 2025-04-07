@@ -18,12 +18,13 @@
 #include <string>
 
 #include "coretech/messaging/shared/LocalUdpServer.h"
+#include "coretech/messaging/shared/socketConstants.h"
 
 #define ARRAY_SIZE(inArray)   (sizeof(inArray) / sizeof((inArray)[0]))
 
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
 
     namespace { // "Private members"
       const size_t RECV_BUFFER_SIZE = 1024 * 4;
@@ -72,12 +73,12 @@ namespace Anki {
       recvBufSize_ = 0;
     }
 
-    bool HAL::RadioSendPacket(const void *buffer, const u32 length)
+    bool HAL::RadioSendPacket(const void *buffer, const size_t length)
     {
       if (server.HasClient()) {
         const ssize_t bytesSent = server.Send((char*)buffer, length);
         if (bytesSent < (ssize_t) length) {
-          AnkiError("HAL.RadioSendPacket.FailedToSend", "Failed to send msg contents (%zd/%u sent)", bytesSent, length);
+          AnkiError("HAL.RadioSendPacket.FailedToSend", "Failed to send msg contents (%zd/%zu sent)", bytesSent, length);
           DisconnectRadio(false);
           return false;
         }
@@ -129,5 +130,5 @@ namespace Anki {
       return static_cast<u32>(dataLen);
 
     } // RadioGetNextMessage()
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

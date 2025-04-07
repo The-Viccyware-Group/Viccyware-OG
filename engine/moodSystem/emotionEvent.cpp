@@ -19,7 +19,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
   
 EmotionEvent::EmotionEvent()
@@ -119,8 +119,6 @@ bool EmotionEvent::ReadFromJson(const Json::Value& inJson)
 
   // if the graph isn't specified, the passed in default will be used instead
   
-  // PRINT_NAMED_DEBUG("EmotionEvent.ReadFromJson", "Loaded event '%s'", _name.c_str());
-  
   return true;
 }
 
@@ -156,6 +154,6 @@ bool EmotionEvent::WriteToJson(Json::Value& outJson) const
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 

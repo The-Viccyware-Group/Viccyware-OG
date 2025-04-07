@@ -20,6 +20,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef COZMO_ROBOT
+#error "This logging file may only be included in vic-robot"
+#endif
+
 #if defined(VICOS)
 
 #include <android/log.h>
@@ -50,13 +54,21 @@
 #endif
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     namespace RobotInterface {
 
 #if ANKI_DEBUG_INFO
       #define AnkiInfo(nameString, fmtString, ...) \
       { \
         log_info(nameString, fmtString, ##__VA_ARGS__); \
+      }
+      
+      #define AnkiInfoPeriodic(num_calls_between_prints, nameString, fmtString, ...) \
+      {   static u16 cnt = num_calls_between_prints; \
+          if (++cnt > num_calls_between_prints) { \
+            log_info(nameString, fmtString, ##__VA_ARGS__); \
+            cnt = 0; \
+          } \
       }
 #else
       #define AnkiInfo(...)

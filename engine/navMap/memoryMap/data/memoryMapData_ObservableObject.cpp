@@ -11,19 +11,19 @@
  
 #include "memoryMapData_ObservableObject.h"
 #include "clad/types/memoryMap.h"
-#include "coretech/common/engine/math/point_impl.h"
-#include "coretech/common/engine/math/polygon_impl.h"
+#include "coretech/common/engine/math/polygon.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MemoryMapData_ObservableObject::MemoryMapData_ObservableObject(const ObservableObject& o, 
                                                                const Poly2f& p, 
-                                                               TimeStamp_t t)
+                                                               RobotTimeStamp_t t)
 : MemoryMapData(MemoryMapTypes::EContentType::ObstacleObservable, t, true)
 , id(o.GetID())
 , boundingPoly(p)
+, _poseIsVerified(true)
 {
 
 }
@@ -52,5 +52,5 @@ ExternalInterface::ENodeContentTypeEnum MemoryMapData_ObservableObject::GetExter
   return ExternalInterface::ENodeContentTypeEnum::ObstacleCube;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

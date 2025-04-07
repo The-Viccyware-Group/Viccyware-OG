@@ -12,6 +12,7 @@
 
 #include "engine/aiComponent/beiConditions/conditions/conditionObjectKnown.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/behaviorExternalInterface.h"
+#include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/blockWorld/blockWorldFilter.h"
 #include "coretech/common/engine/jsonTools.h"
@@ -21,7 +22,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
   const char* kObjectTypesKey = "objectTypes";
@@ -43,7 +44,7 @@ ConditionObjectKnown::ConditionObjectKnown(const Json::Value& config)
                  "Empty type array" );
     for( const auto& type : typeArray ) {
       const auto& objectTypeStr = type.asString();
-      ObjectType targetType =  ObjectType::InvalidObject;
+      ObjectType targetType =  ObjectType::UnknownObject;
       ANKI_VERIFY( ObjectTypeFromString( objectTypeStr, targetType ),
                    "ConditionObjectKnown.Ctor.UnknownObjectType",
                    "Object type '%s' is not valid",
@@ -96,11 +97,11 @@ bool ConditionObjectKnown::AreConditionsMetInternal(BehaviorExternalInterface& b
   
   std::vector<ObjectInfo> newInfo;
   
-  TimeStamp_t currTimeStamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  const auto currTimeStamp = behaviorExternalInterface.GetRobotInfo().GetLastMsgTimestamp();
   const bool thisTickOnly = _setMaxAge && (_maxAge_ms == 0);
   for( const auto& match : matches ) {
     ObjectID matchID = match->GetID();
-    const TimeStamp_t matchTime = match->GetLastObservedTime();
+    const RobotTimeStamp_t matchTime = match->GetLastObservedTime();
     if( thisTickOnly ) {
       // this is different than filter.OnlyConsiderLatestUpdate because that checks against the
       // last marker sighting time. If we were to add our own filter lambda to compare the object
@@ -114,7 +115,10 @@ bool ConditionObjectKnown::AreConditionsMetInternal(BehaviorExternalInterface& b
       // always add this one so there's a timestamp to compare against, but only mark it as
       // matchedThisTickOnly if the object is new or newer
       newInfo.emplace_back( matchTime, matchID );
-      if( (matchTime > 0) && ((it == _lastObjects.end()) || (it->observedTime < matchTime)) ) {
+      const bool newCube = (it == _lastObjects.end()) && (matchTime == currTimeStamp);
+      const bool updatedCube = (it != _lastObjects.end()) && (it->observedTime < matchTime);
+      const bool matchedThisTick = newCube || updatedCube;
+      if( (matchTime > 0) && matchedThisTick ) {
         ret = true;
         newInfo.back().matchedThisTickOnly = true;
       }
@@ -124,7 +128,7 @@ bool ConditionObjectKnown::AreConditionsMetInternal(BehaviorExternalInterface& b
     }
   }
   
-  _lastObjects = newInfo;
+  _lastObjects = std::move(newInfo);
   
   return ret;
 }
@@ -147,5 +151,5 @@ const std::vector<const ObservableObject*> ConditionObjectKnown::GetObjects(Beha
   return ret;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

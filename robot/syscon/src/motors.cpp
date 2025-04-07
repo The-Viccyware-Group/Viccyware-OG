@@ -13,6 +13,9 @@ static const int MAX_ENCODER_FRAMES = 25; // 0.1250s
 static const int MAX_POWER = 0x8000;
 static const uint16_t MOTOR_PERIOD = 20000; // 20khz
 static const int16_t MOTOR_MAX_POWER = SYSTEM_CLOCK / MOTOR_PERIOD;
+static const int DRIVEN_POWER = MOTOR_MAX_POWER / 10;
+
+#define ABS(x) (((x) < 0) ? -(x) : (x))
 
 enum MotorDirection {
   DIRECTION_UNINIT = 0,
@@ -47,6 +50,7 @@ struct MotorStatus {
   uint32_t        last_time;
   int             power;
   MotorDirection  direction;
+  MotorDirection  hysteresis_direction;
   uint8_t         serviceCountdown;
 };
 
@@ -75,6 +79,10 @@ static const MotorConfig MOTOR_DEF[MOTOR_COUNT] = {
     &TIM3->CCR4, CONFIG_N(HN2)
   },
 };
+
+bool Motors::lift_driven;
+bool Motors::head_driven;
+bool Motors::treads_driven;
 
 static MotorStatus motorStatus[MOTOR_COUNT];
 static int16_t motorPower[MOTOR_COUNT];
@@ -115,17 +123,16 @@ static void Motors::transmit(BodyToHead *payload) {
       switch (i) {
         case MOTOR_LEFT:
         case MOTOR_RIGHT:
-          state->position += (state->direction == DIRECTION_FORWARD) ? delta_last[i] : -delta_last[i];
+          payload->motor[i].delta = (state->hysteresis_direction == DIRECTION_FORWARD) ? delta_last[i] : -delta_last[i];
           break ;
         default:
-          state->position += delta_last[i];
+          payload->motor[i].delta = delta_last[i];
           break ;
       }
 
-      payload->motor[i].position = state->position;
-
       // Copy over tick values
-      payload->motor[i].delta = (state->direction == DIRECTION_FORWARD) ? delta_last[i] : -delta_last[i];
+      state->position += payload->motor[i].delta;
+      payload->motor[i].position = state->position;
       payload->motor[i].time = state->last_time - time_last[i];
 
       // We will survives
@@ -133,6 +140,14 @@ static void Motors::transmit(BodyToHead *payload) {
       state->serviceCountdown = 0;
     }
   }
+
+
+
+  // Flush invalid flags when device is moving
+  Motors::lift_driven = ABS(motorStatus[MOTOR_LIFT].power) > DRIVEN_POWER;
+  Motors::head_driven = ABS(motorStatus[MOTOR_HEAD].power) > DRIVEN_POWER;
+  Motors::treads_driven = ABS(motorStatus[MOTOR_LEFT].power) > DRIVEN_POWER
+                       || ABS(motorStatus[MOTOR_RIGHT].power) > DRIVEN_POWER;
 }
 
 static void configure_timer(TIM_TypeDef* timer) {
@@ -206,6 +221,14 @@ void Motors::stop() {
   LTN2::mode(MODE_OUTPUT);
 }
 
+// Reset hysteresis values to Vector factory settings
+// so that debug screen cursors work
+void Motors::resetEncoderHysteresis() {
+  motorStatus[MOTOR_LEFT].hysteresis_direction = DIRECTION_BACKWARD;
+  motorStatus[MOTOR_RIGHT].hysteresis_direction = DIRECTION_BACKWARD;
+}
+
+
 static MotorDirection motorDirection(int power) {
   if (power > 0) {
     return DIRECTION_FORWARD;
@@ -266,6 +289,7 @@ void Motors::tick() {
         }
 
         state->direction = direction;
+        state->hysteresis_direction = direction;
         break ;
     }
   }

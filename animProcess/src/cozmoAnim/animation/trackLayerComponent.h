@@ -18,23 +18,23 @@
 #define __Anki_Cozmo_TrackLayerComponent_H__
 
 #include "cannedAnimLib/cannedAnims/animation.h"
-#include "clad/types/keepFaceAliveParameters.h"
 #include "coretech/common/shared/types.h"
 #include <functional>
+#include <list>
 #include <map>
 #include <memory>
 #include <vector>
 
 
 namespace Anki {
-namespace Cozmo {
-
+namespace Vector {
+namespace Anim {
 class AnimContext;
-
+class AnimationStreamer;
 class AudioLayerManager;
 class BackpackLayerManager;
 class FaceLayerManager;
- 
+
 class TrackLayerComponent
 {
 public:
@@ -53,13 +53,15 @@ public:
   };
   
   
-  TrackLayerComponent(const AnimContext* context);
+  TrackLayerComponent(const Anim::AnimContext* context);
   ~TrackLayerComponent();
   
-  void Init();
+  void Init(AnimationStreamer& animStreamer);
   
   void Update();
   void AdvanceTracks(const TimeStamp_t toTime_ms);
+  
+  void EnableProceduralAudio(bool enabled);
   
   // Pulls the current keyframe from various tracks of the anim
   // and combines it with any track layers that may exist
@@ -72,8 +74,11 @@ public:
   
   // Keep Victor's face alive using the params specified
   // (call each tick while the face should be kept alive)
-  void KeepFaceAlive(const std::map<KeepFaceAliveParameter, f32>& params,
-                     const TimeStamp_t timeSinceKeepAliveStart_ms);
+  void KeepFaceAlive(const TimeStamp_t timeSinceKeepAliveStart_ms);
+  
+  // Put keep face alive into "focused" mode, which reduces the jumpiness and eye darts
+  // to make the robot appear more focused and looking straight ahead, but without "dead" eyes.
+  void SetKeepFaceAliveFocus(bool enable) { _isKeepFaceAliveFocused = enable; }
   
   // Removes the live face after duration_ms has passed
   // Note: Will not cancel/remove a blink that is in progress
@@ -86,6 +91,8 @@ public:
   // Keep Victor's face alive, but the same, by posting empty new frames
   // so that noise keeps working
   void KeepFaceTheSame();
+  
+  void SetLastProceduralFaceAsBlank();
 
   // Make Victor squint (will continue to squint until removed)
   void AddSquint(const std::string& name,
@@ -131,10 +138,8 @@ private:
   // could be added in the future to handle more complicated cases.
   
   struct KeepAliveModifier {
-    using ParameterMap = std::map<KeepFaceAliveParameter,f32>;
-    using ActivityPerformFunc = std::function<bool(const ParameterMap& parameterMap,
-                                                   const TimeStamp_t streamTime_ms)>;
-    using ActivityGetNextPerformanceTimeFunc = std::function<s32(const ParameterMap& parameterMap)>;
+    using ActivityPerformFunc = std::function<bool(const TimeStamp_t streamTime_ms)>;
+    using ActivityGetNextPerformanceTimeFunc = std::function<s32()>;
     std::string name;
     ActivityPerformFunc performFunc = nullptr;
     ActivityGetNextPerformanceTimeFunc getNextPerformanceTimeFunc = nullptr;
@@ -149,19 +154,23 @@ private:
     , getNextPerformanceTimeFunc(getNextPerformanceTimeFunc)
     , hasFaceLayers(hasFaceLayers) {}
     
-    void UpdateNextPerformanceTime(const ParameterMap& parameterMap)
-    { nextPerformanceTime_ms = getNextPerformanceTimeFunc(parameterMap); }
+    void UpdateNextPerformanceTime() { nextPerformanceTime_ms = getNextPerformanceTimeFunc(); }
   };
 
 
-  std::unique_ptr<AudioLayerManager>    _audioLayerManager;
-  std::unique_ptr<BackpackLayerManager> _backpackLayerManager;
-  std::unique_ptr<FaceLayerManager>     _faceLayerManager;
-  std::unique_ptr<ProceduralFace>       _lastProceduralFace;
-  std::vector<KeepAliveModifier>        _keepAliveModifiers;
+  std::unique_ptr<AudioLayerManager>            _audioLayerManager;
+  std::unique_ptr<BackpackLayerManager>         _backpackLayerManager;
+  std::unique_ptr<FaceLayerManager>             _faceLayerManager;
+  std::unique_ptr<ProceduralFace> _lastProceduralFace;
+  std::vector<KeepAliveModifier>                _keepAliveModifiers;
+
+  // Audio letancy offset tracking vars
+  mutable bool _validAudioKeyframeIt = false;
+  mutable std::list<RobotAudioKeyFrame>::iterator _audioKeyframeIt;
   
   // Setup and add keep face alive activites to _keepAliveActivities vector
   void SetupKeepFaceAliveActivities();
+  bool _isKeepFaceAliveFocused = false;
   
   // Handle track layer
   void ApplyAudioLayersToAnim(Animation* anim,
@@ -179,6 +188,7 @@ private:
 
 };
   
+}
 }
 }
 

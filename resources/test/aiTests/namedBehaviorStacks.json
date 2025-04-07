@@ -7,9 +7,14 @@
   "highLevelAI_stack" : {
     "stackIsForTestOnly" : false,
     "stack" : [
-      "DevBaseBehavior",
+      "InitNormalOperation",
       "ModeSelector",
+      "SleepCycle",
+      "CoordinateInHabitat",
+      "HabitatMutedDispatcher",
       "CoordinateGlobalInterrupts",
+      "CoordinateWhileHeldInPalm",
+      "CoordinateWhileInAir",
       "GlobalInterruptions",
       "HighLevelAI"   
     ]
@@ -17,9 +22,14 @@
   "driveOffChargerIntoObserving_stack" : {
     "stackIsForTestOnly" : false,
     "stack" : [
-    "DevBaseBehavior",
+    "InitNormalOperation",
     "ModeSelector",
+    "SleepCycle",
+    "CoordinateInHabitat",
+    "HabitatMutedDispatcher",
     "CoordinateGlobalInterrupts",
+    "CoordinateWhileHeldInPalm",
+    "CoordinateWhileInAir",
     "GlobalInterruptions",
     "HighLevelAI",
     "ObservingDriveOffCharger"

@@ -15,42 +15,47 @@
 
 #include "engine/actions/animActions.h"
 #include "engine/actions/basicActions.h"
+#include "engine/actions/compoundActions.h"
 #include "engine/actions/dockActions.h"
 #include "engine/actions/driveToActions.h"
+#include "engine/actions/visuallyVerifyActions.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/behaviorExternalInterface.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/basicCubeInteractions/behaviorPickUpCube.h"
-#include "engine/aiComponent/behaviorComponent/behaviors/basicCubeInteractions/behaviorRollBlock.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/basicWorldInteractions/behaviorRequestToGoHome.h"
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/charger.h"
 #include "engine/components/carryingComponent.h"
 #include "util/cladHelpers/cladFromJSONHelpers.h"
 
 #include "coretech/common/engine/jsonTools.h"
+#include "coretech/common/engine/math/rotatedRect.h"
+
+#define LOG_FUNCTION_NAME() PRINT_CH_INFO("Behaviors", "BehaviorClearChargerArea", "BehaviorClearChargerArea.%s", __func__);
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
-const char* kMaxNumAttemptsKey = "maxNumAttempts";
-  
+  const char* kTryToPickUpCubeKey = "tryToPickUpCube";
+  const char* kMaxNumAttemptsKey  = "maxNumAttempts";
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorClearChargerArea::InstanceConfig::InstanceConfig(const Json::Value& config, const std::string& debugName)
   : maxNumAttempts(JsonTools::ParseInt32(config, kMaxNumAttemptsKey, debugName))
+  , tryToPickUpCube(JsonTools::ParseBool(config, kTryToPickUpCubeKey, debugName))
   , chargerFilter(std::make_unique<BlockWorldFilter>())
   , cubesFilter(std::make_unique<BlockWorldFilter>())
 { 
   DEV_ASSERT(maxNumAttempts > 0, "BehaviorClearChargerArea.InstanceConfig.InvalidMaxNumAttempts");
   
-  chargerFilter->AddAllowedFamily(ObjectFamily::Charger);
   chargerFilter->AddAllowedType(ObjectType::Charger_Basic);
   
-  cubesFilter->AddAllowedFamily(ObjectFamily::LightCube);
+  cubesFilter->AddFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
 }
 
 
@@ -65,6 +70,7 @@ BehaviorClearChargerArea::BehaviorClearChargerArea(const Json::Value& config)
 void BehaviorClearChargerArea::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const
 {
   const char* list[] = {
+    kTryToPickUpCubeKey,
     kMaxNumAttemptsKey
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
@@ -75,7 +81,6 @@ void BehaviorClearChargerArea::GetBehaviorJsonKeys(std::set<const char*>& expect
 void BehaviorClearChargerArea::GetAllDelegates(std::set<IBehavior*>& delegates) const
 {
   delegates.insert(_iConfig.pickupBehavior.get());
-  delegates.insert(_iConfig.rollBehavior.get());
   delegates.insert(_iConfig.requestHomeBehavior.get());
 }
 
@@ -90,11 +95,6 @@ void BehaviorClearChargerArea::InitBehavior()
   DEV_ASSERT(_iConfig.pickupBehavior != nullptr,
              "BehaviorClearChargerArea.InitBehavior.NullPickupBehavior");
   
-  BC.FindBehaviorByIDAndDowncast<BehaviorRollBlock>(BEHAVIOR_ID(PlayRollBlock),
-                                                    BEHAVIOR_CLASS(RollBlock),
-                                                    _iConfig.rollBehavior);
-  DEV_ASSERT(_iConfig.rollBehavior != nullptr,
-             "BehaviorClearChargerArea.InitBehavior.NullRollBehavior");
   BC.FindBehaviorByIDAndDowncast<BehaviorRequestToGoHome>(BEHAVIOR_ID(RequestHomeBecauseStuck),
                                                           BEHAVIOR_CLASS(RequestToGoHome),
                                                           _iConfig.requestHomeBehavior);
@@ -116,6 +116,8 @@ bool BehaviorClearChargerArea::WantsToBeActivatedBehavior() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorClearChargerArea::OnBehaviorActivated()
 {
+  LOG_FUNCTION_NAME();
+  
   _dVars = DynamicVariables();
 
   const auto* cube = GetCubeInChargerArea();
@@ -148,6 +150,8 @@ void BehaviorClearChargerArea::OnBehaviorActivated()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorClearChargerArea::TransitionToCheckDockingArea()
 {
+  LOG_FUNCTION_NAME();
+  
   const auto* cube = GetCubeInChargerArea();
   if (cube == nullptr) {
     // Success! Nothing in the way.
@@ -165,77 +169,179 @@ void BehaviorClearChargerArea::TransitionToCheckDockingArea()
     return;
   }
   
-  // Attempt to pick up the cube
+  // Attempt to pick up the cube (if configured to do so)
   const auto& cubeId = cube->GetID();
   _iConfig.pickupBehavior->SetTargetID(cubeId);
   const bool pickupWantsToRun = _iConfig.pickupBehavior->WantsToBeActivated();
-  if (pickupWantsToRun) {
+  if (_iConfig.tryToPickUpCube && pickupWantsToRun) {
     DelegateIfInControl(_iConfig.pickupBehavior.get(),
                         [this]() {
                           if (GetBEI().GetRobotInfo().GetCarryingComponent().IsCarryingObject()) {
                             // Succeeded in picking up cube
                             TransitionToPlacingCubeOnGround();
                           } else {
-                            // We're not carrying a cube for some reason - try rolling the cube
-                            TransitionToRollCube();
+                            // We're not carrying a cube for some reason - try shoving the cube
+                            TransitionToPositionForRamming();
                           }
                         });
   } else {
-    // Pickup does not want to run for some reason. Try rolling.
-    TransitionToRollCube();
+    // Pickup does not want to run for some reason. Try shoving it.
+    TransitionToPositionForRamming();
   }
 
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorClearChargerArea::TransitionToRollCube()
+void BehaviorClearChargerArea::TransitionToPositionForRamming()
 {
+  LOG_FUNCTION_NAME();
+  
   const auto* cube = GetCubeInChargerArea();
   if (cube == nullptr) {
     // Cube no longer interfering. Yay!
     return;
   }
   
-  // Attempt to roll the cube
-  const auto& cubeId = cube->GetID();
-  _iConfig.rollBehavior->SetTargetID(cubeId);
-  const bool rollWantsToRun = _iConfig.rollBehavior->WantsToBeActivated();
-  if (rollWantsToRun) {
-    DelegateIfInControl(_iConfig.rollBehavior.get(),
-                        &BehaviorClearChargerArea::TransitionToCheckDockingArea);
-  } else {
-    PRINT_NAMED_WARNING("BehaviorClearChargerArea.TransitionToRollCube.RollDoesNotWantToRun",
-                        "Roll behavior does not want to run - falling back to charger request behavior");
-    const bool requestWantsToRun = _iConfig.requestHomeBehavior->WantsToBeActivated();
-    if (requestWantsToRun) {
-      DelegateIfInControl(_iConfig.requestHomeBehavior.get());
-    }
+  // From where the robot currently is, see if we are able to shove the block out of the way (i.e. if we shove it from
+  // our current position, it should not hit the charger). Do this by creating a stretched rectangle roughly the width
+  // of the robot and extending it along the path from the robot to the cube (and past the cube), then check if this
+  // rectangle intersects the charger.
+  const auto& robotPose = GetBEI().GetRobotInfo().GetPose();
+  const auto robotX = robotPose.GetTranslation().x();
+  const auto robotY = robotPose.GetTranslation().y();
+  const auto& cubePose = cube->GetPose();
+  const float cubeToRobotAngle = atan2f(cubePose.GetTranslation().y() - robotY,
+                                        cubePose.GetTranslation().x() - robotX);
+  Point2f p1(robotX - 0.5f * ROBOT_BOUNDING_Y * std::sin(cubeToRobotAngle),
+             robotY + 0.5f * ROBOT_BOUNDING_Y * std::cos(cubeToRobotAngle));
+  Point2f p2(robotX + 0.5f * ROBOT_BOUNDING_Y * std::sin(cubeToRobotAngle),
+             robotY - 0.5f * ROBOT_BOUNDING_Y * std::cos(cubeToRobotAngle));
+  
+  const float extDistance_mm = 1000.f;
+  RotatedRectangle rect(p1.x(), p1.y(), p2.x(), p2.y(), extDistance_mm);
+  
+  const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID);
+  if (charger == nullptr) {
+    PRINT_NAMED_ERROR("BehaviorClearChargerArea.TransitionToPositionForRamming.NullCharger", "Null charger!");
+    return;
   }
+  
+  auto* action = new CompoundActionSequential();
+  
+  // First move the lift down, so that the robot can effectively 'shove' it to the side
+  action->AddAction(new MoveLiftToHeightAction(MoveLiftToHeightAction::Preset::LOW_DOCK));
+  
+  const bool shovingPathIntersectsCharger = charger->GetBoundingQuadXY().Intersects(rect.GetQuad());
+  if (shovingPathIntersectsCharger) {
+    // Cannot ram the block, since we would ram it into the charger. Position ourselves to the side of the charger
+    // first before shoving it. Choose the side such that we will shove the cube _away_ from the charger.
+    float cubeToRobotDist_mm = 0.f;
+    if (!ComputeDistanceBetween(robotPose, cubePose, cubeToRobotDist_mm)) {
+      LOG_ERROR("BehaviorClearChargerArea.TransitionToPositionForRamming.ComputeDistanceFailure", "poses not comparable");
+      return;
+    }
+    const auto& chargerPose = charger->GetPose();
+    const float chargerToRobotAngle = atan2f(chargerPose.GetTranslation().y() - robotY,
+                                             chargerPose.GetTranslation().x() - robotX);
+    const float direction = Radians(cubeToRobotAngle - chargerToRobotAngle) < 0.f ? 1.f : -1.f;
+    const float lateralDist_mm = 65.f; // This puts the robot roughly right next to the cube
+    const float turnAngle_rad = cubeToRobotAngle + direction * std::atan(lateralDist_mm / cubeToRobotDist_mm);
+    const float driveDist_mm = std::abs(DRIVE_CENTER_OFFSET) + std::sqrt(cubeToRobotDist_mm * cubeToRobotDist_mm - lateralDist_mm * lateralDist_mm);
+    
+    action->AddAction(new TurnInPlaceAction(turnAngle_rad, true));
+    action->AddAction(new DriveStraightAction(driveDist_mm));
+    action->AddAction(new TurnInPlaceAction(-direction * M_PI_2_F, false));
+  } else {
+    // Just turn toward the cube before ramming it.
+    action->AddAction(new TurnTowardsPoseAction(cubePose));
+  }
+  
+  DelegateIfInControl(action,
+                      &BehaviorClearChargerArea::TransitionToRamCube);
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorClearChargerArea::TransitionToRamCube()
+{
+  LOG_FUNCTION_NAME();
+  
+  const auto* cube = GetCubeInChargerArea();
+  if (cube == nullptr) {
+    // Cube no longer interfering. Yay!
+    return;
+  }
+  
+  const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID);
+  if (charger == nullptr) {
+    PRINT_NAMED_ERROR("BehaviorClearChargerArea.TransitionToRamCube.NullCharger", "Null charger!");
+    return;
+  }
+  
+  const auto& robotPose = GetBEI().GetRobotInfo().GetPose();
+  const auto& cubePose = cube->GetPose();
+  float cubeToRobotDist_mm = 0.f;
+  if (!ComputeDistanceBetween(robotPose, cubePose, cubeToRobotDist_mm)) {
+    LOG_ERROR("BehaviorClearChargerArea.TransitionToRamCube.ComputeDistanceFailure", "poses not comparable");
+    return;
+  }
+  
+  auto* action = new CompoundActionSequential();
+  const float rammingDist_mm = 100.f + cubeToRobotDist_mm;
+  const float backupDist_mm = -50.f;
+  action->AddAction(new DriveStraightAction(rammingDist_mm));
+  action->AddAction(new DriveStraightAction(backupDist_mm));
+  action->AddAction(new VisuallyVerifyObjectAction(cube->GetID()), true); // ignore failure
+  action->AddAction(new TurnTowardsObjectAction(charger->GetID()));
+  DelegateIfInControl(action,
+                      [this](){
+                        // If we still think the block is in front of the charger, then remove it from blockworld.
+                        // Ramming it will have caused its position estimate to get messed up, and we do not want the
+                        // robot to continue to think that the cube is in front of the charger if it's really not.
+                        const auto* cube = GetCubeInChargerArea();
+                        if (cube != nullptr) {
+                          BlockWorldFilter deleteFilter;
+                          deleteFilter.AddAllowedID(cube->GetID());
+                          GetBEI().GetBlockWorld().DeleteLocatedObjects(deleteFilter);
+                        }
+                        TransitionToCheckDockingArea();
+                      });
 }
 
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorClearChargerArea::TransitionToPlacingCubeOnGround()
 {
-  const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID, ObjectFamily::Charger);
+  LOG_FUNCTION_NAME();
+  
+  const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID);
   if (charger == nullptr) {
     PRINT_NAMED_ERROR("BehaviorClearChargerArea.TransitionToPlacingCubeOnGround.NullCharger", "Null charger!");
     return;
   }
   
-  // Place the cube on the ground next to the charger
-  Pose3d cubePlacementPose;
-  cubePlacementPose.SetTranslation(Vec3f(20.f, 100.f, 0.f));
-  cubePlacementPose.SetParent(charger->GetPose());
-  DelegateIfInControl(new PlaceObjectOnGroundAtPoseAction(cubePlacementPose),
+  // Place the cube on the ground next to the charger.
+  // Generate some optional placement poses, and let DriveToPose decide which one is best.
+  const auto& chargerPose = charger->GetPose();
+  std::vector<Pose3d> cubePlacementPoses;
+  cubePlacementPoses.push_back(Pose3d{DEG_TO_RAD( 40.f), Z_AXIS_3D(), {-35.f,  60.f, 0.f}, chargerPose});
+  cubePlacementPoses.push_back(Pose3d{DEG_TO_RAD( 50.f), Z_AXIS_3D(), {-50.f,  65.f, 0.f}, chargerPose});
+  cubePlacementPoses.push_back(Pose3d{DEG_TO_RAD(-40.f), Z_AXIS_3D(), {-35.f, -60.f, 0.f}, chargerPose});
+  cubePlacementPoses.push_back(Pose3d{DEG_TO_RAD(-50.f), Z_AXIS_3D(), {-50.f, -65.f, 0.f}, chargerPose});
+  
+  auto* action = new CompoundActionSequential();
+  action->AddAction(new DriveToPoseAction(cubePlacementPoses));
+  action->AddAction(new PlaceObjectOnGroundAction());
+  
+  DelegateIfInControl(action,
                       [this](ActionResult result) {
                         const auto& robotInfo = GetBEI().GetRobotInfo();
                         if (robotInfo.GetCarryingComponent().IsCarryingObject()) {
                           // Still carrying an object. Simply turn away from the charger
                           // and place it on the ground right there. This will hopefully
                           // get it out of the way.
-                          const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID, ObjectFamily::Charger);
+                          const auto* charger = GetBEI().GetBlockWorld().GetLocatedObjectByID(_dVars.chargerID);
                           if (charger == nullptr) {
                             PRINT_NAMED_ERROR("BehaviorGoHome.TransitionToPlacingCubeOnGroundCallback.NullCharger", "Null charger!");
                             return;
@@ -290,5 +396,5 @@ const ObservableObject* BehaviorClearChargerArea::GetCubeInChargerArea() const
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

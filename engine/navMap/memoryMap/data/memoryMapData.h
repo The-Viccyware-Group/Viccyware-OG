@@ -12,11 +12,12 @@
 #ifndef ANKI_COZMO_MEMORY_MAP_DATA_H
 #define ANKI_COZMO_MEMORY_MAP_DATA_H
 
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "engine/navMap/memoryMap/memoryMapTypes.h"
 #include "util/logging/logging.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // NavMemoryMapQuadData
@@ -32,7 +33,7 @@ public:
   const EContentType type;
 
   // base_of_five_defaults - destructor
-  MemoryMapData(EContentType type = EContentType::Unknown, TimeStamp_t time = 0.f) : MemoryMapData(type, time, false) {}
+  MemoryMapData(EContentType type = EContentType::Unknown, RobotTimeStamp_t time = 0) : MemoryMapData(type, time, false) {}
   MemoryMapData(const MemoryMapData&) = default;
   MemoryMapData(MemoryMapData&&) = default;
   virtual ~MemoryMapData() = default;
@@ -42,13 +43,16 @@ public:
   
   virtual ExternalInterface::ENodeContentTypeEnum GetExternalContentType() const;
   
+  // return true if this type collides with the robot
+  virtual bool IsCollisionType() const { return ((type == EContentType::ObstacleUnrecognized) || (type == EContentType::Cliff)); }
+  
   // compare to MemoryMapData and return bool if the data stored is the same
   virtual bool Equals(const MemoryMapData* other) const { return (type == other->type); }
   
-  void SetLastObservedTime(TimeStamp_t t) {lastObserved_ms = t;}
-  void SetFirstObservedTime(TimeStamp_t t) {firstObserved_ms = t;}
-  TimeStamp_t GetLastObservedTime()  const {return lastObserved_ms;}
-  TimeStamp_t GetFirstObservedTime() const {return firstObserved_ms;}
+  void SetLastObservedTime(RobotTimeStamp_t t) {lastObserved_ms = t;}
+  void SetFirstObservedTime(RobotTimeStamp_t t) {firstObserved_ms = t;}
+  RobotTimeStamp_t GetLastObservedTime()  const {return lastObserved_ms;}
+  RobotTimeStamp_t GetFirstObservedTime() const {return firstObserved_ms;}
   
   // returns true if this node can be replaced by the given content type. Some content type replacement
   // rules depend on whether the quad center is fully contained within the insertion polygon (centerContainedByROI)
@@ -62,7 +66,7 @@ public:
   static MemoryMapDataWrapper<const T> MemoryMapDataCast(MemoryMapDataConstPtr ptr);
   
 protected:
-  MemoryMapData(MemoryMapTypes::EContentType type, TimeStamp_t time, bool calledFromDerived);
+  MemoryMapData(MemoryMapTypes::EContentType type, RobotTimeStamp_t time, bool calledFromDerived);
   
   static bool HandlesType(MemoryMapTypes::EContentType otherType) {
     return (otherType != MemoryMapTypes::EContentType::ObstacleProx) &&
@@ -71,11 +75,11 @@ protected:
   }
 
 private:
-  TimeStamp_t firstObserved_ms;
-  TimeStamp_t lastObserved_ms;
+  RobotTimeStamp_t firstObserved_ms;
+  RobotTimeStamp_t lastObserved_ms;
 };
 
-inline MemoryMapData::MemoryMapData(MemoryMapTypes::EContentType type, TimeStamp_t time, bool expectsAdditionalData)
+inline MemoryMapData::MemoryMapData(MemoryMapTypes::EContentType type, RobotTimeStamp_t time, bool expectsAdditionalData)
   : type(type)
   , firstObserved_ms(time)
   , lastObserved_ms(time) 

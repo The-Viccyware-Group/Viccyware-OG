@@ -15,12 +15,12 @@
 */
 #include "anki/cozmo/shared/cozmoConfig.h"
 #include "cozmoAnim/faceDisplay/faceInfoScreen.h"
-#include "coretech/common/engine/math/rect_impl.h"
+#include "coretech/common/shared/math/rect.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "coretech/vision/engine/image.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 FaceInfoScreen::FaceInfoScreen(ScreenName name,
@@ -48,11 +48,9 @@ void FaceInfoScreen::EnterScreen()
 {
   _menuCursor = 0;
   
-  // Only set timeout if the timeoutDuration is non-zero and the timeout screen
-  // is different from the current screen.
-  if (_timeoutDuration_s > 0.f && _timeoutScreen != _name) {
-    const auto currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-    _timeout_s = currTime_s + _timeoutDuration_s;
+  // Only set timeout if the timeout screen is different from the current screen.
+  if (_timeoutScreen != _name) {
+    RestartTimeout();
   }
 
   if (_enterAction) {
@@ -62,6 +60,8 @@ void FaceInfoScreen::EnterScreen()
 
 void FaceInfoScreen::ExitScreen()
 {
+  _menuCursor = 0;
+  
   if (_exitAction) {
     _exitAction();
   }
@@ -82,6 +82,14 @@ void FaceInfoScreen::SetTimeout(f32 seconds, ScreenName gotoScreen)
   _timeoutScreen = gotoScreen;
 }
   
+void FaceInfoScreen::RestartTimeout()
+{
+  if (_timeoutDuration_s > 0.f) {
+    const auto currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    _timeout_s = currTime_s + _timeoutDuration_s;
+  }
+}
+  
 void FaceInfoScreen::AppendMenuItem(const std::string& text, ScreenName gotoScreen)
 {
   AppendMenuItem(text, [gotoScreen](){ return gotoScreen;});
@@ -91,8 +99,8 @@ void FaceInfoScreen::AppendMenuItem(const std::string& text, MenuItemAction acti
 {
   _menu.emplace_back(text, action);
 }
-  
-void FaceInfoScreen::DrawMenu(Vision::ImageRGB565& img) const
+
+void FaceInfoScreen::DrawMenuVertical(Vision::ImageRGB565& img) const
 {
   const ColorRGBA& menuBgColor = NamedColors::BLACK;
   const ColorRGBA& menuItemColor = NamedColors::WHITE;
@@ -125,6 +133,57 @@ void FaceInfoScreen::DrawMenu(Vision::ImageRGB565& img) const
     }
   }
 }
+
+void FaceInfoScreen::DrawMenuHorizontal(Vision::ImageRGB565& img) const
+{
+  const ColorRGBA& menuBgColor = NamedColors::BLACK;
+  const ColorRGBA& menuItemColor = NamedColors::WHITE;
+  const f32 stepY = 11;
+  const f32 textScale = 0.4f;
+
+  f32 locY = stepY;
+  for (auto& text : _staticText) {
+    img.DrawText({0,locY}, text, menuItemColor, textScale);
+    locY += stepY;
+  }
+  
+  if (HasMenu()) {
+    // Draw menu items (bottom)
+    locY = FACE_DISPLAY_HEIGHT-1;
+    s32 menus = static_cast<s32>(_menu.size());
+
+    ASSERT_NAMED(menus <= 3, "More than 3 menus in same row is probably a bad idea");
+    
+    s32 blocks = menus;
+    f32 blockSize = FACE_DISPLAY_WIDTH / blocks;
+    s32 blockDrawn = 1;
+
+    // Clear background
+    const Rectangle<f32> rect(0.f, FACE_DISPLAY_HEIGHT -stepY, FACE_DISPLAY_WIDTH, stepY);
+    img.DrawFilledRect(rect, menuBgColor);
+
+    for (s32 i = menus - 1; i >= 0; --i) {
+      f32 x = (FACE_DISPLAY_WIDTH - (blockSize * blockDrawn));
+      f32 y = locY;
+
+      // Draw menu item text
+      if (_menuCursor == i) img.DrawText({x, y}, ">", menuItemColor, textScale);
+      img.DrawText({x + 10, y}, _menu[i].text, menuItemColor, textScale);
+      blockDrawn++;
+    }
+  }
+}
+
+void FaceInfoScreen::DrawMenu(Vision::ImageRGB565& img) const 
+{
+  if (IsXray()) {
+    DrawMenuHorizontal(img);
+  } else {
+    DrawMenuVertical(img);
+  }
+}
+
+
 
 bool FaceInfoScreen::HasMenu() const
 {
@@ -159,5 +218,5 @@ ScreenName FaceInfoScreen::ConfirmMenuItemAndGetNextScreen()
   return item.action();
 }
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

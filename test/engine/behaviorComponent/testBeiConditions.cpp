@@ -18,7 +18,7 @@
 #define protected public
 
 #include "clad/types/behaviorComponent/behaviorTimerTypes.h"
-#include "clad/types/behaviorComponent/userIntent.h"
+#include "clad/types/featureGateTypes.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
@@ -33,10 +33,12 @@
 #include "engine/aiComponent/beiConditions/conditions/conditionUnitTest.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionUserIntentPending.h"
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
+#include "engine/components/habitatDetectorComponent.h"
 #include "engine/components/visionComponent.h"
 #include "engine/cozmoContext.h"
+#include "engine/faceWorld.h"
 #include "engine/moodSystem/moodManager.h"
-#include "engine/components/batteryComponent.h"
+#include "engine/components/battery/batteryComponent.h"
 #include "engine/robot.h"
 #include "test/engine/helpers/cubePlacementHelper.h"
 #include "engine/utils/cozmoFeatureGate.h"
@@ -45,13 +47,13 @@
 #include "util/console/consoleInterface.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 CONSOLE_VAR_EXTERN(float, kTimeMultiplier);
 }
 }
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 
 
@@ -120,7 +122,7 @@ TEST(BeiConditions, TestBEIConditionFactory)
             "customCondition": "cond2"
           }
         ]
-      },      
+      },
       {
         "and": [
           {
@@ -153,7 +155,7 @@ TEST(BeiConditions, TestBEIConditionFactory)
   CreateBEI(complexJson, compound);
 
   ASSERT_TRUE( compound != nullptr );
-  
+
   compound->Init(bei);
   compound->SetActive(bei, true);
   EXPECT_FALSE( compound->AreConditionsMet(bei) );
@@ -165,7 +167,7 @@ TEST(BeiConditions, TestBEIConditionFactory)
   EXPECT_FALSE( compound->AreConditionsMet(bei) );
 
   handles.clear();
-  EXPECT_FALSE( compound->AreConditionsMet(bei) );  
+  EXPECT_FALSE( compound->AreConditionsMet(bei) );
 }
 
 TEST(BeiConditions, TestUnitTestCondition)
@@ -214,7 +216,7 @@ TEST(BeiConditions, TestUnitTestCondition)
 TEST(BeiConditions, CreateLambda)
 {
   bool val = false;
-  
+
   auto cond = std::make_shared<ConditionLambda>(
     [&val](BehaviorExternalInterface& behaviorExternalInterface) {
       return val;
@@ -227,7 +229,7 @@ TEST(BeiConditions, CreateLambda)
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
   // don't call init, should be ok if no one uses it
   // bei.Init();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
 
@@ -245,7 +247,7 @@ TEST(BeiConditions, True)
 {
   const std::string json = R"json(
   {
-    "conditionType": "TrueCondition" 
+    "conditionType": "TrueCondition"
   })json";
 
   IBEIConditionPtr cond;
@@ -254,7 +256,7 @@ TEST(BeiConditions, True)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
 
@@ -315,12 +317,12 @@ TEST(BeiConditions, Emotion)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   Robot& robot = testBehaviorFramework.GetRobot();
   BEIRobotInfo info(robot);
   MoodManager moodManager;
   InitBEIPartial( { {BEIComponentID::MoodManager, &moodManager}, {BEIComponentID::RobotInfo, &info} }, bei );
-  
+
   // max
   condMax->Init(bei);
   condMax->SetActive(bei, true);
@@ -329,7 +331,7 @@ TEST(BeiConditions, Emotion)
   EXPECT_TRUE( condMax->AreConditionsMet(bei) );
   moodManager.SetEmotion(EmotionType::Confident, 1.0f);
   EXPECT_FALSE( condMax->AreConditionsMet(bei) );
-  
+
   // min
   condMin->Init(bei);
   condMin->SetActive(bei, true);
@@ -337,7 +339,7 @@ TEST(BeiConditions, Emotion)
   EXPECT_FALSE( condMin->AreConditionsMet(bei) );
   moodManager.SetEmotion(EmotionType::Confident, 1.0f);
   EXPECT_TRUE( condMin->AreConditionsMet(bei) );
-  
+
   // range
   condRange->Init(bei);
   condRange->SetActive(bei, true);
@@ -347,7 +349,7 @@ TEST(BeiConditions, Emotion)
   EXPECT_FALSE( condRange->AreConditionsMet(bei) );
   moodManager.SetEmotion(EmotionType::Confident, -0.6f);
   EXPECT_TRUE( condRange->AreConditionsMet(bei) );
-  
+
   // value
   condValue->Init(bei);
   condValue->SetActive(bei, true);
@@ -355,7 +357,7 @@ TEST(BeiConditions, Emotion)
   EXPECT_FALSE( condValue->AreConditionsMet(bei) );
   moodManager.SetEmotion(EmotionType::Confident, -0.330001f);
   EXPECT_TRUE( condValue->AreConditionsMet(bei) );
-  
+
   // stim
   condStim->Init(bei);
   condStim->SetActive(bei, true);
@@ -368,7 +370,7 @@ TEST(BeiConditions, Emotion)
 TEST(BeiConditions, SimpleMood)
 {
   BaseStationTimer::getInstance()->UpdateTime( 0 );
-  
+
   const std::string jsonMood = R"json(
   {
     "conditionType": "SimpleMood",
@@ -403,12 +405,12 @@ TEST(BeiConditions, SimpleMood)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   Robot& robot = testBehaviorFramework.GetRobot();
   BEIRobotInfo info(robot);
   MoodManager moodManager;
   InitBEIPartial( { {BEIComponentID::MoodManager, &moodManager}, {BEIComponentID::RobotInfo, &info} }, bei );
-  
+
   // whenever SimpleMood definitions change significantly, this test might fail,
   // so change stimulation with these to be in the mid-range of each definition to reduce
   // the chance they need changing again
@@ -417,7 +419,7 @@ TEST(BeiConditions, SimpleMood)
   const float highStim = 1.0f;
   const float notFrustrated = 1.0f;
   const float frustrated = -0.5f;
-  
+
   double gCurrentTime = 0.0; // Fake time for update calls
   auto tickMoodManager = [&](uint32_t numTicks) {
     const double kTickTimestep = 0.01;
@@ -429,21 +431,21 @@ TEST(BeiConditions, SimpleMood)
       moodManager.UpdateDependent(dependencies);
     }
   };
-  
+
   moodManager.SetEmotion(EmotionType::Stimulated, lowStim);
   moodManager.SetEmotion(EmotionType::Confident, notFrustrated);
-  
+
   tickMoodManager( 1 );
-  
+
   // check mood
   condMood->Init(bei);
   condMood->SetActive(bei, true);
   EXPECT_FALSE( condMood->AreConditionsMet(bei) );
   moodManager.SetEmotion(EmotionType::Stimulated, medStim);
   EXPECT_TRUE( condMood->AreConditionsMet(bei) );
-  
+
   tickMoodManager( 2 );
-  
+
   // check transition
   condTrans->Init(bei);
   condTrans->SetActive(bei, true);
@@ -454,7 +456,7 @@ TEST(BeiConditions, SimpleMood)
   moodManager.SetEmotion(EmotionType::Stimulated, medStim);
   tickMoodManager( 1 );
   EXPECT_FALSE( condTrans->AreConditionsMet(bei) ); // high->med, wrong transition
-  
+
   // check transition from any
   condTransFromAny->Init(bei);
   condTransFromAny->SetActive(bei, true);
@@ -471,7 +473,7 @@ TEST(BeiConditions, SimpleMood)
   moodManager.SetEmotion(EmotionType::Stimulated, highStim);
   tickMoodManager( 1 );
   EXPECT_TRUE( condTransFromAny->AreConditionsMet(bei) ); // med->high also a correct transition
-  
+
   // check transition to any
   condTransToAny->Init(bei);
   condTransToAny->SetActive(bei, true);
@@ -493,7 +495,7 @@ TEST(BeiConditions, Timer)
   const float oldVal = kTimeMultiplier;
   kTimeMultiplier = 1.0f;
   BaseStationTimer::getInstance()->UpdateTime(0);
-  
+
   const std::string json = R"json(
   {
     "conditionType": "TimerInRange",
@@ -553,7 +555,7 @@ TEST(BeiConditions, Timer)
 
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime_s + 80.0f));
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   kTimeMultiplier = oldVal;
 }
 
@@ -642,7 +644,7 @@ TEST(BeiConditions, CompoundAnd)
   EXPECT_EQ(subCond2->_initCount, 1);
   EXPECT_EQ(subCond2->_setActiveCount, 1);
   EXPECT_EQ(subCond2->_areMetCount, 0);
-  
+
   subCond1->_val = true;
   subCond2->_val = true;
 
@@ -665,11 +667,11 @@ TEST(BeiConditions, CompoundAnd)
   subCond1->_val = true;
   subCond2->_val = false;
   EXPECT_FALSE(cond->AreConditionsMet(bei));
-  
+
   subCond1->_val = false;
   subCond2->_val = true;
   EXPECT_FALSE(cond->AreConditionsMet(bei));
-  
+
   subCond1->_val = false;
   subCond2->_val = false;
   EXPECT_FALSE(cond->AreConditionsMet(bei));
@@ -708,7 +710,7 @@ TEST(BeiConditions, CompoundOr)
   EXPECT_EQ(subCond2->_initCount, 1);
   EXPECT_EQ(subCond2->_setActiveCount, 1);
   EXPECT_EQ(subCond2->_areMetCount, 0);
-  
+
   subCond1->_val = true;
   subCond2->_val = true;
 
@@ -731,11 +733,11 @@ TEST(BeiConditions, CompoundOr)
   subCond1->_val = true;
   subCond2->_val = false;
   EXPECT_TRUE(cond->AreConditionsMet(bei));
-  
+
   subCond1->_val = false;
   subCond2->_val = true;
   EXPECT_TRUE(cond->AreConditionsMet(bei));
-  
+
   subCond1->_val = false;
   subCond2->_val = false;
   EXPECT_FALSE(cond->AreConditionsMet(bei));
@@ -758,7 +760,7 @@ TEST(BeiConditions, CompoundNotJson)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
 
@@ -777,7 +779,7 @@ TEST(BeiConditions, CompoundAndJson)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   // true && true
   {
     const std::string json = R"json(
@@ -795,7 +797,7 @@ TEST(BeiConditions, CompoundAndJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_TRUE( cond->AreConditionsMet(bei) );
@@ -817,7 +819,7 @@ TEST(BeiConditions, CompoundAndJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_FALSE( cond->AreConditionsMet(bei) );
@@ -839,12 +841,12 @@ TEST(BeiConditions, CompoundAndJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_FALSE( cond->AreConditionsMet(bei) );
   }
-  
+
 }
 
 TEST(BeiConditions, CompoundOrJson)
@@ -852,7 +854,7 @@ TEST(BeiConditions, CompoundOrJson)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   // true || true
   {
     const std::string json = R"json(
@@ -870,7 +872,7 @@ TEST(BeiConditions, CompoundOrJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_TRUE( cond->AreConditionsMet(bei) );
@@ -892,7 +894,7 @@ TEST(BeiConditions, CompoundOrJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_TRUE( cond->AreConditionsMet(bei) );
@@ -914,7 +916,7 @@ TEST(BeiConditions, CompoundOrJson)
 
     IBEIConditionPtr cond;
     CreateBEI(json, cond);
-    
+
     cond->Init(bei);
     cond->SetActive(bei, true);
     EXPECT_FALSE( cond->AreConditionsMet(bei) );
@@ -926,7 +928,7 @@ TEST(BeiConditions, CompoundComplex)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
 
   const std::string json = R"json(
   {
@@ -957,7 +959,7 @@ TEST(BeiConditions, CompoundComplex)
 
   IBEIConditionPtr cond;
   CreateBEI(json, cond);
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
@@ -967,9 +969,9 @@ TEST(BeiConditions, NegateTimerInRange)
 {
   const float oldVal = kTimeMultiplier;
   kTimeMultiplier = 1.0f;
-  
+
   BaseStationTimer::getInstance()->UpdateTime(0);
-  
+
   const std::string json = R"json(
   {
     "conditionType": "Compound",
@@ -1032,7 +1034,7 @@ TEST(BeiConditions, NegateTimerInRange)
 
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime_s + 80.0f));
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   kTimeMultiplier = oldVal;
 }
 
@@ -1052,10 +1054,10 @@ TEST(BeiConditions, OnCharger)
 
   TestBehaviorFramework tbf(1, nullptr);
   Robot& robot = tbf.GetRobot();
-  
+
   BEIRobotInfo info(robot);
   InitBEIPartial( { {BEIComponentID::RobotInfo, &info} }, bei );
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
 
@@ -1064,16 +1066,46 @@ TEST(BeiConditions, OnCharger)
   robot.GetBatteryComponent().SetOnChargeContacts(true);
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   robot.GetBatteryComponent().SetOnChargeContacts(false);
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
+  EXPECT_FALSE( cond->AreConditionsMet(bei) );
+}
+
+
+TEST(BeiConditions, RobotInHabitat)
+{
+  BaseStationTimer::getInstance()->UpdateTime(0);
+
+  const std::string json = R"json(
+  {
+    "conditionType": "RobotInHabitat"
+  })json";
+
+  IBEIConditionPtr cond;
+  CreateBEI(json, cond);
+
+  TestBehaviorFramework testBehaviorFramework(1, nullptr);
+  testBehaviorFramework.InitializeStandardBehaviorComponent();
+  BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
+
+  cond->Init(bei);
+  cond->SetActive(bei, true);
+
+  bei.GetHabitatDetectorComponent().ForceSetHabitatBeliefState(HabitatBeliefState::InHabitat, "UnitTest");
+  EXPECT_TRUE( cond->AreConditionsMet(bei) );
+
+  bei.GetHabitatDetectorComponent().ForceSetHabitatBeliefState(HabitatBeliefState::NotInHabitat, "UnitTest");
+  EXPECT_FALSE( cond->AreConditionsMet(bei) );
+
+  bei.GetHabitatDetectorComponent().ForceSetHabitatBeliefState(HabitatBeliefState::Unknown, "UnitTest");
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
 }
 
 TEST(BeiConditions, TimedDedup)
 {
   BaseStationTimer::getInstance()->UpdateTime(0);
-  
+
   const std::string json = R"json(
   {
     "conditionType": "TimedDedup",
@@ -1110,31 +1142,31 @@ TEST(BeiConditions, TimedDedup)
 TEST(BeiConditions, TriggerWordPending)
 {
   BaseStationTimer::getInstance()->UpdateTime(0);
-  
+
   const std::string json = R"json(
   {
     "conditionType": "TriggerWordPending"
   })json";
-  
+
   IBEIConditionPtr cond;
   CreateBEI(json, cond);
-  
+
   TestBehaviorFramework tbf(1, nullptr);
   tbf.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = tbf.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
-  
+
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   auto& uic = bei.GetAIComponent().GetComponent<BehaviorComponent>().GetComponent<UserIntentComponent>();
-  uic.SetTriggerWordPending();
+  uic.SetTriggerWordPending(true);
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  uic.SetTriggerWordPending();
+  uic.SetTriggerWordPending(true);
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   uic.ClearPendingTriggerWord();
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
@@ -1143,7 +1175,7 @@ TEST(BeiConditions, TriggerWordPending)
 TEST(BeiConditions, UserIntentPending)
 {
   BaseStationTimer::getInstance()->UpdateTime(0);
-  
+
   const std::string json = R"json(
   {
     "conditionType": "UserIntentPending",
@@ -1175,86 +1207,86 @@ TEST(BeiConditions, UserIntentPending)
   // (3) test_name           matches the tag and name must strictly be empty
   // (4) test_timeWithUnits  matches the tag and and data
   // (5) test_name           matches the tag and lambda must eval (name must be Victor)
-  
+
   IBEIConditionPtr ptr;
   std::shared_ptr<ConditionUserIntentPending> cond;
   CreateBEI( json, ptr );
   cond = std::dynamic_pointer_cast<ConditionUserIntentPending>(ptr);
   ASSERT_NE( cond, nullptr );
-  
+
   TestBehaviorFramework tbf(1, nullptr);
   tbf.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = tbf.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
-  
+
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   auto& uic = bei.GetAIComponent().GetComponent<BehaviorComponent>().GetComponent<UserIntentComponent>();
-  
+
   // (1) test_user_intent_1  matches the tag
-  
+
   uic.SetUserIntentPending( USER_INTENT(test_user_intent_1) , UserIntentSource::Voice);  // right intent
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
   EXPECT_EQ( cond->GetUserIntentTagSelected(), USER_INTENT(test_user_intent_1) );
-  
-  
+
+
   uic.DropUserIntent( USER_INTENT(test_user_intent_1) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) ); // no intent
-  
+
   UserIntent_Test_TimeWithUnits timeWithUnits;
-  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits)) , UserIntentSource::Voice);
   EXPECT_FALSE( cond->AreConditionsMet(bei) ); // wrong intent
   uic.DropUserIntent( USER_INTENT(test_timeWithUnits) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) ); // no intent
-  
+
   // (2) set_timer  matches the tag
-  
+
   UserIntent_TimeInSeconds timeInSeconds1; // default
   UserIntent_TimeInSeconds timeInSeconds2{10}; // non default
-  uic.SetUserIntentPending( UserIntent::Createset_timer(std::move(timeInSeconds1)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createset_timer(std::move(timeInSeconds1)) , UserIntentSource::Voice);
   EXPECT_TRUE( cond->AreConditionsMet(bei) ); // correct intent
   EXPECT_EQ( cond->GetUserIntentTagSelected(), USER_INTENT(set_timer) );
   uic.DropUserIntent( USER_INTENT(set_timer) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  uic.SetUserIntentPending( UserIntent::Createset_timer(std::move(timeInSeconds2)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createset_timer(std::move(timeInSeconds2)) , UserIntentSource::Voice);
   EXPECT_TRUE( cond->AreConditionsMet(bei) ); // correct intent
   EXPECT_EQ( cond->GetUserIntentTagSelected(), USER_INTENT(set_timer) );
   uic.DropUserIntent( USER_INTENT(set_timer) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   // (3) test_name           matches the tag and name must strictly be empty
-  
+
   UserIntent_Test_Name name1; // default
   UserIntent_Test_Name name2{"whizmo"}; // non default
-  uic.SetUserIntentPending( UserIntent::Createtest_name(std::move(name1)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createtest_name(std::move(name1)) , UserIntentSource::Voice);
   EXPECT_TRUE( cond->AreConditionsMet(bei) ); // correct intent
   EXPECT_EQ( cond->GetUserIntentTagSelected(), USER_INTENT(test_name) );
   uic.DropUserIntent( USER_INTENT(test_name) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  uic.SetUserIntentPending( UserIntent::Createtest_name(std::move(name2)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createtest_name(std::move(name2)) , UserIntentSource::Voice);
   EXPECT_FALSE( cond->AreConditionsMet(bei) ); // wrong intent
   uic.DropUserIntent( USER_INTENT(test_name) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   // (4) test_timeWithUnits  matches the tag and data (60mins)
-  
+
   UserIntent_Test_TimeWithUnits timeWithUnits1{60, UserIntent_Test_Time_Units::m};
   UserIntent_Test_TimeWithUnits timeWithUnits2{20, UserIntent_Test_Time_Units::m};
-  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits1)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits1)) , UserIntentSource::Voice);
   EXPECT_TRUE( cond->AreConditionsMet(bei) ); // correct intent
   EXPECT_EQ( cond->GetUserIntentTagSelected(), USER_INTENT(test_timeWithUnits) );
   uic.DropUserIntent( USER_INTENT(test_timeWithUnits) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits2)) , UserIntentSource::Voice); 
+  uic.SetUserIntentPending( UserIntent::Createtest_timeWithUnits(std::move(timeWithUnits2)) , UserIntentSource::Voice);
   EXPECT_FALSE( cond->AreConditionsMet(bei) ); // wrong data
   uic.DropUserIntent( USER_INTENT(test_timeWithUnits) );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   // (5) test_name           matches the tag and lambda must eval (name must be Victor)
-  
+
   UserIntent name5;
   name5.Set_test_name( UserIntent_Test_Name{"Victor"} );
   uic.SetUserIntentPending( std::move(name5) , UserIntentSource::Voice);  // right intent with right data
@@ -1279,7 +1311,7 @@ TEST(BeiConditions, ConsoleVar)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
 
@@ -1295,10 +1327,10 @@ TEST(BeiConditions, ConsoleVar)
 TEST(BeiConditions, BehaviorTimer)
 {
   BaseStationTimer::getInstance()->UpdateTime(0.0);
-  
+
   const float oldVal = kTimeMultiplier;
   kTimeMultiplier = 1.0f;
-  
+
   const std::string json = R"json(
   {
     "conditionType": "BehaviorTimer",
@@ -1312,47 +1344,47 @@ TEST(BeiConditions, BehaviorTimer)
   TestBehaviorFramework testBehaviorFramework(1, nullptr);
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
-  
+
   // never been reset before
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   double resetTime1 = 2.0;
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime1));
-  
+
   // never been reset before
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   bei.GetBehaviorTimerManager().GetTimer( BehaviorTimerTypes::FistBump ).Reset();
-  
+
   // has been reset, no time elapsed
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   // prior to expiration
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime1 + 14.9999));
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   // just past expiration
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime1 + 15.0001));
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
 
   // works a second time
-  
+
   double resetTime2 = resetTime1 + 16.0001; // still valid after first timer
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime2));
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   bei.GetBehaviorTimerManager().GetTimer( BehaviorTimerTypes::FistBump ).Reset();
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime2 + 14.9999));
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   BaseStationTimer::getInstance()->UpdateTime(Util::SecToNanoSec(resetTime2 + 15.0001));
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   kTimeMultiplier = oldVal;
 }
 
@@ -1370,19 +1402,19 @@ TEST(BeiConditions, FeatureGate)
   TestBehaviorFramework testBehaviorFramework;
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+
   const auto feature = FeatureType::Exploring;
   bool oldVal = bei.GetRobotInfo().GetContext()->GetFeatureGate()->IsFeatureEnabled( feature );
-  
+
   cond->Init(bei);
   cond->SetActive(bei, true);
-  
+
   bei.GetRobotInfo().GetContext()->GetFeatureGate()->SetFeatureEnabled( feature, true );
   EXPECT_TRUE( cond->AreConditionsMet(bei) );
-  
+
   bei.GetRobotInfo().GetContext()->GetFeatureGate()->SetFeatureEnabled( feature, false );
   EXPECT_FALSE( cond->AreConditionsMet(bei) );
-  
+
   bei.GetRobotInfo().GetContext()->GetFeatureGate()->SetFeatureEnabled( feature, oldVal );
 }
 
@@ -1395,80 +1427,172 @@ TEST(BeiConditions, ObjectKnown)
     "conditionType": "ObjectKnown",
     "objectTypes": ["Block_LIGHTCUBE1"]
   })json";
-  
+
   const std::string jsonInitialTick = R"json(
   {
     "conditionType": "ObjectKnown",
     "objectTypes": ["Block_LIGHTCUBE1"],
     "maxAge_ms": 0
   })json";
-  
+
   const std::string jsonTick1000 = R"json(
   {
     "conditionType": "ObjectKnown",
     "objectTypes": ["Block_LIGHTCUBE1"],
     "maxAge_ms": 1000
   })json";
-  
-  // dont start at tick 0 since that is reserved by blockworld
-  float engineTime_ns = 5e6; // 5ms
-  BaseStationTimer::getInstance()->UpdateTime( engineTime_ns );
-  
+
   IBEIConditionPtr condAnyAge;
   IBEIConditionPtr condInitialTick;
   IBEIConditionPtr cond1000Ms;
   CreateBEI(jsonAnyAge, condAnyAge);
   CreateBEI(jsonInitialTick, condInitialTick);
   CreateBEI(jsonTick1000, cond1000Ms);
-  
+
   TestBehaviorFramework testBehaviorFramework;
   testBehaviorFramework.InitializeStandardBehaviorComponent();
   BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
-  
+  auto& robot = testBehaviorFramework.GetRobot();
+
+  // dont start at tick 0 since that is reserved by blockworld
+  robot._lastMsgTimestamp = 5; // 5ms
+
   condAnyAge->Init(bei);
   condInitialTick->Init(bei);
   cond1000Ms->Init(bei);
   condAnyAge->SetActive(bei, true);
   condInitialTick->SetActive(bei, true);
   cond1000Ms->SetActive(bei, true);
-  
+
   EXPECT_FALSE( condAnyAge->AreConditionsMet(bei) );
   EXPECT_FALSE( condInitialTick->AreConditionsMet(bei) );
   EXPECT_FALSE( cond1000Ms->AreConditionsMet(bei) );
-  
+
   // put a cube in front of the robot
-  auto& robot = testBehaviorFramework.GetRobot();
-  Block_Cube1x1 testCube(testType);
   ObservableObject* object1 = CubePlacementHelper::CreateObjectLocatedAtOrigin(robot, testType);
   ASSERT_TRUE(nullptr != object1);
-  ObjectID objID1 = object1->GetID();
+
   const Pose3d obj1Pose(0.0f, Z_AXIS_3D(), {100, 0, 0}, robot.GetPose());
-  auto result = robot.GetObjectPoseConfirmer().AddRobotRelativeObservation(object1, obj1Pose, PoseState::Known);
+  object1->_lastObservedTime = (TimeStamp_t)robot._lastMsgTimestamp;
+  auto result = robot.GetBlockWorld().SetObjectPose(object1->GetID(), obj1Pose, PoseState::Known);
   ASSERT_EQ(RESULT_OK, result);
-  
-  // lazy man's marker observation
-  robot.GetBlockWorld()._currentObservedMarkerTimestamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
-  
+
   EXPECT_TRUE( condAnyAge->AreConditionsMet(bei) );
   EXPECT_TRUE( condInitialTick->AreConditionsMet(bei) );
   EXPECT_TRUE( cond1000Ms->AreConditionsMet(bei) );
-  
-  float incrementEngineTime_ns = 1.004e9f; // 1004 ms (was first observed at 5ms)
-  BaseStationTimer::getInstance()->UpdateTime(incrementEngineTime_ns);
-  robot.GetBlockWorld()._currentObservedMarkerTimestamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
-  
+
+  robot._lastMsgTimestamp = 1004; // 1004 ms (was first observed at 5ms)
+
   EXPECT_TRUE( condAnyAge->AreConditionsMet(bei) );
   EXPECT_FALSE( condInitialTick->AreConditionsMet(bei) );
   EXPECT_TRUE( cond1000Ms->AreConditionsMet(bei) );
-  
-  incrementEngineTime_ns = 1.006e9f; // 1006 ms (was first observed at 5ms)
-  BaseStationTimer::getInstance()->UpdateTime(incrementEngineTime_ns);
-  robot.GetBlockWorld()._currentObservedMarkerTimestamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
-  
+
+  robot._lastMsgTimestamp = 1006; // 1006 ms (was first observed at 5ms)
+
   EXPECT_TRUE( condAnyAge->AreConditionsMet(bei) );
   EXPECT_FALSE( condInitialTick->AreConditionsMet(bei) );
   EXPECT_FALSE( cond1000Ms->AreConditionsMet(bei) );
-  
 }
 
 
+TEST(BeiConditions, FaceKnown)
+{
+  TestBehaviorFramework testBehaviorFramework;
+  testBehaviorFramework.InitializeStandardBehaviorComponent();
+  BehaviorExternalInterface& bei = testBehaviorFramework.GetBehaviorExternalInterface();
+  auto& robot = testBehaviorFramework.GetRobot();
+
+  const std::string jsonDefault = R"json(
+  {
+    "conditionType": "FaceKnown"
+  })json";
+  const std::string jsonMaxDist400mm = R"json(
+  {
+    "conditionType": "FaceKnown",
+    "maxFaceDist_mm" : 400
+  })json";
+  const std::string jsonMaxAge10sec = R"json(
+  {
+    "conditionType": "FaceKnown",
+    "maxFaceAge_s" : 10
+  })json";
+  const std::string jsonMustBeNamed = R"json(
+  {
+    "conditionType": "FaceKnown",
+    "mustBeNamed" : true
+  })json";
+
+  // create conditions
+  IBEIConditionPtr condDefault;        CreateBEI(jsonDefault, condDefault);
+  IBEIConditionPtr condMaxDist400mm;   CreateBEI(jsonMaxDist400mm, condMaxDist400mm);
+  IBEIConditionPtr condMaxAge10sec;    CreateBEI(jsonMaxAge10sec, condMaxAge10sec);
+  IBEIConditionPtr condMustBeNamed;    CreateBEI(jsonMustBeNamed, condMustBeNamed);
+
+  // init and activate
+  condDefault->Init(bei);       condDefault->SetActive(bei, true);
+  condMaxDist400mm->Init(bei);  condMaxDist400mm->SetActive(bei, true);
+  condMaxAge10sec->Init(bei);   condMaxAge10sec->SetActive(bei, true);
+  condMustBeNamed->Init(bei);   condMustBeNamed->SetActive(bei, true);
+
+  EXPECT_FALSE(condDefault->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_FALSE(condMustBeNamed->AreConditionsMet(bei));
+
+  robot.GetVisionComponent()._lastProcessedImageTimeStamp_ms = 1000;
+
+  // Fake an unnamed face observation at 1000 ms, 200 mm from robot.
+  Vision::TrackedFace face1;
+  face1.SetTimeStamp(1000);
+  face1.SetID(1);
+  Pose3d facePose;
+  facePose.SetParent(robot.GetComponent<FullRobotPose>()._pose);
+  facePose.SetTranslation(Vec3f(200, 0, 0));
+  face1.SetHeadPose(facePose);
+  FaceWorld::FaceEntry face1Entry(face1);
+  robot.GetFaceWorld()._faceEntries.insert({1, face1Entry});
+
+  EXPECT_TRUE(condDefault->AreConditionsMet(bei));
+  EXPECT_TRUE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_TRUE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_FALSE(condMustBeNamed->AreConditionsMet(bei));
+
+  // Update the robot's time to 5000 ms.
+  robot.GetVisionComponent()._lastProcessedImageTimeStamp_ms = 5000;
+
+  // Move the face to 401 mm from robot.
+  facePose.SetTranslation(Vec3f(401, 0, 0));
+  face1.SetHeadPose(facePose);
+  face1Entry = FaceWorld::FaceEntry(face1);
+  robot.GetFaceWorld()._faceEntries.clear();
+  robot.GetFaceWorld()._faceEntries.insert({1, face1Entry});
+
+  EXPECT_TRUE(condDefault->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_TRUE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_FALSE(condMustBeNamed->AreConditionsMet(bei));
+
+  // Update the robot's time to 11001 ms.
+  robot.GetVisionComponent()._lastProcessedImageTimeStamp_ms = 11001;
+
+  EXPECT_TRUE(condDefault->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_FALSE(condMustBeNamed->AreConditionsMet(bei));
+
+  // Add a name to the existing face
+  robot.GetFaceWorld()._faceEntries.begin()->second.face.SetName("Bob");
+
+  EXPECT_TRUE(condDefault->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_TRUE(condMustBeNamed->AreConditionsMet(bei));
+
+  // Remove the face
+  robot.GetFaceWorld()._faceEntries.clear();
+
+  EXPECT_FALSE(condDefault->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxDist400mm->AreConditionsMet(bei));
+  EXPECT_FALSE(condMaxAge10sec->AreConditionsMet(bei));
+  EXPECT_FALSE(condMustBeNamed->AreConditionsMet(bei));
+}

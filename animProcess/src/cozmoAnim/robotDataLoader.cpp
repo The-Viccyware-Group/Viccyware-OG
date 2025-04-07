@@ -18,7 +18,6 @@
 
 #include "cannedAnimLib/cannedAnims/animation.h"
 #include "cannedAnimLib/cannedAnims/cannedAnimationContainer.h"
-#include "cannedAnimLib/cannedAnims/cannedAnimationLoader.h"
 #include "cannedAnimLib/baseTypes/cozmo_anim_generated.h"
 #include "coretech/vision/shared/spriteSequence/spriteSequenceContainer.h"
 #include "cannedAnimLib/spriteSequences/spriteSequenceLoader.h"
@@ -26,6 +25,11 @@
 //#include "anki/cozmo/basestation/animations/animationTransfer.h"
 #include "cozmoAnim/animContext.h"
 #include "cozmoAnim/animProcessMessages.h"
+
+#include "cozmoAnim/backpackLights/backpackLightAnimationContainer.h"
+#include "cozmoAnim/backpackLights/animBackpackLightComponent.h"
+
+#include "osState/osState.h"
 
 #include "util/console/consoleInterface.h"
 #include "util/dispatchWorker/dispatchWorker.h"
@@ -41,13 +45,14 @@
 #define LOG_CHANNEL   "RobotDataLoader"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+namespace Anim {
 
 namespace{
-const char* pathToExternalIndependentSprites = "assets/sprites/independentSprites/";
-const char* pathToEngineIndependentSprites = "config/devOnlySprites/independentSprites/";
-const char* pathToExternalSpriteSequences = "assets/sprites/spriteSequences/";
-const char* pathToEngineSpriteSequences   = "config/devOnlySprites/spriteSequences/";
+const char* kPathToExternalIndependentSprites = "assets/sprites/independentSprites/";
+const char* kPathToEngineIndependentSprites = "config/sprites/independentSprites/";
+const char* kPathToExternalSpriteSequences = "assets/sprites/spriteSequences/";
+const char* kPathToEngineSpriteSequences   = "config/sprites/spriteSequences/";
 const char* kProceduralAnimName = "_PROCEDURAL_";
 }
 
@@ -55,9 +60,10 @@ RobotDataLoader::RobotDataLoader(const AnimContext* context)
 : _context(context)
 , _platform(_context->GetDataPlatform())
 , _cannedAnimations(nullptr)
+, _backpackAnimationTriggerMap(new BackpackAnimationTriggerMap())
 {
-  _spritePaths = std::make_unique<Vision::SpritePathMap>();
-  _spriteCache = std::make_unique<Vision::SpriteCache>(_spritePaths.get());
+  _spritePathMap = std::make_unique<Vision::SpritePathMap>();
+  _spriteCache = std::make_unique<Vision::SpriteCache>(_spritePathMap.get());
 }
 
 RobotDataLoader::~RobotDataLoader()
@@ -92,6 +98,30 @@ void RobotDataLoader::LoadConfigData()
                   ws_config.c_str());
     }
   }
+  // Mic data config
+  {
+    const std::string& triggerConfigFile = "config/micData/micTriggerConfig.json";
+    const bool success = _platform->readAsJson(Util::Data::Scope::Resources, triggerConfigFile, _micTriggerConfig);
+    if (!success)
+    {
+      LOG_ERROR("RobotDataLoader.MicTriggerConfigNotFound",
+                "Mic trigger config file %s not found or failed to parse",
+                triggerConfigFile.c_str());
+    }
+  }
+
+  {
+    const std::string& alexaConfigFile = "config/alexa.json";
+    const auto path = _platform->GetResourcePath(alexaConfigFile);
+
+    if (Util::FileUtils::FileExists(path)) {
+      _alexaConfig = Util::FileUtils::ReadFile(path);
+    } else {
+      LOG_ERROR("RobotDataLoader.AlexaConfigNotFound",
+                "Alexa config file %s not found or failed to parse",
+                path.c_str());
+    }
+  }
 }
 
 void RobotDataLoader::LoadNonConfigData()
@@ -101,15 +131,17 @@ void RobotDataLoader::LoadNonConfigData()
   }
   
   // Dependency Order:
-  //  1) SpritePaths load map of sprite name -> full file path
+  //  1) Load map of sprite filenames to asset paths
   //  2) SpriteSequences use sprite map to load sequenceName -> all images in sequence directory
   //  3) Canned animations use SpriteSequences for their FaceAnimation keyframe
-  LoadSpritePaths();
+  LoadIndependentSpritePaths();
   {
-    std::vector<std::string> spriteSequenceDirs = {pathToExternalSpriteSequences, pathToEngineSpriteSequences};
+    std::vector<std::string> spriteSequenceDirs = {kPathToExternalSpriteSequences, kPathToEngineSpriteSequences};
     SpriteSequenceLoader seqLoader;
-    auto* sContainer = seqLoader.LoadSpriteSequences(_platform, _spritePaths.get(), 
-                                                     _spriteCache.get(), spriteSequenceDirs);
+    auto* sContainer = seqLoader.LoadSpriteSequences(_platform,
+                                                     _spritePathMap.get(),
+                                                     _spriteCache.get(),
+                                                     spriteSequenceDirs);
     _spriteSequenceContainer.reset(sContainer);
   }
 
@@ -119,8 +151,8 @@ void RobotDataLoader::LoadNonConfigData()
 
     // Gather the files to load into the animation container
     CannedAnimationLoader animLoader(_platform,
-                                    _spritePaths.get(), _spriteSequenceContainer.get(), 
-                                    _loadingCompleteRatio, _abortLoad);
+                                     _spriteSequenceContainer.get(), 
+                                     _loadingCompleteRatio, _abortLoad);
 
     std::vector<std::string> paths;
     if(FACTORY_TEST)
@@ -137,6 +169,25 @@ void RobotDataLoader::LoadNonConfigData()
     const auto& fileInfo = animLoader.CollectAnimFiles(paths);
     animLoader.LoadAnimationsIntoContainer(fileInfo, _cannedAnimations.get());
   }
+
+  // After we've finished loading Sprites and SpriteSequences, retroactively verify
+  // any AssetID's requested before/during loading
+  _spritePathMap->CheckUnverifiedAssetIDs();
+
+  // Backpack light animations
+  {
+    // Use the CannedAnimationLoader to collect the backpack light json files
+    CannedAnimationLoader animLoader(_platform,
+                                     _spriteSequenceContainer.get(), 
+                                     _loadingCompleteRatio, _abortLoad);
+
+    const auto& fileInfo = animLoader.CollectAnimFiles({"config/engine/lights/backpackLights"});
+    LoadBackpackLightAnimations(fileInfo);
+  }
+
+  {
+    LoadBackpackAnimationTriggerMap();
+  }
   
   SetupProceduralAnimation();
 }
@@ -147,27 +198,26 @@ void RobotDataLoader::LoadAnimationFile(const std::string& path)
     return;
   }
   CannedAnimationLoader animLoader(_platform,
-                                   _spritePaths.get(), _spriteSequenceContainer.get(), 
+                                   _spriteSequenceContainer.get(),
                                    _loadingCompleteRatio, _abortLoad);
-  
+
   animLoader.LoadAnimationIntoContainer(path, _cannedAnimations.get());
 
   const auto animName = Util::FileUtils::GetFileName(path, true, true);
-  const auto* anim = _cannedAnimations->GetAnimation(animName);
+  const auto * anim = _cannedAnimations->GetAnimation(animName);
+  if (anim == nullptr) {
+    LOG_ERROR("RobotDataLoader.LoadAnimationFile", "Failed to load %s from %s", animName.c_str(), path.c_str());
+    return;
+  }
   NotifyAnimAdded(animName, anim->GetLastKeyFrameEndTime_ms());
 }
 
-void RobotDataLoader::LoadSpritePaths()
+void RobotDataLoader::LoadIndependentSpritePaths()
 {
-  // Creates a map of all sprite names to their file names
-  const bool reverseLookupAllowed = true;
-  _spritePaths->Load(_platform, "assets/cladToFileMaps/spriteMap.json", "SpriteName", reverseLookupAllowed);
-
-  std::map<std::string, std::string> fileNameToFullPath;
   // Get all independent sprites
   {
-    auto spritePaths = {pathToExternalIndependentSprites,
-                        pathToEngineIndependentSprites};
+    auto spritePaths = {kPathToExternalIndependentSprites,
+                        kPathToEngineIndependentSprites};
     
     const bool useFullPath = true;
     const char* extensions = "png";
@@ -178,38 +228,9 @@ void RobotDataLoader::LoadSpritePaths()
       auto fullImagePaths = Util::FileUtils::FilesInDirectory(fullPathFolder, useFullPath, extensions, recurse);
       for(auto& fullImagePath : fullImagePaths){
         const std::string fileName = Util::FileUtils::GetFileName(fullImagePath, true, true);
-        fileNameToFullPath.emplace(fileName, fullImagePath);
+        _spritePathMap->AddAsset(fileName, fullImagePath, false);
       }
     }
-  }
-  
-  // Get all sprite sequences with recursive directory search
-  {
-    std::vector<std::string> directoriesToSearch = {
-       _platform->pathToResource(Util::Data::Scope::Resources, pathToExternalSpriteSequences),
-       _platform->pathToResource(Util::Data::Scope::Resources, pathToEngineSpriteSequences)};
-    
-    auto searchIter = directoriesToSearch.begin();
-    while(searchIter != directoriesToSearch.end()){
-      // Get all directories at this level and add them to the file map
-      std::vector<std::string> outDirNames;
-      Util::FileUtils::ListAllDirectories(*searchIter, outDirNames);
-      for(auto& dirName: outDirNames){
-        // turn name into full path
-        dirName = Util::FileUtils::FullFilePath({*searchIter, dirName});
-        fileNameToFullPath.emplace(Util::FileUtils::GetFileName(dirName), dirName);
-      }
-      directoriesToSearch.erase(searchIter);
-      
-      // Add directories for recursive search and advance to next directory
-      copy(outDirNames.begin(), outDirNames.end(), back_inserter(directoriesToSearch));
-      searchIter = directoriesToSearch.begin();
-    }
-  }
-  
-  for (auto key : _spritePaths->GetAllKeys()) {
-    auto fullPath = fileNameToFullPath[_spritePaths->GetValue(key)];
-    _spritePaths->UpdateValue(key, std::move(fullPath));
   }
 }
 
@@ -241,7 +262,8 @@ void RobotDataLoader::SetupProceduralAnimation()
   // currently maintains control of both canned animations and sprite sequences this
   // is the best spot to put it for the time being
   Animation proceduralAnim(kProceduralAnimName);
-  _cannedAnimations->AddAnimation(std::move(proceduralAnim));
+  bool outOverwrite = false;
+  _cannedAnimations->AddAnimation(std::move(proceduralAnim), outOverwrite);
   
   assert(_cannedAnimations->GetAnimation(kProceduralAnimName) != nullptr);
 }
@@ -277,5 +299,44 @@ bool RobotDataLoader::DoNonConfigDataLoading(float& loadingCompleteRatio_out)
   return true;
 }
 
+void RobotDataLoader::LoadBackpackAnimationTriggerMap()
+{
+  _backpackAnimationTriggerMap->Load(_platform, "assets/cladToFileMaps/BackpackAnimationTriggerMap.json", "AnimName");
+}
+
+void RobotDataLoader::LoadBackpackLightAnimations(const CannedAnimationLoader::AnimDirInfo& fileInfo)
+{
+  const double startTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
+
+  using MyDispatchWorker = Util::DispatchWorker<3, const std::string&>;
+  MyDispatchWorker::FunctionType loadFileFunc = std::bind(&RobotDataLoader::LoadBackpackLightAnimationFile,
+                                                          this, std::placeholders::_1);
+  MyDispatchWorker myWorker(loadFileFunc);
+
+  const auto& fileList = fileInfo.jsonFiles;
+  const auto size = fileList.size();
+  for (int i = 0; i < size; i++) {
+    myWorker.PushJob(fileList[i]);
+  }
+
+  myWorker.Process();
+
+  const double endTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
+  double loadTime = endTime - startTime;
+  PRINT_CH_INFO("Animations", "RobotDataLoader.LoadBackpackLightAnimations.LoadTime",
+                "Time to load backpack light animations = %.2f ms", loadTime);
+}
+
+void RobotDataLoader::LoadBackpackLightAnimationFile(const std::string& path)
+{
+  Json::Value animDefs;
+  const bool success = _platform->readAsJson(path.c_str(), animDefs);
+  if (success && !animDefs.empty()) {
+    std::lock_guard<std::mutex> guard(_backpackLoadingMutex);
+    _backpackLightAnimations.emplace(path, animDefs);
+  }
+}
+
+}
 }
 }

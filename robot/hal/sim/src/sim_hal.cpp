@@ -33,8 +33,6 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
-#include <vector>
-#include <set>
 
 // Our Includes
 #include "anki/cozmo/robot/logging.h"
@@ -76,7 +74,7 @@ static const bool kSimulateGyroBias = false;
 #endif
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
 
     namespace { // "Private members"
 
@@ -251,7 +249,7 @@ namespace Anki {
         const float batteryIncreaseRate_voltsPerMin = chargeRateField->getSFFloat();
 
         // Compute delta volts
-        const float updateTime_sec = Util::MilliSecToSec((float) batteryUpdateRate_tics_ * ROBOT_TIME_STEP_MS);;
+        const float updateTime_sec = Util::MilliSecToSec((float) batteryUpdateRate_tics_ * ROBOT_TIME_STEP_MS);
         const float batteryDeltaVolts = (batteryIncreaseRate_voltsPerMin / 60.f) * updateTime_sec;
         float batteryVolts = batteryVoltsField_->getSFFloat() + batteryDeltaVolts;
 
@@ -387,10 +385,13 @@ namespace Anki {
       accel_ = webotRobot_.getAccelerometer("accel");
       accel_->enable(ROBOT_TIME_STEP_MS);
 
-      // Proximity sensor
+      // Proximity sensor	
       proxCenter_ = webotRobot_.getDistanceSensor("forwardProxSensor");
-      proxCenter_->enable(ROBOT_TIME_STEP_MS);
-
+      if(proxCenter_ != nullptr)
+      {
+        proxCenter_->enable(ROBOT_TIME_STEP_MS);
+      }
+      
       // Cliff sensors
       cliffSensors_[HAL::CLIFF_FL] = webotRobot_.getDistanceSensor("cliffSensorFL");
       cliffSensors_[HAL::CLIFF_FR] = webotRobot_.getDistanceSensor("cliffSensorFR");
@@ -515,15 +516,13 @@ namespace Anki {
 
     bool HAL::IMUReadData(HAL::IMU_DataStructure &IMUData)
     {
-      const double* vals = gyro_->getValues();  // rad/s
-      IMUData.rate_x = (f32)(vals[0]);
-      IMUData.rate_y = (f32)(vals[1]);
-      IMUData.rate_z = (f32)(vals[2]);
-
-      vals = accel_->getValues();   // m/s^2
-      IMUData.acc_x = (f32)(vals[0] * 1000);  // convert to mm/s^2
-      IMUData.acc_y = (f32)(vals[1] * 1000);
-      IMUData.acc_z = (f32)(vals[2] * 1000);
+      const double* gyroVals = gyro_->getValues();  // rad/s
+      const double* accelVals = accel_->getValues();   // m/s^2
+      
+      for (int i=0 ; i<3 ; i++) {
+        IMUData.gyro[i]  = (f32)(gyroVals[i]);
+        IMUData.accel[i] = (f32)(accelVals[i] * 1000);
+      }
 
       // Compute estimated IMU temperature based on measured data from Victor prototype
 
@@ -545,17 +544,10 @@ namespace Anki {
         const float biasChangeDueToTemp_dps_per_degC = 0.08f; // zero-rate offset change as temperature changes. worst case 0.08 deg/sec per degC
         const float biasDueToTemperature_dps = (IMUData.temperature_degC - T_initial) * biasChangeDueToTemp_dps_per_degC;
 
-        IMUData.rate_x += DEG_TO_RAD(initialBias_dps[0] + biasDueToTemperature_dps);
-        IMUData.rate_y += DEG_TO_RAD(initialBias_dps[1] + biasDueToTemperature_dps);
-        IMUData.rate_z += DEG_TO_RAD(initialBias_dps[2] + biasDueToTemperature_dps);
+        for (int i=0 ; i<3 ; i++) {
+          IMUData.gyro[i] += DEG_TO_RAD(initialBias_dps[i] + biasDueToTemperature_dps);
+        }
       }
-
-      static ImageImuData imageImuData;
-      imageImuData.systemTimestamp_ms = HAL::GetTimeStamp();
-      imageImuData.rateX = IMUData.rate_x;
-      imageImuData.rateY = IMUData.rate_y;
-      imageImuData.rateZ = IMUData.rate_z;
-      RobotInterface::SendMessage(imageImuData);
 
       // Return true if IMU was already read this timestamp
       static TimeStamp_t lastReadTimestamp = 0;
@@ -686,7 +678,7 @@ namespace Anki {
     Result HAL::Step(void)
     {
 
-      if(webotRobot_.step(Cozmo::ROBOT_TIME_STEP_MS) == -1) {
+      if(webotRobot_.step(Vector::ROBOT_TIME_STEP_MS) == -1) {
         return RESULT_FAIL;
       } else {
         MotorUpdate();
@@ -711,32 +703,6 @@ namespace Anki {
         }
          */
 
-
-        // Send block connection state when engine connects
-        static bool wasConnected = false;
-        if (!wasConnected && HAL::RadioIsConnected()) {
-
-          // Send RobotAvailable indicating sim robot
-          RobotInterface::RobotAvailable idMsg;
-          idMsg.serialNumber = 0;
-          idMsg.hwRevision = 0;
-          RobotInterface::SendMessage(idMsg);
-
-
-          // send firmware info indicating simulated robot
-          {
-            std::string firmwareJson{"{\"version\":0,\"time\":0,\"sim\":1}"};
-            RobotInterface::FirmwareVersion msg;
-            msg.RESRVED = 0;
-            msg.json_length = firmwareJson.size() + 1;
-            std::memcpy(msg.json, firmwareJson.c_str(), firmwareJson.size() + 1);
-            RobotInterface::SendMessage(msg);
-          }
-
-          wasConnected = true;
-        } else if (wasConnected && !HAL::RadioIsConnected()) {
-          wasConnected = false;
-        }
 
         // Check charging status (Debug)
         if (BatteryIsOnCharger() && !wasOnCharger_) {
@@ -807,12 +773,31 @@ namespace Anki {
     ProxSensorDataRaw HAL::GetRawProxData()
     {
       ProxSensorDataRaw proxData;
-      proxData.distance_mm = static_cast<u16>( proxCenter_->getValue() );
-      // Note: These fields are spoofed with simple defaults for now, but should be computed
-      // to reflect the actual behavior of the sensor once we do some more testing with it.
-      proxData.signalIntensity = 25.f;
-      proxData.ambientIntensity = 0.25f;
-      proxData.spadCount = 90.f;
+
+      if(proxCenter_ == nullptr)
+      {
+        return proxData;
+      }
+      
+      if (PowerGetMode() == POWER_MODE_ACTIVE) {
+        proxData.distance_mm = static_cast<u16>( proxCenter_->getValue() );
+        // Note: These fields are spoofed with simple defaults for now, but should be computed
+        // to reflect the actual behavior of the sensor once we do some more testing with it.
+        proxData.signalIntensity  = 25.f;
+        proxData.ambientIntensity = 0.25f;
+        proxData.spadCount        = 90.f;
+        proxData.timestamp_ms     = HAL::GetTimeStamp();
+        proxData.rangeStatus      = RangeStatus::RANGE_VALID;
+      } else {
+        // Calm mode values
+        proxData.distance_mm      = PROX_CALM_MODE_DIST_MM;
+        proxData.signalIntensity  = 0.f;
+        proxData.ambientIntensity = 0.f;
+        proxData.spadCount        = 200.f;
+        proxData.timestamp_ms     = HAL::GetTimeStamp();
+        proxData.rangeStatus      = RangeStatus::RANGE_VALID;
+      }
+
       return proxData;
     }
 
@@ -821,8 +806,8 @@ namespace Anki {
       switch(button_id) {
         case BUTTON_CAPACITIVE:
         {        
-          const u16 touchSignal = 700;
-          const u16 noTouchSignal = 600;
+          const u16 touchSignal = 5000;
+          const u16 noTouchSignal = 4700;
           if (touchSensorTouchedField_->getSFBool()) {
             return touchSignal;
           } else {
@@ -845,16 +830,12 @@ namespace Anki {
 
     u16 HAL::GetRawCliffData(const CliffID cliff_id)
     {
-      if (cliff_id == HAL::CLIFF_COUNT) {
-        PRINT_NAMED_ERROR("simHAL.GetRawCliffData.InvalidCliffID", "");
-        return static_cast<u16>(cliffSensors_[HAL::CLIFF_FL]->getMaxValue());
+      assert(cliff_id < HAL::CLIFF_COUNT);
+      if (PowerGetMode() == POWER_MODE_ACTIVE) {
+        return static_cast<u16>(cliffSensors_[cliff_id]->getValue());
       }
-      return static_cast<u16>(cliffSensors_[cliff_id]->getValue());
-    }
 
-    u16 HAL::GetCliffOffLevel(const CliffID cliff_id)
-    {
-      return 0;
+      return CLIFF_CALM_MODE_VAL;
     }
 
     bool HAL::HandleLatestMicData(SendDataFunction sendDataFunc)
@@ -910,6 +891,28 @@ namespace Anki {
       return false;
     }
 
+    bool HAL::BatteryIsOverheated()
+    {
+      // NOTE: This doesn't simulate syscon cutoff after 30 min
+      return false;
+    }
+
+    u8 HAL::BatteryGetTemperature_C()
+    {
+      return 40;
+    }
+
+    bool HAL::BatteryIsLow()
+    {
+      return (BatteryGetVoltage() < 3.6f);
+    }
+
+    bool HAL::IsShutdownImminent()
+    {
+      // Shutdown not yet implemented in sim
+      return false;
+    }
+
     f32 HAL::ChargerGetVoltage()
     {
       if (BatteryIsOnCharger()) {
@@ -929,18 +932,28 @@ namespace Anki {
       return 0; // Simulator never watchdogs
     }
 
+    void HAL::PrintBodyData(u32 period_tics, bool motors, bool prox, bool battery)
+    {
+      AnkiWarn("HAL.PrintBodyData.NotSupportedInSim", "");
+    }
+
     void HAL::Shutdown()
     {
 
     } 
 
-    void HAL::PowerSetMode(const PowerState state)
+    void HAL::PowerSetDesiredMode(const PowerState state)
     {
       powerState_ = state;
       if (powerState_ != POWER_MODE_ACTIVE) {
-        AnkiWarn("HAL.PowerSetMode.UnsupportedMode", 
+        AnkiWarn("HAL.PowerSetDesiredMode.UnsupportedMode", 
                  "Only POWER_MODE_ACTIVE behavior is actually supported in sim");
       }
+    }
+
+    HAL::PowerState HAL::PowerGetDesiredMode()
+    {
+      return powerState_;
     }
 
     HAL::PowerState HAL::PowerGetMode()
@@ -948,5 +961,26 @@ namespace Anki {
       return powerState_;
     }
 
-  } // namespace Cozmo
+    bool HAL::AreEncodersDisabled()
+    {
+      return false;
+    }
+
+    bool HAL::IsHeadEncoderInvalid()
+    {
+      return false;
+    }
+
+    bool HAL::IsLiftEncoderInvalid()
+    {
+      return false;
+    }
+
+    const uint8_t* const HAL::GetSysconVersionInfo()
+    {
+      static const uint8_t arr[16] = {0};
+      return arr;
+    }
+  
+  } // namespace Vector
 } // namespace Anki

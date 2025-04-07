@@ -14,12 +14,12 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/exploring/behaviorExploring.h"
 
 #include "coretech/common/engine/jsonTools.h"
-#include "coretech/common/engine/math/lineSegment2d.h"
-#include "coretech/common/engine/math/polygon_impl.h"
+#include "coretech/common/engine/math/polygon.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/actions/animActions.h"
 #include "engine/actions/basicActions.h"
 #include "engine/actions/driveToActions.h"
+#include "engine/actions/visuallyVerifyActions.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/exploring/behaviorExploringExamineObstacle.h"
@@ -29,14 +29,23 @@
 #include "engine/components/sensors/proxSensorComponent.h"
 #include "engine/navMap/mapComponent.h"
 #include "engine/navMap/memoryMap/memoryMapTypes.h"
-#include "engine/navMap/memoryMap/data/memoryMapData_Cliff.h"
 #include "engine/navMap/memoryMap/data/memoryMapData_ProxObstacle.h"
+#include "engine/utils/robotPointSamplerHelper.h"
 #include "util/console/consoleInterface.h"
+#include "util/logging/DAS.h"
 #include "util/random/randomGenerator.h"
 #include "util/random/randomIndexSampler.h"
+#include "util/random/rejectionSamplerHelper.h"
+
+#define SET_STATE(s) {                          \
+  _dVars.state = State::s;                      \
+  SetDebugStateName(#s);                        \
+  }
+
+#define LOG_CHANNEL "Behaviors"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
   const char* const kMinSearchRadiusKey = "minSearchRadius_m";
@@ -51,12 +60,22 @@ namespace {
   const float kMaxScanAngle = DEG_TO_RAD( 140.0f );
   constexpr float kMinCliffPenaltyDist_mm = 100.0f;
   constexpr float kMaxCliffPenaltyDist_mm = 600.0f;
-  const float kTimeBeforeConfirmCharger_s = 10*60.0f;
-  const float kTimeBeforeConfirmCube_s = 2*60.0f;
   const float kProxPoseOffset_mm = 120.0f;
   const float kMaxDistToProxPose_mm = 750.0f;
   const float kMinDistToProxPose_mm = 100.0f;
   const float kMaxCubeFromChargerDist_mm = 2000.0f;
+  const float kProbReferenceHuman = 1.0f;
+
+  CONSOLE_VAR_RANGED( float, kProbReferenceOnResume, "BehaviorExploring", 1.0f, 0.0f, 1.0f);
+  CONSOLE_VAR_RANGED( float, kResumeReferenceCooldown_s, "BehaviorExploring", 20.0f, 0.0f, 60.0f);
+
+  // if no face is known (meaning we can't run the referencing behavior) then run a short face search (at
+  // most) this often (instead of driving to a new pose)
+  const float kPeriodToCheckForFaces_s = 30.0f;
+  
+  // If we have driven this far since the last time we looked at the charger, then we should turn and look at the
+  // charger before driving again. This helps keep the nav map accurate.
+  const float kReferenceChargerDistanceThreshold_mm = 200.f;
 
   static_assert( kMinCliffPenaltyDist_mm < kMaxCliffPenaltyDist_mm, "Max must be > min" );
   
@@ -93,8 +112,6 @@ namespace {
     {MemoryMapTypes::EContentType::ClearOfObstacle       , false},
     {MemoryMapTypes::EContentType::ClearOfCliff          , false},
     {MemoryMapTypes::EContentType::ObstacleObservable    , true },
-    {MemoryMapTypes::EContentType::ObstacleCharger       , true },
-    {MemoryMapTypes::EContentType::ObstacleChargerRemoved, false},
     {MemoryMapTypes::EContentType::ObstacleProx          , true },
     {MemoryMapTypes::EContentType::ObstacleUnrecognized  , true },
     {MemoryMapTypes::EContentType::Cliff                 , true },
@@ -108,8 +125,6 @@ namespace {
     {MemoryMapTypes::EContentType::ClearOfObstacle       , true},
     {MemoryMapTypes::EContentType::ClearOfCliff          , true},
     {MemoryMapTypes::EContentType::ObstacleObservable    , true},
-    {MemoryMapTypes::EContentType::ObstacleCharger       , true},
-    {MemoryMapTypes::EContentType::ObstacleChargerRemoved, true},
     {MemoryMapTypes::EContentType::ObstacleProx          , true},
     {MemoryMapTypes::EContentType::ObstacleUnrecognized  , true},
     {MemoryMapTypes::EContentType::Cliff                 , true},
@@ -132,12 +147,17 @@ BehaviorExploring::DynamicVariables::DynamicVariables()
   posesHaveBeenPruned = false;
   distToGoal_mm = -1.0f;
   
-  numDriveAttemps = 0;
+  numDriveAttempts = 0;
   hasTakenPitStop = false;
-  timeFinishedConfirmCharger_s = -1.0f;
-  timeFinishedConfirmCube_s = -1.0f;
+  endReason = "";
   
   devWarnIfNotInterruptedByTick = std::numeric_limits<size_t>::max();
+  
+  lastSearchForFaceTime_s = -1.f;
+  
+  timeDeactivated_s = -1.0f;
+
+  gentleInterruptionOKUntilTick = 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,8 +206,41 @@ void BehaviorExploring::InitBehavior()
                                   BEHAVIOR_CLASS(ExploringExamineObstacle),
                                   _iConfig.examineBehavior );
   
-  _iConfig.confirmChargerBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ConfirmCharger) );
-  _iConfig.confirmCubeBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ConfirmCube) );
+  _iConfig.referenceHumanBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ExploringReferenceHuman) );
+  _iConfig.searchForHumanBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ShortLookAroundForFaceAndCube) );
+  
+  using namespace RobotPointSamplerHelper;
+  _iConfig.openSpacePointEvaluator.reset( new Util::RejectionSamplerHelper<Point2f>() );
+  _iConfig.openSpacePolyEvaluator.reset( new Util::RejectionSamplerHelper<Poly2f>() );
+  
+  // below is a list of factors for rejection sampling. other ideas:
+  // how much of a ray covers unknown ground? (totally possible with current accumulators,
+  //    but # quads in a line segment unknown, so hard to normalize into a probability)
+  // sample only from unknown points... maybe this needs the iNavMap method FindContentIf, and
+  //    then sampled from that? depends on how big the return set is and how many quads share a data obj
+  // sample only in angles near the current angle? hopefully the planner does this job for us
+  
+  _iConfig.condHandleNearCharger = _iConfig.openSpacePointEvaluator->AddCondition(
+    std::make_shared<RejectIfNotInRange>( 0.0f, M_TO_MM(_iConfig.maxChargerDistance_m) )
+  );
+  _iConfig.condHandleCliffs = _iConfig.openSpacePointEvaluator->AddCondition(
+    std::make_shared<RejectIfWouldCrossCliff>( kMinCliffPenaltyDist_mm )
+  );
+  _iConfig.condHandleCliffs->SetAcceptanceInterpolant( kMaxCliffPenaltyDist_mm, GetRNG() );
+  
+  _iConfig.condHandleChargerOutOfView = _iConfig.openSpacePointEvaluator->AddCondition(
+    std::make_shared<RejectIfChargerOutOfView>()
+  );
+  
+  _iConfig.condHandleCollisions = _iConfig.openSpacePolyEvaluator->AddCondition(
+    std::make_shared<RejectIfCollidesWithMemoryMap>( kTypesToBlockSampling )
+  );
+  
+  _iConfig.condHandleUnknowns = _iConfig.openSpacePolyEvaluator->AddCondition(
+    std::make_shared<RejectIfCollidesWithMemoryMap>( kTypesThatAreKnown )
+  );
+  _iConfig.condHandleUnknowns->SetAcceptanceProbability( _iConfig.pAcceptKnownAreas, GetRNG() );
+  
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -195,16 +248,19 @@ void BehaviorExploring::GetBehaviorOperationModifiers(BehaviorOperationModifiers
 {
   modifiers.behaviorAlwaysDelegates = false; // take control of CancelSelf()
   // always look for the charger so we know how to get back
-  modifiers.visionModesForActivatableScope->insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low });
-  modifiers.visionModesForActiveScope->insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low });
+  modifiers.visionModesForActivatableScope->insert({ VisionMode::Markers, EVisionUpdateFrequency::Low });
+  modifiers.visionModesForActiveScope->insert({
+    {VisionMode::Markers, EVisionUpdateFrequency::Low},
+    {VisionMode::Faces, EVisionUpdateFrequency::Med} // so it is able to occasionally look back at faces
+  });
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::GetAllDelegates(std::set<IBehavior*>& delegates) const
 {
   delegates.insert( _iConfig.examineBehavior.get() );
-  delegates.insert( _iConfig.confirmChargerBehavior.get() );
-  delegates.insert( _iConfig.confirmCubeBehavior.get() );
+  delegates.insert( _iConfig.referenceHumanBehavior.get() );
+  delegates.insert( _iConfig.searchForHumanBehavior.get() );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -224,20 +280,55 @@ void BehaviorExploring::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::OnBehaviorActivated() 
 {
+  // if there is a valid end reason, then the last time this behavior ran it stopped on purpose. Otherwise,
+  // it's either the first time this behavior has ever run, or we were interrupted last time
+  const bool hasEndReason = !_dVars.endReason.empty();
+  const bool everRan = _dVars.timeDeactivated_s > 0.0f;
+
+  const float kMaxTimeToCountAsResume_s = 8.0f;
+  const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+
+  const bool isResume = everRan && !hasEndReason && (currTime_s - _dVars.timeDeactivated_s <= kMaxTimeToCountAsResume_s);
+
   // reset dynamic variables
   _dVars = DynamicVariables();
-  _dVars.timeFinishedConfirmCharger_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  _dVars.timeFinishedConfirmCube_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+  _dVars.lastSearchForFaceTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
   
   if( _iConfig.customMotionProfile != nullptr ) {
     SmartSetMotionProfile( *_iConfig.customMotionProfile );
   }
-  
+
+  if( isResume ) {
+    if( _iConfig.referenceHumanBehavior->WantsToBeActivated() &&
+        ( currTime_s - _iConfig.referenceHumanBehavior->GetTimeActivated_s() > kResumeReferenceCooldown_s ) &&
+        (GetRNG().RandDbl() < kProbReferenceOnResume) ) {
+      LOG_INFO("BehaviorExploring.OnBehaviorActivated.ResumeReference",
+               "do resume reference");
+      DelegateIfInControl( _iConfig.referenceHumanBehavior.get(), &BehaviorExploring::SampleAndDrive );
+      return;
+    }
+  }
+
   // pick a bunch of points and have the planner choose one and drive there
   SampleAndDrive();
 }
 
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploring::OnBehaviorDeactivated()
+{
+  if( !_dVars.endReason.empty() ) {
+    DASMSG(behavior_exploring_end, "behavior.exploring.end",
+           "Exploring ended (not just an interruption) and the reason why");
+    DASMSG_SET(s1, _dVars.endReason, "The reason");
+    DASMSG_SEND();
+  }
+
+  LOG_INFO("BehaviorExploring.Ended", "reason: %s", _dVars.endReason.empty() ? "<NONE>" : _dVars.endReason.c_str() );
+
+  _dVars.timeDeactivated_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+}
+  
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::BehaviorUpdate() 
 {
@@ -245,11 +336,15 @@ void BehaviorExploring::BehaviorUpdate()
     return;
   }
   if( _dVars.state == State::Complete ) {
+    if( _dVars.endReason.empty() ) {
+      _dVars.endReason = "Unknown";
+    }
     CancelSelf();
     return;
   }
   if( GetBEI().GetRobotInfo().IsOnChargerPlatform() ) {
     // user must have placed it on the charger
+    _dVars.endReason = "OnCharger";
     CancelSelf();
     return;
   }
@@ -258,53 +353,43 @@ void BehaviorExploring::BehaviorUpdate()
     PRINT_NAMED_WARNING("BehaviorExploring.BehaviorUpdate.WasNonInterrupted",
                         "Behavior assumed an interruption that didn't occur. This could mean the robot stops driving");
     _dVars.devWarnIfNotInterruptedByTick = std::numeric_limits<size_t>::max();
-    if( _dVars.numDriveAttemps <= 2 ) {
+    if( _dVars.numDriveAttempts <= 2 ) {
       SampleAndDrive();
     } else {
-      // numDriveAttemps is reset every activation, so this should only happen if something internal
+      // numDriveAttempts is reset every activation, so this should only happen if something internal
       // is cancelling the driving
       PRINT_NAMED_WARNING("BehaviorExploring.BehaviorUpdate.InterruptedMultiple",
                           "Could not start a path without interruption after %d attempts",
-                          _dVars.numDriveAttemps);
+                          _dVars.numDriveAttempts);
+      _dVars.endReason = "MultipleInterruptions";
       CancelSelf();
     }
     return;
   }
+
+  if( _dVars.state == State::SearchForHuman ) {
+    // if we're searching, but could reference instead, then do that by going to the "Arrived" state
+    // similarly, if the search ended without finding someone, do the same
+
+    if( _iConfig.referenceHumanBehavior->WantsToBeActivated() ) {
+      CancelDelegates();
+    }
+
+    if( !IsControlDelegated() ) {
+      const bool forceReferencing = true;
+      TransitionToArrived(forceReferencing);
+    }
+
+    return;
+  }
+
   
   // make sure the lift is out of the prox fov
   PrepRobotForProx();
   const bool isChargerPositionKnown = IsChargerPositionKnown();
   if( !isChargerPositionKnown && !_iConfig.allowNoCharger ) {
+    _dVars.endReason = "ChargerUnknown";
     CancelSelf();
-  }
-  
-  const bool controlDelegated = IsControlDelegated();
-  const float nextTimeShouldConfirmCharger = _dVars.timeFinishedConfirmCharger_s + kTimeBeforeConfirmCharger_s;
-  const float nextTimeShouldConfirmCube = _dVars.timeFinishedConfirmCube_s + kTimeBeforeConfirmCube_s;
-  const float currTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  
-  if( !controlDelegated
-      && (currTime >= nextTimeShouldConfirmCharger)
-      && isChargerPositionKnown
-      && _iConfig.confirmChargerBehavior->WantsToBeActivated() )
-  {
-    DelegateNow( _iConfig.confirmChargerBehavior.get(), [this]() {
-      _dVars.timeFinishedConfirmCharger_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-      RegainedControl();
-    });
-    return;
-  }
-  
-  if( !controlDelegated
-      && (currTime >= nextTimeShouldConfirmCube)
-      && IsCubeNearCharger()
-      && _iConfig.confirmCubeBehavior->WantsToBeActivated() )
-  {
-    DelegateNow( _iConfig.confirmCubeBehavior.get(), [this]() {
-      _dVars.timeFinishedConfirmCube_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-      RegainedControl();
-    });
-    return;
   }
   
   // adjust cached poses
@@ -341,9 +426,30 @@ void BehaviorExploring::BehaviorUpdate()
     // todo: perhaps this should only start if we've driven far enough from the last spot we examined?
     // this would help with noisy prox data
     DelegateNow( _iConfig.examineBehavior.get(), &BehaviorExploring::RegainedControl );
-  } 
-  
+  }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploring::SetGentleInterruptionOKForNow()
+{
+  const size_t currTick = BaseStationTimer::getInstance()->GetTickCount();
+
+  // add one to let it work next tick too (in most cases, it won't be checked until next tick anyway because
+  // our parent already ran)
+  _dVars.gentleInterruptionOKUntilTick = currTick + 1;
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool BehaviorExploring::CanBeGentlyInterruptedNow() const
+{
+  const size_t currTick = BaseStationTimer::getInstance()->GetTickCount();
+  
+  const bool canInterrupt = ( currTick <= _dVars.gentleInterruptionOKUntilTick );
+
+  return canInterrupt;
+}
+
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool BehaviorExploring::IsChargerPositionKnown() const
@@ -355,7 +461,6 @@ bool BehaviorExploring::IsChargerPositionKnown() const
 const ObservableObject* BehaviorExploring::GetCharger() const
 {
   BlockWorldFilter chargerFilter;
-  chargerFilter.AddAllowedFamily(ObjectFamily::Charger);
   chargerFilter.AddAllowedType(ObjectType::Charger_Basic);
   
   std::vector<const ObservableObject*> locatedChargers;
@@ -373,7 +478,7 @@ bool BehaviorExploring::IsCubeNearCharger() const
 {
   bool retClose = false;
   BlockWorldFilter cubeFilter;
-  cubeFilter.AddAllowedFamily(ObjectFamily::LightCube);
+  cubeFilter.AddFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
   
   const auto* charger = GetCharger();
   if( charger != nullptr ) {
@@ -395,6 +500,34 @@ bool BehaviorExploring::IsCubeNearCharger() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::SampleAndDrive()
 {
+  // if we don't have a face (can't run the referencing behavior) then we should occasionally search for
+  // faces. Check that here
+  if( ! _iConfig.referenceHumanBehavior->WantsToBeActivated() ) {
+    const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    if( currTime_s - _dVars.lastSearchForFaceTime_s >= kPeriodToCheckForFaces_s ) {
+      TransitionToHumanSearch();
+      return;
+    }
+  }
+  
+  const auto* charger = GetCharger();
+  if (charger != nullptr) {
+    // See if we've traveled far enough away from the last pose at which we looked at the charger
+    const auto& robotPose = GetBEI().GetRobotInfo().GetPose();
+    f32 distance = 0.f;
+    const bool distanceValid = ComputeDistanceBetween(_dVars.lastReferenceChargerPose, robotPose, distance);
+    const bool shouldReferenceCharger = !distanceValid || (distance > kReferenceChargerDistanceThreshold_mm);
+
+    if (shouldReferenceCharger) {
+      auto* action = new CompoundActionSequential();
+      action->AddAction(new TurnTowardsObjectAction(charger->GetID()));
+      action->AddAction(new VisuallyVerifyObjectAction(charger->GetID()));
+      DelegateIfInControl(action, &BehaviorExploring::SampleAndDrive);
+      _dVars.lastReferenceChargerPose = robotPose;
+      return;
+    }
+  }
+
   // sample locations to visit
   _dVars.sampledPoses = SampleVisitLocations();
   _dVars.posesHaveBeenPruned = false;
@@ -402,7 +535,8 @@ void BehaviorExploring::SampleAndDrive()
   
   if( _dVars.sampledPoses.empty() ) {
     // flag to CancelSelf, making sure CancelSelf doesn't happen on the same tick as activation
-    _dVars.state = State::Complete;
+    SET_STATE(Complete);
+    _dVars.endReason = "NoSamplePoses";
     return;
   }
   
@@ -411,8 +545,27 @@ void BehaviorExploring::SampleAndDrive()
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploring::TransitionToHumanSearch()
+{
+  SET_STATE(SearchForHuman);
+
+  SetGentleInterruptionOKForNow();
+
+  if( _iConfig.searchForHumanBehavior->WantsToBeActivated() ) {
+    // run search behavior, transition out handled in BehaviorUpdate
+    DelegateIfInControl(_iConfig.searchForHumanBehavior.get());
+
+    const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    _dVars.lastSearchForFaceTime_s = currTime_s;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::RegainedControl()
 {
+  // We're in between actions, so an interruption would be alright
+  SetGentleInterruptionOKForNow();
+
   if( _dVars.sampledPoses.empty() ) {
     SampleAndDrive();
   } else {
@@ -423,8 +576,8 @@ void BehaviorExploring::RegainedControl()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::TransitionToDriving()
 {
-  _dVars.state = State::Driving;
-  ++_dVars.numDriveAttemps;
+  SET_STATE(Driving);
+  ++_dVars.numDriveAttempts;
   
   
   auto* action = new CompoundActionSequential();
@@ -433,8 +586,7 @@ void BehaviorExploring::TransitionToDriving()
     action->AddAction( new MoveLiftToHeightAction( MoveLiftToHeightAction::Preset::JUST_ABOVE_PROX ) );
   }
   
-  const bool forceHeadDown = false;
-  action->AddAction( new DriveToPoseAction( _dVars.sampledPoses, forceHeadDown ) );
+  action->AddAction( new DriveToPoseAction( _dVars.sampledPoses ) );
   
   DelegateIfInControl( action, [this](ActionResult res) {
     if( res == ActionResult::CANCELLED_WHILE_RUNNING ){
@@ -446,12 +598,24 @@ void BehaviorExploring::TransitionToDriving()
       // this can happen if we cleared all but one of the goal poses, then the robot stopped to
       // examine something midway, then when trying to start again, there is no path to the selected
       // goal. try a couple more times (maybe this needs more precise ActionResult types?)
-      if( _dVars.numDriveAttemps <= 4 ) {
-        SampleAndDrive();
+      if( _dVars.numDriveAttempts <= 5 ) {
+        if( (res == ActionResult::PATH_PLANNING_FAILED_ABORT) || (res == ActionResult::FAILED_TRAVERSING_PATH) ) {
+          // it's possible noise from the prox sensor is causing a legitimate planner failure (timeout), so
+          // do a quick point turn to hopefully find an escape before continuing
+          const float angle = (GetRNG().RandDbl() > 0.5f) ? M_PI_2_F : -M_PI_2_F;
+          const bool isAbsolute = false;
+          auto* action = new TurnInPlaceAction{ angle, isAbsolute };
+          DelegateIfInControl( action, [this](ActionResult res) {
+            SampleAndDrive();
+          });
+        } else {
+          SampleAndDrive();
+        }
       } else {
-        PRINT_NAMED_INFO("BehaviorExploring.TransitionToDriving.NoPath",
-                         "Could not plan a path after %d attempts",
-                         _dVars.numDriveAttemps);
+        LOG_INFO("BehaviorExploring.TransitionToDriving.NoPath",
+                 "Could not plan a path after %d attempts",
+                 _dVars.numDriveAttempts);
+        _dVars.endReason = "CouldNotPlan";
         CancelSelf();
       }
     } else {
@@ -462,39 +626,47 @@ void BehaviorExploring::TransitionToDriving()
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorExploring::TransitionToArrived()
+void BehaviorExploring::TransitionToArrived(const bool forceReferencing)
 {
-  _dVars.state = State::Arrived;
+  SET_STATE(Arrived);
   _dVars.sampledPoses.clear();
   _dVars.distToGoal_mm = -1.0f;
-  _dVars.numDriveAttemps = 0;
+  _dVars.numDriveAttempts = 0;
   
-  // turn a couple random angles
-  auto* action = new CompoundActionSequential();
-  const float t1 = GetRNG().RandDbl();
-  if( t1 < 0.33f ) {
-    action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookLeft ) );
-  } else if( t1 < 0.66f ) {
-    action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookRight ) );
+  auto callback = [this]() {
+    auto* action = new CompoundActionSequential();
+    const float r = GetRNG().RandDbl();
+    bool animFirst = (r < 0.5f);
+    
+    // anim either goes before or after a random turn
+    if( animFirst ) {
+      action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookAround ) );
+    }
+    
+    const float angleChange = GetRNG().RandDblInRange( kMinScanAngle, kMaxScanAngle );
+    const bool isAbsAngle = false;
+    auto* turnAction = new TurnInPlaceAction( angleChange, isAbsAngle );
+    turnAction->SetMaxSpeed(M_PI_2);
+    action->AddAction( turnAction );
+    
+    if( !animFirst ) {
+      action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookAround ) );
+    }
+    
+    DelegateNow( action, [this](const ActionResult& res) {
+      // this could get canceled if an obstacle is seen
+      SampleAndDrive();
+    });
+  };
+  
+  if( _iConfig.referenceHumanBehavior->WantsToBeActivated() &&
+      ( forceReferencing || (GetRNG().RandDbl() < kProbReferenceHuman) ) ) {
+    DelegateIfInControl( _iConfig.referenceHumanBehavior.get(), callback );
+  } else {
+    callback();
   }
   
-  const float angleChange = GetRNG().RandDblInRange( kMinScanAngle, kMaxScanAngle );
-  const bool isAbsAngle = false;
-  auto* turnAction = new TurnInPlaceAction( angleChange, isAbsAngle );
-  turnAction->SetMaxSpeed(M_PI_2);
-  action->AddAction( turnAction );
   
-  const float t2 = GetRNG().RandDbl();
-  if( t2 < 0.33f ) {
-    action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookLeft ) );
-  } else if( t2 < 0.66f ) {
-    action->AddAction( new TriggerLiftSafeAnimationAction( AnimationTrigger::ExploringLookRight ) );
-  }
-
-  DelegateNow( action, [this](const ActionResult& res) {
-    // this could get canceled if an obstacle is seen
-    SampleAndDrive();
-  });
   
 }
   
@@ -505,7 +677,7 @@ std::vector<Pose3d> BehaviorExploring::SampleVisitLocations() const
   retPoses.reserve( kNumProxPoses + kNumPositionsForSearch*kNumAnglesAtPose );
   
   const auto& robotInfo = GetBEI().GetRobotInfo();
-  const auto* memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
+  const auto  memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
   DEV_ASSERT( nullptr != memoryMap, "BehaviorExploring.SampleVisitLocations.NeedMemoryMap" );
   
   const ObservableObject* charger = GetCharger();
@@ -535,7 +707,7 @@ std::vector<Pose3d> BehaviorExploring::SampleVisitLocations() const
     SampleVisitLocationsOpenSpace( memoryMap,
                                    tooFarFromCharger,
                                    chargerEqualsRobot,
-                                   chargerPos,
+                                   chargerPose,
                                    currRobotPos,
                                    retPoses );
   }
@@ -548,10 +720,11 @@ std::vector<Pose3d> BehaviorExploring::SampleVisitLocations() const
   return retPoses;
 }
   
-void BehaviorExploring::SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploring::SampleVisitLocationsOpenSpace( std::shared_ptr<const INavMap> memoryMap,
                                                        bool tooFarFromCharger,
                                                        bool chargerEqualsRobot,
-                                                       const Point2f& chargerPos,
+                                                       const Pose3d& chargerPose,
                                                        const Point2f& robotPos,
                                                        std::vector<Pose3d>& retPoses ) const
 {
@@ -568,97 +741,42 @@ void BehaviorExploring::SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
     r1 = kChargerRadius_mm;
     r2 = M_TO_MM(_iConfig.maxChargerDistance_m);
   }
-  const float r1sq = r1*r1;
   
-  // gather a list of cliff pose pointers that should not be used outside this method
-  std::set<const Pose3d*> cliffs;
-  MemoryMapTypes::MemoryMapDataConstList wasteList;
-  memoryMap->FindContentIf([&cliffs](MemoryMapDataConstPtr data){
-    if( data->type == MemoryMapTypes::EContentType::Cliff ) {
-      const auto& cliffData = MemoryMapData::MemoryMapDataCast<MemoryMapData_Cliff>(data);
-      cliffs.insert( &cliffData->pose );
-    }
-    return false; // don't actually gather any data
-  }, wasteList);
+  // update cliff positions
+  _iConfig.condHandleCliffs->SetRobotPosition( robotPos );
+  _iConfig.condHandleCliffs->UpdateCliffs( memoryMap );
+  
+  // update charger position
+  Point2f chargerPosition(chargerPose.GetTranslation());
+  _iConfig.condHandleNearCharger->SetOtherPosition( chargerPosition );
+  
+  _iConfig.condHandleChargerOutOfView->SetChargerPose( chargerPose );
+  // If the charger pose is actually just the robot pose, then we don't want this check. So set the acceptance
+  // probability to 1.
+  if (chargerEqualsRobot) {
+    _iConfig.condHandleChargerOutOfView->SetAcceptanceProbability(1.f, GetRNG());
+  } else {
+    _iConfig.condHandleChargerOutOfView->ClearAcceptanceProbability();
+  }
+  
+  // update memory map
+  _iConfig.condHandleCollisions->SetMemoryMap( memoryMap );
+  _iConfig.condHandleUnknowns->SetMemoryMap( memoryMap );
   
   for( unsigned int cnt=0; cnt<kNumSampleSteps; ++cnt ) {
     
     // sample a point based on either the robot position or charger position
-    Point2f sampledPos = tooFarFromCharger ? chargerPos : robotPos;
+    Point2f sampledPos = tooFarFromCharger ? chargerPosition : robotPos;
     {
-      // uniformly sample a point on an annulus between radii (r1,r2) about sampledPos
-      // (there's another way to do this without the sqrt, but it requires three
-      // uniform r.v.'s, and some quick tests show that that ends up being slower)
-      const float theta = M_TWO_PI * static_cast<float>( GetRNG().RandDbl() );
-      const float u = static_cast<float>( GetRNG().RandDbl() );
-      const float r = sqrt( r1sq + (r2*r2 - r1sq)*u );
-      sampledPos.x() += r*cosf(theta);
-      sampledPos.y() += r*sinf(theta);
+      const Point2f pt = RobotPointSamplerHelper::SamplePointInAnnulus( GetRNG(), r1, r2 );
+      sampledPos.x() += pt.x();
+      sampledPos.y() += pt.y();
     }
     
-    // below is a list of factors for rejection sampling. other ideas:
-    // how much of a ray covers unknown ground? (totally possible with current accumulators,
-    //    but # quads in a line segment unknown, so hard to normalize into a probability)
-    // sample only from unknown points... maybe this needs the iNavMap method FindContentIf, and
-    //    then sampled from that? depends on how big the return set is and how many quads share a data obj
-    // sample only in angles near the current angle? hopefully the planner does this job for us
-    // todo: rejection sampling helper class
+    const bool acceptedPoint = _iConfig.openSpacePointEvaluator->Evaluate( GetRNG(), sampledPos );
     
-    // check distance to charger, reject if too far
-    {
-      const float distChargerSq = (sampledPos - chargerPos).LengthSq();
-      if( distChargerSq > M_TO_MM(_iConfig.maxChargerDistance_m)*M_TO_MM(_iConfig.maxChargerDistance_m) ) {
-        continue;
-      }
-    }
-    
-    // check if a vector from the robot to the sample point crosses through a line aligned with the cliff
-    // edge and reject if that intersection point occurs close to the cliff
-    {
-      LineSegment lineRobotToSample{ sampledPos, robotPos };
-      float pAccept = 1.0f; // this may be decremented for multiple cliffs
-      for( const auto* cliffPose : cliffs ) {
-        const Vec3f cliffDirection = (cliffPose->GetRotation() * X_AXIS_3D());
-        // do this in 2d
-        const Vec2f cliffEdgeDirection = CrossProduct( Z_AXIS_3D(), cliffDirection ); // sign doesn't matter
-        const Point2f cliffPos = cliffPose->GetTranslation();
-        // find intersection of lineRobotToSample with cliffEdgeDirection
-        LineSegment cliffLine{ cliffPos + cliffEdgeDirection * kMaxCliffPenaltyDist_mm,
-                               cliffPos - cliffEdgeDirection * kMaxCliffPenaltyDist_mm };
-        Point2f intersectionPoint;
-        const bool intersects = lineRobotToSample.IntersectsAt( cliffLine, intersectionPoint );
-        if( intersects ) {
-          // confirm intersection point lies on cliff edge
-          DEV_ASSERT( AreVectorsAligned( (intersectionPoint - cliffPos), cliffEdgeDirection, 0.001f ),
-                      "BehaviorExploring.SampleVisitLocationsOpenSpace.BadIntersection" );
-          // if the intersection pos is close to the cliff pos, reject. If it's far, accept. interpolate in between.
-          const float distFromCliffSq = (intersectionPoint - cliffPos).LengthSq();
-          const static float minSq = kMinCliffPenaltyDist_mm * kMinCliffPenaltyDist_mm;
-          if( distFromCliffSq < minSq ) {
-            pAccept = 0.0f;
-            // break to then move to next sample point
-            break;
-          }
-          const static float maxSq = kMaxCliffPenaltyDist_mm * kMaxCliffPenaltyDist_mm;
-          const float p = (distFromCliffSq > maxSq)
-                          ? 0.0f
-                          : 1.0f - (distFromCliffSq - minSq) / (maxSq - minSq);
-          // multiple cliffs can contribute to the acceptance probability
-          pAccept -= p;
-          if( pAccept <= 0.0f ) {
-            // break to then move to next sample point
-            break;
-          }
-        }
-      }
-      if( (pAccept <= 0.0f) || (pAccept < GetRNG().RandDbl()) ) {
-        // move to next sample point
-        continue;
-      } else {
-        PRINT_NAMED_INFO( "BehaviorExploring.SampleVisitLocationsOpenSpace.AcceptedCliff",
-                          "Accepted cliff with p=%1.2f",
-                          pAccept );
-      }
+    if( !acceptedPoint ) {
+      continue;
     }
     
     // choose a random angle about the Z axis to create a full test pose
@@ -669,28 +787,10 @@ void BehaviorExploring::SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
     Poly2f footprint;
     footprint.ImportQuad2d(quad);
     
-    // check for collisions, reject if so
-    {
-      const bool hasCollision = memoryMap->HasCollisionWithTypes( footprint, kTypesToBlockSampling );
-      if( hasCollision ) {
-        continue;
-      }
-    }
+    const bool acceptedFootprint = _iConfig.openSpacePolyEvaluator->Evaluate( GetRNG(), footprint );
     
-    // bias towards unknown areas based on config
-    {
-      const bool isKnown = memoryMap->HasCollisionWithTypes( footprint, kTypesThatAreKnown );
-      if( isKnown ) {
-        const float rv = GetRNG().RandDbl();
-        if( rv <= _iConfig.pAcceptKnownAreas ) {
-          PRINT_NAMED_INFO( "BehaviorExploring.SampleVisitLocationsOpenSpace.AcceptKnown",
-                            "Accepting a sample that is known with p=%1.2f",
-                            rv );
-        } else {
-          // move to next sample
-          continue;
-        }
-      }
+    if( !acceptedFootprint ) {
+      continue;
     }
     
     // if we get here, accept!!
@@ -710,8 +810,8 @@ void BehaviorExploring::SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
     }
     
     if( numAcceptedPoses >= kNumPositionsForSearch ) {
-      PRINT_NAMED_INFO("BehaviorExploring.SampleVisitLocationsOpenSpace.Completed",
-                       "Met required sampling of %d points, cnt=%d", numAcceptedPoses, cnt);
+      LOG_INFO("BehaviorExploring.SampleVisitLocationsOpenSpace.Completed",
+               "Met required sampling of %d points, cnt=%d", numAcceptedPoses, cnt);
       break;
     }
   }
@@ -726,7 +826,7 @@ void BehaviorExploring::SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
   }
 }
   
-void BehaviorExploring::SampleVisitLocationsFacingObstacle( const INavMap* memoryMap,
+void BehaviorExploring::SampleVisitLocationsFacingObstacle( std::shared_ptr<const INavMap> memoryMap,
                                                             const ObservableObject* charger,
                                                             const Point2f& robotPos,
                                                             std::vector<Pose3d>& retPoses ) const
@@ -748,7 +848,7 @@ void BehaviorExploring::SampleVisitLocationsFacingObstacle( const INavMap* memor
     Poly2f chargerPoly;
     chargerPoly.ImportQuad2d(chargerFootprint);
     
-    memoryMap->FindContentIf(chargerPoly, findFunc, unexploredProxObstacles);
+    memoryMap->FindContentIf(findFunc, unexploredProxObstacles, FastPolygon(chargerPoly));
   } else {
     memoryMap->FindContentIf(findFunc, unexploredProxObstacles);
   }
@@ -829,12 +929,10 @@ void BehaviorExploring::SampleVisitLocationsFacingObstacle( const INavMap* memor
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploring::PrepRobotForProx()
 {
-  auto& proxSensor = GetBEI().GetComponentWrapper(BEIComponentID::ProxSensor).GetValue<ProxSensorComponent>();
-  u16 distance_mm = 0;
-  const bool isSensorReadingValid = proxSensor.GetLatestDistance_mm(distance_mm);
-  if( !isSensorReadingValid ) {
-    const bool liftBlocking = proxSensor.IsLiftInFOV();
-    if( !IsControlDelegated() && liftBlocking ) {
+  const auto& proxSensor = GetBEI().GetComponentWrapper(BEIComponentID::ProxSensor).GetComponent<ProxSensorComponent>();
+  const auto& proxData = proxSensor.GetLatestProxData();
+  if( !proxData.foundObject ) {
+    if( !IsControlDelegated() && proxData.isLiftInFOV ) {
       auto preset = kMoveLiftAboveProx ? MoveLiftToHeightAction::Preset::JUST_ABOVE_PROX : MoveLiftToHeightAction::Preset::LOW_DOCK;
       DelegateIfInControl( new MoveLiftToHeightAction(preset) );
     }

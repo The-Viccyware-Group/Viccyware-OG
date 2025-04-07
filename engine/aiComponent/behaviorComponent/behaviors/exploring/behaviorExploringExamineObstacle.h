@@ -14,9 +14,13 @@
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorExploringExamineObstacle__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+  
+class CompoundActionSequential;
+class IActionRunner;
 
 class BehaviorExploringExamineObstacle : public ICozmoBehavior
 {
@@ -34,10 +38,13 @@ protected:
   explicit BehaviorExploringExamineObstacle(const Json::Value& config);  
 
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override;
-  virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
+  virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override {}
+  virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override;
   
+  virtual void InitBehavior() override;
   virtual bool WantsToBeActivatedBehavior() const override;
   virtual void OnBehaviorActivated() override;
+  virtual void OnBehaviorDeactivated() override;
   virtual void BehaviorUpdate() override;
 
 private:
@@ -59,15 +66,22 @@ private:
   enum class State : uint8_t {
     Initial=0,
     DriveToObstacle,
+    CheckForHand,
     FirstTurn,
     ReturnToCenter,
     SecondTurn,
     ReturnToCenterEnd,
+    ReferenceHuman,
+    Bumping,
+    QuickAnim,
+    ReactToHand,
   };
 
   struct InstanceConfig {
     InstanceConfig();
-    // TODO: put configuration variables here
+    ICozmoBehaviorPtr bumpBehavior;
+    ICozmoBehaviorPtr referenceHumanBehavior;
+    ICozmoBehaviorPtr handReactionBehavior;
   };
 
   struct DynamicVariables {
@@ -77,6 +91,11 @@ private:
     
     bool firstTurnDirectionIsLeft;
     float initialPoseAngle_rad;
+    float totalObjectAngle_rad; // sum of abs of left and right turns
+    std::weak_ptr<IActionRunner> scanCenterAction;
+    bool playingScanSound;
+    RobotTimeStamp_t lastImageTime;
+    bool handSeen;
     
     struct Persistent {
       bool canSeeSideObstacle;
@@ -93,7 +112,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorExploringExamineObstacle__

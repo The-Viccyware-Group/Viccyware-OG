@@ -16,7 +16,7 @@
 #include "engine/robot.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 static const char * const kLogChannelName = "Actions";
   
@@ -53,7 +53,7 @@ TrackPetFaceAction::TrackPetFaceAction(Vision::PetType petType)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TrackPetFaceAction::GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const
 {
-  requests.insert({ VisionMode::DetectingPets, EVisionUpdateFrequency::Med });
+  requests.insert({ VisionMode::Pets, EVisionUpdateFrequency::Med });
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -122,5 +122,5 @@ ITrackAction::UpdateResult TrackPetFaceAction::UpdateTracking(Radians& absPanAng
 
 } // UpdateTracking()
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

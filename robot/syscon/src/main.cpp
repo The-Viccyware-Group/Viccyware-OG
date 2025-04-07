@@ -3,7 +3,6 @@
 
 #include "power.h"
 #include "comms.h"
-#include "contacts.h"
 #include "timer.h"
 #include "motors.h"
 #include "encoders.h"
@@ -19,13 +18,13 @@ static int reset_count = 0;
 
 void Main_Execution(void) {
   // Do our main execution loop
+  Encoders::tick_end();
   Comms::tick();
   Motors::tick();
-  Contacts::tick();
   Opto::tick();
   Analog::tick();
   Lights::tick();
-  Touch::tick();
+  Power::adjustHead();
 
   // Kick watch dog when we enter our service routine
   if (reset_count++ < RESET_COUNT_MAX) {
@@ -44,13 +43,14 @@ int main (void) {
   __enable_irq();
 
   Power::init();
+  Encoders::init();
   Mics::init();
   Analog::init();
-  Contacts::init();
   Comms::init();
   Motors::init();
   Touch::init();
   I2C::init();
+  Lights::init();
   Timer::init();
 
   // Low priority interrupts are now our main execution

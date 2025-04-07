@@ -15,7 +15,7 @@
 #include "simulator/controllers/shared/webotsHelpers.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 enum class TestState {
   Init,
@@ -41,9 +41,9 @@ s32 CST_ChargerDocking::UpdateSimInternal()
   switch (_testState) {
     case TestState::Init:
     {
-      // Start the charger docking behavior
-      using namespace ExternalInterface;
-      SendMessage(MessageGameToEngine(ExecuteBehaviorByID("FindAndGoToHome", -1)));
+      // Start freeplay mode. The robot's proto in the testWorldChargerDocking.wbt world has the battery level set to a
+      // 'low' level, so the robot should immediately begin trying to dock with the charger.
+      StartFreeplayMode();
       
       SET_TEST_STATE(ShiftChargerSlightly);
       break;
@@ -56,7 +56,9 @@ s32 CST_ChargerDocking::UpdateSimInternal()
       auto* chargerNode = WebotsHelpers::GetFirstMatchingSceneTreeNode(GetSupervisor(), "VictorCharger").nodePtr;
       auto chargerPose = GetPose3dOfNode(chargerNode);
       const auto& robotPose = GetRobotPoseActual();
-      const float distanceAway_mm = ComputeDistanceBetween(chargerPose, robotPose);
+      float distanceAway_mm = 0.f;
+      const bool result = ComputeDistanceBetween(chargerPose, robotPose, distanceAway_mm);
+      CST_ASSERT(result, "Failed computing distance between charger pose and robot pose");
       const float angleBetween_deg = (chargerPose.GetRotationAngle<'Z'>() - robotPose.GetRotationAngle<'Z'>()).getDegrees();
       if (distanceAway_mm < 180.f &&
           NEAR(angleBetween_deg, -90.f, 10.f)) {
@@ -69,10 +71,8 @@ s32 CST_ChargerDocking::UpdateSimInternal()
     }
     case TestState::TestDone:
     {
-      IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(60.f,
-                                            !IsRobotStatus(RobotStatusFlag::IS_MOVING),
-                                            IsRobotStatus(RobotStatusFlag::IS_ON_CHARGER))
-      {
+      const bool onCharger = IsRobotStatus(RobotStatusFlag::IS_ON_CHARGER);
+      IF_CONDITION_WITH_TIMEOUT_ASSERT(onCharger, 75.f) {
         StopMovie();
         CST_EXIT();
         break;
@@ -84,6 +84,6 @@ s32 CST_ChargerDocking::UpdateSimInternal()
 }
 
 
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 

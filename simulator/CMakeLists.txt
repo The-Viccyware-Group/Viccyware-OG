@@ -1,3 +1,6 @@
+#
+# simulator/CMakeLists.txt
+#
 cmake_minimum_required(VERSION 3.6)
 
 project(webots_controllers)
@@ -7,20 +10,16 @@ if (NOT MACOSX)
 endif()
 
 include(opencv)
+include(protobuf)
 include(symlink_target)
 include(anki_build_cxx)
-
-# Build options
-option(WEBOTS_SETUP_EXE "Set up controller executables for use with webots firewall certificate" ON)
+include(webots)
 
 # Path to controllers
 set(CONTROLLERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/controllers")
 
 # Path to resources
 set(BUILT_RESOURCES_DIR "${CMAKE_BINARY_DIR}/data/assets/cozmo_resources")
-
-# Path to webotsTest.py
-set(WEBOTS_TEST "${CMAKE_SOURCE_DIR}/project/build-scripts/webots/webotsTest.py")
 
 set(PLATFORM_LIBS "")
 set(PLATFORM_INCLUDES "")
@@ -34,6 +33,7 @@ if (MACOSX)
   set(PLATFORM_LIBS
     ${FOUNDATION}
     ${OPENGL}
+    ${PROTOBUF_LIBS}
     ${GLUT}
     ${WEBOTS_LIBS}
     ${WEBOTS_SIM_LIBS}
@@ -47,6 +47,7 @@ endif()
 #
 
 anki_build_cxx_library(cozmo_physics ${ANKI_SRCLIST_DIR})
+anki_build_target_license(cozmo_physics "ANKI")
 
 #
 # suppress warnings about old GLUT declarations used by webots
@@ -79,40 +80,33 @@ symlink_target(
 #
 
 anki_build_cxx_library(webotsCtrlCommon ${ANKI_SRCLIST_DIR} STATIC)
+anki_build_target_license(webotsCtrlCommon "ANKI")
 
 target_link_libraries(webotsCtrlCommon
   PUBLIC
   util
   cti_common
+  robot_interface # for emrHelper.h
   ${PLATFORM_LIBS}
 )
 
 target_compile_definitions(webotsCtrlCommon
   PUBLIC
+  WEBOTS_VER=\"${WEBOTS_VER}\"
+  SIMULATOR
 )
 
 #
 # webots controller macros
 #
-macro(webots_setup_exe target)
-  set(generator ${CMAKE_GENERATOR})
-  set(build ${CMAKE_BUILD_TYPE})
-  set(exe $<TARGET_FILE:${target}>)
-  add_custom_command(
-    TARGET ${target}
-    POST_BUILD
-    COMMENT "Set up webots firewall exception for ${target}"
-    COMMAND ${WEBOTS_TEST} -g ${generator} -b ${build} -x ${exe}
-  )
-endmacro(webots_setup_exe)
 
 macro(webots_build_cxx_executable target srclist_dir)
   # Build the executable
   anki_build_cxx_executable(${target} ${srclist_dir})
   # Sign executable for use with webots firewall certificate
-  if (WEBOTS_SETUP_EXE)
-    webots_setup_exe(${target})
-  endif(WEBOTS_SETUP_EXE)
+  if (WEBOTS_SETUP_FIREWALL)
+    webots_setup_target(${target})
+  endif(WEBOTS_SETUP_FIREWALL)
 endmacro(webots_build_cxx_executable)
 
 #
@@ -120,6 +114,7 @@ endmacro(webots_build_cxx_executable)
 #
 
 webots_build_cxx_executable(webotsCtrlLightCube ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlLightCube "ANKI")
 
 target_link_libraries(webotsCtrlLightCube
   PRIVATE
@@ -150,6 +145,7 @@ symlink_target(
 
 
 webots_build_cxx_executable(webotsCtrlViz ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlViz "ANKI")
 
 target_link_libraries(webotsCtrlViz
   PRIVATE
@@ -175,6 +171,7 @@ symlink_target(
 # webotsCtrlRobot2
 #
 webots_build_cxx_executable(webotsCtrlRobot2 ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlRobot2 "ANKI")
 
 target_link_libraries(webotsCtrlRobot2
   PRIVATE
@@ -214,6 +211,7 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlAnim ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlAnim "ANKI")
 
 target_link_libraries(webotsCtrlAnim
   PRIVATE
@@ -252,6 +250,7 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlWebServer ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlWebServer "ANKI")
 
 target_link_libraries(webotsCtrlWebServer
   PRIVATE
@@ -282,12 +281,14 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlGameEngine2 ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlGameEngine2 "ANKI")
 
 target_link_libraries(webotsCtrlGameEngine2
   PRIVATE
   util
   kazmath
   cameraService
+  whiskeyToF
   cti_common
   cti_common_robot
   cti_vision
@@ -322,6 +323,7 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlKeyboard ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlKeyboard "ANKI")
 
 target_link_libraries(webotsCtrlKeyboard
   PRIVATE
@@ -359,6 +361,7 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlBuildServerTest ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlBuildServerTest "ANKI")
 
 target_link_libraries(webotsCtrlBuildServerTest
   PRIVATE
@@ -396,6 +399,7 @@ symlink_target(
 #
 
 webots_build_cxx_executable(webotsCtrlDevLog ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlDevLog "ANKI")
 
 target_link_libraries(webotsCtrlDevLog
   PRIVATE
@@ -428,20 +432,30 @@ symlink_target(
 )
 
 #
-# webotsCtrlNeuralNets
+# webotsCtrlGateway
 #
 
-# NOTE: This controller is actually built by coretech/vision/neuralnets/CMakeLists.txt
-#       because it shares a main.cpp with the robot's vic-neuralnets process. Since it
-#       it is not a target defined in this directory, we'll manually symlink it. This 
-#       does mean we don't get a firewall certificate for this process, but since it 
-#       doesn't open any ports, that should be ok. This also assumes the neuralnets 
-#       build ran first, however.
+webots_build_cxx_executable(webotsCtrlGateway ${ANKI_SRCLIST_DIR})
+anki_build_target_license(webotsCtrlGateway "ANKI")
 
-add_custom_target(symLinkWebotsCtrlNeuralNets ALL
-    COMMENT "Symlinking webotsCtrlNeuralNets"  
-    WORKING_DIRECTORY ${CONTROLLERS_DIR}
-    COMMAND mkdir -p webotsCtrlNeuralNets
-    COMMAND ln -s -f ${CMAKE_BINARY_DIR}/bin/webotsCtrlNeuralNets webotsCtrlNeuralNets/webotsCtrlNeuralNets
-    COMMAND ln -s -F ${BUILT_RESOURCES_DIR} webotsCtrlNeuralNets/resources
+target_link_libraries(webotsCtrlGateway
+  PRIVATE
+  webotsCtrlCommon
 )
+
+target_compile_definitions(webotsCtrlGateway
+  PRIVATE
+  SIMULATOR
+)
+
+symlink_target(
+  TARGET webotsCtrlGateway
+  DST "${CONTROLLERS_DIR}/webotsCtrlGateway/"
+)
+
+symlink_target(
+  TARGET webotsCtrlGateway
+  SRC ${CMAKE_BINARY_DIR}/bin/vic-gateway
+  DST "${CONTROLLERS_DIR}/webotsCtrlGateway/"
+)
+

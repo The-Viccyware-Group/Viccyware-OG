@@ -356,7 +356,7 @@ std::string RemovePII(const std::string& s)
 
 std::string GetUUIDString()
 {
-  Anki::Util::RandomGenerator rand;
+  static Anki::Util::RandomGenerator rand;
   union uuidTranslator {
     UUIDBytes uuidBytes;
     struct uint64s {
@@ -396,12 +396,14 @@ std::string UrlEncodeString(const std::string &str)
 std::string StringJoin(const std::vector<std::string>& strings, char delim)
 {
   std::string result;
+  bool first = true;
 
   for(const auto& str : strings) {
-    if(!result.empty()) {
+    if(!first) {
       result.append(std::string(1, delim));
     }
     result.append(str);
+    first = false;
   }
 
   return result;
@@ -410,11 +412,19 @@ std::string StringJoin(const std::vector<std::string>& strings, char delim)
 std::vector<std::string> StringSplit(const std::string& string, char delim)
 {
   std::vector<std::string> result;
-
-  std::istringstream is(string);
-  std::string s;
-  while(std::getline(is, s, delim)) {
-    result.emplace_back(std::move(s));
+  
+  size_t start = 0;
+  size_t end = string.find_first_of( delim );
+  
+  while( end <= std::string::npos ) {
+    result.emplace_back( string.substr(start, end-start) );
+    
+    if( end == std::string::npos ) {
+      break;
+    }
+    
+    start = end + 1;
+    end = string.find_first_of( delim, start );
   }
   
   return result;

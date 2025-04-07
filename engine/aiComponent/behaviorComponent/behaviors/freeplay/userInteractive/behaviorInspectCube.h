@@ -16,11 +16,11 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward Declarations
-class BehaviorKeepaway;
 class BlockWorldFilter;
+struct TargetStatus;
 
 class BehaviorInspectCube : public ICozmoBehavior
 {
@@ -44,92 +44,58 @@ protected:
 
 private:
   enum class InspectCubeState{
+    Init,
     GetIn,
+    DriveOffCharger,
     Searching,
     Tracking,
     Keepaway,
+    PlayingWithCube,
     GetOutBored,
+    GetOutTargetLost
   }; 
 
-  void SetState_internal(InspectCubeState state, const std::string& stateName);
-
-  void UpdateBoredomTimeouts();
-  void UpdateApproachState();
+  void UpdateBoredomTimeouts(const TargetStatus& targetStatus);
   
   // Behavior State Machine 
+  void TransitionToGetIn();
+  void TransitionToDriveOffCharger();
   void TransitionToSearching();
-  void UpdateSearching();
+  void UpdateSearching(const TargetStatus& targetStatus);
+  void SearchLoopHelper();
   void TransitionToTracking();
-  void UpdateTracking();
+  void UpdateTracking(const TargetStatus& targetStatus);
   void TransitionToKeepaway();
+  void TransitionToPlayingWithCube();
+  void TransitionToGetOutTargetLost();
   void TransitionToGetOutBored();
 
   // Helper Methods
   float GetCurrentTimeInSeconds() const;
 
-  // Target Tracking State and Methods - - - - -
-  enum class TargetApproachState{
-    Static,
-    Retreating,
-    Approaching
-  };
-
-  struct TargetStatus {
-    TargetStatus();
-    Pose3d  prevPose;
-    float   lastValidTime_s;
-    float   lastObservedTime_s;
-    float   lastMovedTime_s;
-    float   distance;
-    float   prevDistance;
-    bool    isValid = false;
-    bool    isVisible = false;
-    bool    isNotMoving = false;
-
-  };
-
-  bool CheckTargetStatus();
-  bool CheckTargetObject();
-  void UpdateTargetVisibility();
-  void UpdateTargetAngle();
-  void UpdateTargetDistance();
-  void UpdateTargetMotion();
-  bool TargetHasMoved(const ObservableObject* object);
-  // Target Tracking State and Methods - - - - - 
-
   struct InstanceConfig {
     InstanceConfig(const Json::Value& config);
-    std::unique_ptr<BlockWorldFilter> targetFilter;
-    std::shared_ptr<BehaviorKeepaway> keepawayBehavior;
-    float   targetUnmovedGetOutTimeout_s;
-    float   noValidTargetGetOutTimeout_s;
-    float   targetHiddenGetOutTimeout_s;
-    bool    useProxForDistance;
-    float   triggerDistance_mm;
-    float   minWithdrawalSpeed_mmpers;
-    float   minWithdrawalDist_mm;
+    std::string playWithCubeBehaviorIDString;
+    std::shared_ptr<ICozmoBehavior> driveOffChargerBehavior;
+    std::shared_ptr<ICozmoBehavior> playWithCubeBehavior;
+    std::shared_ptr<ICozmoBehavior> keepawayBehavior;
   };
 
   struct DynamicVariables {
-    DynamicVariables();
-    InspectCubeState    state; 
-    ObjectID            targetID;
-    TargetStatus        target;
-    TargetApproachState approachState; 
-    TargetApproachState prevApproachState; 
-    float               behaviorStartTime_s;
-    float               retreatStartDistance_mm;
-    float               retreatStartTime_s;
-    bool                nearApproachTriggered;
-    bool                victorIsBored;
+    DynamicVariables(float startTime_s);
+    InspectCubeState state; 
+    float            behaviorStartTime_s;
+    float            searchEndTime_s;
   };
 
   InstanceConfig _iConfig;
   DynamicVariables _dVars;
+
+  float _currentTimeThisTick_s;
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorInspectCube__

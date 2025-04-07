@@ -20,8 +20,9 @@
 #include "cannedAnimLib/baseTypes/track.h"
 
 namespace Anki {
-namespace Cozmo {
-  
+namespace Vector {
+namespace Anim {
+
 class BackpackLayerManager : public ITrackLayerManager<BackpackLightsKeyFrame>
 {
 public:
@@ -34,6 +35,7 @@ public:
   
 };
   
+}
 }
 }
 

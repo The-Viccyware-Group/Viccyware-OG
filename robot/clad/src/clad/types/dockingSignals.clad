@@ -4,7 +4,7 @@
 #include "clad/types/robotStatusAndActions.clad"
  
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum uint_8 DockingMethod
 {
@@ -18,6 +18,10 @@ enum uint_8 DockingMethod
   // Combines BLIND and TRACKER docking, will check error signals but only adjust docking
   // if the error signals indicate too much change
   HYBRID_DOCKING,
+  
+  // Like HYBRID_DOCKING but it doesn't try to plan a path that ends up square with the marker.
+  // Instead it just always follows a straight line between the robot's current pose and the marker's center.
+  HYBRID_DOCKING_BEELINE,
 
   // Only ever needs to receive one error signal (to start), therefore docking will always complete
   // once it starts
@@ -34,6 +38,7 @@ message DockWithObject
   uint_8     numRetries,
   DockingMethod dockingMethod,
   bool       doLiftLoadCheck,
+  bool       backUpWhileLiftingCube,
 }
 
 message AbortDocking
@@ -107,32 +112,28 @@ message MovingLiftPostDock
   DockAction action
 }
 
-message RampTraverseStart
-{
-  uint_32  timestamp,
-}
-
-message RampTraverseComplete
-{
-  uint_32  timestamp,
-  bool didSucceed,
-}
-
-message BridgeTraverseStart
-{
-  uint_32  timestamp,
-}
-
-message BridgeTraverseComplete
-{
-  uint_32  timestamp,
-  bool didSucceed,
-}
-
 message ChargerMountComplete
 {		
   uint_32  timestamp,
   bool didSucceed,
+}
+
+enum int_8 CliffAlignResult
+{
+  CLIFF_ALIGN_SUCCESS,
+  CLIFF_ALIGN_FAILURE_TIMEOUT,
+  CLIFF_ALIGN_FAILURE_NO_TURNING,
+  CLIFF_ALIGN_FAILURE_OVER_TURNING,
+  CLIFF_ALIGN_FAILURE_NO_WHITE,
+  CLIFF_ALIGN_FAILURE_STOPPED
+}
+
+// Not really a docking action in the sense that it doesn't
+// care about a visual marker. Uses cliff sensors only.
+message CliffAlignComplete
+{		
+  uint_32  timestamp,
+  CliffAlignResult result
 }
 
 structure GoalPose
@@ -142,5 +143,5 @@ structure GoalPose
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

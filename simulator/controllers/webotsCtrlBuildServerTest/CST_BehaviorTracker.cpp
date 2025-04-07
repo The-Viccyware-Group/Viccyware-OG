@@ -10,7 +10,6 @@
  *
  */
 
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
 #include "engine/robot.h"
@@ -21,7 +20,7 @@
 #include <time.h>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
     
 enum class TestState {
   StartUpFreeplayMode,
@@ -199,5 +198,5 @@ void CST_BehaviorTracker::HandleBehaviorTransition(const ExternalInterface::Beha
 
 // ================ End of message handler callbacks ==================
   
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki

@@ -22,11 +22,12 @@
 #include "engine/actions/actionInterface.h"
 
 #include "clad/types/actionTypes.h"
-#include "clad/types/animationTrigger.h"
 #include "clad/externalInterface/messageEngineToGame.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+  
+enum class AnimationTrigger : int32_t;
 
 // Forward Declarations:
 class Robot;
@@ -118,6 +119,9 @@ public:
   // Enable/disable moving of eyes while tracking. Default is false.
   void SetMoveEyes(bool moveEyes);
   
+  // Enable/disable action in certain tread-states. Default is only OnTreads.
+  void SetValidOffTreadsStates(const std::set<OffTreadsState>& states) { _validTreadStates = states; }
+
 protected:
 
   ITrackAction(const std::string name, const RobotActionType type);
@@ -139,6 +143,14 @@ protected:
     PredictedInfo,
     ShouldStop
   };
+
+  // These are the methods that children classes should call to use the stop/continue
+  // criteria of their choice. However, as it is implemented right now you can have
+  // some unintended consquences. As an example if SetStopCriteria is called
+  // followed by UseContinueCriteria, stop criteria will not be used and instead
+  // continue criteria will be. VIC-5821 further describes these potential
+  // issues.
+  void UseContinueCriteria(bool useContinueCriteria) { _useStopCriteria = !useContinueCriteria; }
   
   // Implementation-specific method for computing the absolute angles needed
   // to turn and face whatever is being tracked and the distance to target.
@@ -146,13 +158,37 @@ protected:
   virtual UpdateResult UpdateTracking(Radians& absPanAngle, Radians& absTiltAngle, f32& distance_mm) = 0;
   
   virtual bool InterruptInternal() override final;
+
+  // This method is intended to be overridden by child
+  // classes. With the goal of having the child class
+  // incorporate appliation specific logic to override
+  // the stop criteria in this base class. For an example
+  // see TrackFaceAction.
+  virtual bool AreContinueCriteriaMet(const f32 currentTime_sec) {return false;};
+
+  // Stop criteria is only valid if duration_sec is non-zero or
+  // earliestStoppingTime_sec is greater than zero.
+  struct {
+    Radians panTol                      = -1.f;
+    Radians tiltTol                     = -1.f;
+    f32     minDist_mm                  = -1.f;
+    f32     maxDist_mm                  = -1.f;
+    f32     duration_sec                = 0.f;
+    f32     withinTolSince_sec          = 0.f;
+    bool    interruptDrivingAnim        = false;
+  } _stopCriteria;
   
 private:
 
   // sets internal values to track clamping small angles. Returns true if we should clamp, false otherwise
   bool UpdateSmallAngleClamping();
   
-  bool StopCriteriaMetAndTimeToStop(f32 relPanAngle_rad, f32 relTiltAngle_rad, f32 dist_mm, f32 currentTime_sec);
+  bool AreStopCriteriaMet(const f32 relPanAngle_rad, const f32 relTiltAngle_rad,
+                          const f32 dist_mm, const f32 currentTime_sec);
+  bool IsWithinTolerances(const f32 relPanAngle_rad, const f32 relTiltAngle_rad,
+                          const f32 dist_mm, const f32 currentTime_sec) const;
+  bool IsTimeToStop(const f32 relPanAngle_rad, const f32 relTiltAngle_rad,
+                    const f32 dist_mm, const f32 currentTime_sec);
   
   Mode     _mode = Mode::HeadAndBody;
   float    _updateTimeout_sec = 0.0f;
@@ -167,6 +203,12 @@ private:
   bool     _shouldPlayDrivingAnimation = false;
 
   const std::string _kEyeShiftLayerName = "ITrackActionEyeShiftLayer";
+
+  // This member varaible determines whether the tracker should use stop
+  // criteria or continue criteria, the children classes are expected
+  // to override via public setters as neccesary. See TrackFaceAction
+  // for example.
+  bool _useStopCriteria = true;
   
   // When driving animations are used, we have to wait until the End animation is complete
   // before returning whatever actual final result for the action we wanted. In the mean time
@@ -175,7 +217,7 @@ private:
   ActionResult _finalActionResult = ActionResult::NOT_STARTED;
   
   // TODO: Remove this old sound stuff?
-  AnimationTrigger _turningSoundAnimTrigger = AnimationTrigger::Count;
+  AnimationTrigger _turningSoundAnimTrigger;
   f32      _soundSpacingMin_sec = 0.5f;
   f32      _soundSpacingMax_sec = 1.0f;
   f32      _nextSoundTime = 0.f;
@@ -183,7 +225,7 @@ private:
   Radians  _minTiltAngleForSound = DEG_TO_RAD(10);
   
   f32      _tiltDuration_sec = 0.15f;
-  f32      _panDuration_sec  = 0.2f;
+  f32      _panDuration_sec  = 0.25f;
   f32      _timeToReachTarget_sec  = 0.5f;
   
   u32      _soundAnimTag = (u32)ActionConstants::INVALID_TAG;
@@ -192,25 +234,20 @@ private:
   f32      _clampSmallAnglesMaxPeriod_s = -1.0f;
   f32      _nextTimeToClampSmallAngles_s = -1.0f;
   
-  struct {
-    Radians panTol              = 0.f;
-    Radians tiltTol             = 0.f;
-    f32     minDist_mm          = 0.f;
-    f32     maxDist_mm          = 0.f;
-    f32     duration_sec        = 0.f; // _stopCriteria is ignored if this is 0
-    f32     withinTolSince_sec  = 0.f;
-    bool    interruptDrivingAnim = false;
-  } _stopCriteria;
+  // Tread states in which this action is allowed to run, can be modified.
+  std::set<OffTreadsState> _validTreadStates = {OffTreadsState::OnTreads};
   
-  bool HaveStopCriteria() const { return Util::IsFltGTZero(_stopCriteria.duration_sec); }
-  
+  const std::string _kKeepFaceAliveITrackActionName = "ITrackAction";
+
+  bool HaveStopCriteria() const;
+
   // Helper for storing the return result if we are using driving animations and just
   // returning result immediately if not
   ActionResult CheckIfDoneReturnHelper(ActionResult result, bool stopCriteriaMet);
   
 }; // class ITrackAction
     
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif /* __Anki_Cozmo_Basestation_TrackActionInterface_H__ */

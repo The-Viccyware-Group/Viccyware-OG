@@ -1,8 +1,45 @@
+#include "clad/cloud/common.clad"
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace CloudMic {
 
-structure Void {
+enum uint_8 StreamType {
+	Normal,
+	Blackjack,
+	KnowledgeGraph
+}
+
+enum uint_8 ErrorType {
+	Server,
+	Timeout,
+	Json,
+	InvalidConfig,
+	Connecting,
+	NewStream,
+	Token,
+	TLS, // only used by connection check
+	Connectivity
+}
+
+// Note: Keep this enum in sync with the version in robot/clad/src/clad/robotInterface/messageFromAnimProcess.clad
+enum uint_8 ConnectionCode {
+	Available,
+	Connectivity,
+	Tls,
+	Auth,
+	Bandwidth
+}
+
+structure StreamOpen {
+	string session
+}
+
+structure Hotword {
+	StreamType mode,
+	string locale,
+	string timezone,
+	bool noLogging,
 }
 
 structure Filename {
@@ -15,24 +52,40 @@ structure AudioData {
 
 structure IntentResult {
 	string intent,
-	string parameters,
-	string metadata
+	string[uint_16] parameters,
+	string[uint_16] metadata
 }
 
 structure IntentError {
-	string error,
+	ErrorType error,
 	string extra
 }
 
+structure ConnectionResult {
+	ConnectionCode code,
+	string status,
+	uint_8 numPackets,
+	uint_8 expectedPackets,
+}
+
 union dupes_allowed Message {
-	Void hotword,
+	// anim -> cloud
+	Hotword hotword,
 	AudioData audio,
+	Void audioDone,
+	Void connectionCheck,
+
+	// cloud -> anim
 	Void stopSignal,
-	Filename debugFile,
 	Void testStarted,
 	Void streamTimeout,
+	ConnectionResult connectionResult,
+
+	// cloud -> engine
+	Filename debugFile,
 	IntentResult result,
-	IntentError error
+	IntentError error,
+	StreamOpen streamOpen
 }
 
 

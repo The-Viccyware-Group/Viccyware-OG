@@ -55,16 +55,16 @@ namespace Anki {
   }
   }
 
-namespace Cozmo {
+namespace Vector {
 
 // Forward declarations
 class Robot;
 class IExternalInterface;
+class IGatewayInterface;
 class CozmoContext;
 class UiMessageHandler;
-class GameMessagePort;
+class ProtoMessageHandler;
 class AnimationTransfer;
-class DeviceDataManager;
 
 template <typename Type>
 class AnkiEvent;
@@ -77,7 +77,7 @@ class CozmoEngine
 {
 public:
 
-  CozmoEngine(Util::Data::DataPlatform* dataPlatform, GameMessagePort* gameMessagePort);
+  CozmoEngine(Util::Data::DataPlatform* dataPlatform);
   virtual ~CozmoEngine();
 
 
@@ -90,8 +90,6 @@ public:
 
   Robot* GetRobot();
 
-  //void ExecuteBackgroundTransfers();
-
   Util::AnkiLab::AssignmentStatus ActivateExperiment(const Util::AnkiLab::ActivateExperimentRequest& request,
                                                      std::string& outVariationKey);
 
@@ -101,8 +99,9 @@ public:
                                      const float sleepDurationActual_ms) const;
 
   UiMessageHandler* GetUiMsgHandler() const { return _uiMsgHandler.get(); }
+  ProtoMessageHandler* GetProtoMsgHandler() const { return _protoMsgHandler.get(); }
 
-  EngineState GetEngineState() { return _engineState; }
+  EngineState GetEngineState() const { return _engineState; }
 
   // Designate calling thread as owner of engine updates
   void SetEngineThread();
@@ -118,13 +117,13 @@ protected:
   bool                                                      _isInitialized = false;
   Json::Value                                               _config;
   std::unique_ptr<UiMessageHandler>                         _uiMsgHandler;
+  std::unique_ptr<ProtoMessageHandler>                      _protoMsgHandler;
   std::unique_ptr<CozmoContext>                             _context;
-  std::unique_ptr<DeviceDataManager>                        _deviceDataManager;
-  Anki::Cozmo::DebugConsoleManager                          _debugConsoleManager;
-  Anki::Cozmo::DasToSdkHandler                              _dasToSdkHandler;
-  bool                                                      _isGamePaused = false;
+  Anki::Vector::DebugConsoleManager                          _debugConsoleManager;
+  Anki::Vector::DasToSdkHandler                              _dasToSdkHandler;
   bool                                                      _hasRunFirstUpdate = false;
   bool                                                      _uiWasConnected = false;
+  bool                                                      _updateMoveComponent = false;
 
   virtual Result InitInternal();
 
@@ -134,7 +133,6 @@ protected:
   Result AddRobot(RobotID_t robotID);
 
   void UpdateLatencyInfo();
-  void SendSupportInfo() const;
   void InitUnityLogger();
 
   EngineState _engineState = EngineState::Stopped;
@@ -144,7 +142,7 @@ protected:
 }; // class CozmoEngine
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMO_BASESTATION_COZMO_ENGINE_H

@@ -1,5 +1,5 @@
 /**
- * File: cubePhacementHelper.h
+ * File: cubePlacementHelper.h
  *
  * Author: ross made the file / original by ??
  * Created: 2018
@@ -17,15 +17,14 @@
 #pragma once
 
 #include "coretech/common/engine/utils/timer.h"
-#include "engine/activeObject.h"
-#include "engine/activeObjectHelpers.h"
+#include "engine/block.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/blockWorld/blockWorldFilter.h"
 #include "util/logging/logging.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class CubePlacementHelper
 {
@@ -34,21 +33,14 @@ public:
   // Helpers can't have TEST assertions
   static ObservableObject* CreateObjectLocatedAtOrigin(Robot& robot, ObjectType objectType)
   {
-    // matching activeID happens through objectID automatically on addition
-    const ActiveID activeID = -1;
-    const FactoryID factoryID = "";
-
     BlockWorld& blockWorld = robot.GetBlockWorld();
-    ObservableObject* objectPtr = CreateActiveObjectByType(objectType, activeID, factoryID);
-    DEV_ASSERT(nullptr != objectPtr, "CreateObjectLocatedAtOrigin.CreatedNull");
-    objectPtr->SetLastObservedTime( BaseStationTimer::getInstance()->GetCurrentTimeStamp() );
+    ObservableObject* objectPtr = new Block(objectType);
+    objectPtr->SetLastObservedTime( (TimeStamp_t)robot.GetLastMsgTimestamp() );
     
     // check it currently doesn't exist in BlockWorld
     {
       BlockWorldFilter filter;
-      filter.SetFilterFcn(nullptr); // TODO Should not be needed by default
       filter.SetAllowedTypes( {objectPtr->GetType()} );
-      filter.SetAllowedFamilies( {objectPtr->GetFamily()} );
       ObservableObject* sameBlock = blockWorld.FindLocatedMatchingObject(filter);
       DEV_ASSERT(nullptr == sameBlock, "CreateObjectLocatedAtOrigin.TypeAlreadyInUse");
     }
@@ -64,9 +56,6 @@ public:
     // now they can be added to the world
     blockWorld.AddLocatedObject(std::shared_ptr<ObservableObject>(objectPtr));
 
-    // need to pretend we observed this object
-    robot.GetObjectPoseConfirmer().AddInExistingPose(objectPtr); // this has to be called after AddLocated just because
-    
     // verify they are there now
     DEV_ASSERT(objectPtr->GetID().IsSet(), "CreateObjectLocatedAtOrigin.IDNotset");
     DEV_ASSERT(objectPtr->HasValidPose(), "CreateObjectLocatedAtOrigin.InvalidPose");

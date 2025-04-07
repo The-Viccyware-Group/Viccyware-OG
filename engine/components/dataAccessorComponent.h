@@ -19,6 +19,8 @@
 #include "util/entityComponent/iDependencyManagedComponent.h"
 #include "util/helpers/noncopyable.h"
 
+#include "clad/types/behaviorComponent/beiConditionTypes.h"
+
 #include <assert.h>
 
 namespace Anki {
@@ -29,7 +31,7 @@ class SpriteCache;
 class SpriteSequenceContainer;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class DataAccessorComponent : public IDependencyManagedComponent<RobotComponentID>, 
                              private Anki::Util::noncopyable
@@ -41,7 +43,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
   virtual void GetInitDependencies(RobotCompIDSet& dependencies) const override {
     dependencies.insert(RobotComponentID::CozmoContextWrapper);
   };
@@ -54,26 +56,33 @@ public:
   Vision::SpriteCache* GetSpriteCache() const { assert(_spriteCache != nullptr); return _spriteCache;  }
   Vision::SpriteSequenceContainer* GetSpriteSequenceContainer() const { assert(_spriteSequenceContainer != nullptr); return _spriteSequenceContainer;}
 
-  const RobotDataLoader::CompImageMap* GetCompImgMap() { assert(_compImgMap); return _compImgMap; }
-  const RobotDataLoader::CompLayoutMap* GetCompLayoutMap() { assert(_compLayoutMap); return _compLayoutMap; }
-  const CannedAnimationContainer* GetCannedAnimationContainer() { assert(_cannedAnimationContainer); return _cannedAnimationContainer; }
+  const CannedAnimationContainer* GetCannedAnimationContainer() const { assert(_cannedAnimationContainer); return _cannedAnimationContainer; }
   const RobotDataLoader::WeatherResponseMap* GetWeatherResponseMap() const { assert(_weatherResponseMap); return _weatherResponseMap; }
-  const Json::Value* GetTextToSpeechConfig() { assert(_textToSpeechConfig != nullptr); return _textToSpeechConfig; }
+  const RobotDataLoader::WeatherConditionTTSMap* GetWeatherConditionTTSMap() const { assert(_weatherConditionTTSMap); return _weatherConditionTTSMap;}
+  const Json::Value& GetWeatherRemaps() const { assert(_weatherRemaps); return *_weatherRemaps;}
+  RobotDataLoader::VariableSnapshotJsonMap* GetVariableSnapshotJsonMap() const { assert(nullptr != _variableSnapshotJsonMap); return _variableSnapshotJsonMap; }
 
+  const Json::Value& GetCubeSpinnerConfig() const { return _cupeSpinnerConfig; }
+
+  RobotDataLoader::ConditionToBehaviorsMap* GetUserDefinedConditionToBehaviorsMap() const { assert(nullptr != _userDefinedConditionToBehaviorsMap); return _userDefinedConditionToBehaviorsMap; }
+  const BEIConditionType GetUserDefinedEditCondition() const { return _userDefinedEditCondition; };
 private:
   const Vision::SpritePathMap* _spritePaths = nullptr;
   Vision::SpriteCache* _spriteCache = nullptr;
   Vision::SpriteSequenceContainer* _spriteSequenceContainer = nullptr;
-  const RobotDataLoader::CompImageMap* _compImgMap = nullptr;
-  const RobotDataLoader::CompLayoutMap* _compLayoutMap = nullptr;
   const CannedAnimationContainer* _cannedAnimationContainer = nullptr;
   const RobotDataLoader::WeatherResponseMap* _weatherResponseMap = nullptr;
-  const Json::Value* _textToSpeechConfig = nullptr;
+  const RobotDataLoader::WeatherConditionTTSMap* _weatherConditionTTSMap = nullptr;
+  const Json::Value* _weatherRemaps = nullptr;
+  RobotDataLoader::VariableSnapshotJsonMap* _variableSnapshotJsonMap = nullptr;
+  Json::Value _cupeSpinnerConfig;
+  RobotDataLoader::ConditionToBehaviorsMap* _userDefinedConditionToBehaviorsMap = nullptr;
+  BEIConditionType _userDefinedEditCondition;
 
 }; // __Cozmo_Basestation_Components_DataAccessorComponent_H__
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif

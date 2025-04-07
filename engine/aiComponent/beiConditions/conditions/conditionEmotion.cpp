@@ -12,12 +12,13 @@
 
 #include "engine/aiComponent/beiConditions/conditions/conditionEmotion.h"
 
+#include "clad/types/emotionTypes.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/cozmoContext.h"
 #include "engine/moodSystem/moodManager.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace{
 static const char* kMaxKey = "max";
@@ -75,5 +76,5 @@ void ConditionEmotion::LoadJson(const Json::Value& config)
                emotionStr.c_str() );
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

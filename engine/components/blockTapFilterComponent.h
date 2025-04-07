@@ -21,6 +21,7 @@
 #include "util/global/globalDefinitions.h"
 #include "clad/externalInterface/messageGameToEngine.h"
 #include "util/entityComponent/iDependencyManagedComponent.h"
+#include "engine/engineTimeStamp.h"
 #include "engine/events/ankiEvent.h"
 #include "engine/robotComponents_fwd.h"
 #include "coretech/common/engine/objectIDs.h"
@@ -28,7 +29,7 @@
 #include <list>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class Robot;
 namespace ExternalInterface {
@@ -45,7 +46,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
   virtual void GetInitDependencies(RobotCompIDSet& dependencies) const override {
     dependencies.insert(RobotComponentID::CozmoContextWrapper);
   };
@@ -67,39 +68,30 @@ public:
 
 private:
   
-  void HandleEnableTapFilter(const AnkiEvent<ExternalInterface::MessageGameToEngine>& message);
-  
   void CheckForDoubleTap(const ObjectID& objectID);
   
   Robot* _robot = nullptr;
-
-  Signal::SmartHandle _gameToEngineSignalHandle;
   
   std::list<Signal::SmartHandle> _eventHandles;
   
   bool _enabled;
-  Anki::TimeStamp_t _waitToTime;
+  EngineTimeStamp_t _waitToTime;
   
   struct DoubleTapInfo {
     // The time we should stop waiting for a double tap
-    TimeStamp_t doubleTapTime = 0;
+    EngineTimeStamp_t doubleTapTime = 0;
     
     // Whether or not the object is moving
     bool isMoving = false;
     
     // The time we should stop ignoring move messages for the objectID this DoubleTapInfo
     // maps to
-    TimeStamp_t ignoreNextMoveTime = 0;
+    EngineTimeStamp_t ignoreNextMoveTime = 0;
     bool isIgnoringMoveMessages = false;
   };
   
   std::map<ObjectID, DoubleTapInfo> _doubleTapObjects;
   std::vector<ExternalInterface::ObjectTapped> _tapInfo;
-  
-#if ANKI_DEV_CHEATS
-  void HandleSendTapFilterStatus(const AnkiEvent<ExternalInterface::MessageGameToEngine>& message);
-  Signal::SmartHandle _debugGameToEngineSignalHandle;
-#endif
 
 };
 

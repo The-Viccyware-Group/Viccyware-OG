@@ -18,6 +18,7 @@
 
 #include "textToSpeechProvider.h"
 #include "textToSpeechProviderConfig.h"
+#include "json/json.h"
 
 #include <string>
 
@@ -32,7 +33,7 @@ namespace Anki {
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace TextToSpeech {
 
 //
@@ -42,17 +43,41 @@ namespace TextToSpeech {
 class TextToSpeechProviderImpl
 {
 public:
-  TextToSpeechProviderImpl(const AnimContext* context, const Json::Value& tts_platform_config);
+  TextToSpeechProviderImpl(const Anim::AnimContext* context, const Json::Value& tts_platform_config);
   ~TextToSpeechProviderImpl();
 
-  Result CreateAudioData(const std::string& text, float durationScalar, TextToSpeechProviderData& data);
+  Result SetLocale(const std::string & locale);
+
+  // Initialize TTS utterance and get first chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetFirstAudioData(const std::string & text,
+                           float durationScalar,
+                           float pitchScalar,
+                           TextToSpeechProviderData & data,
+                           bool & done);
+
+  // Get next chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetNextAudioData(TextToSpeechProviderData & data, bool & done);
 
 private:
-  // TTS configuration
-  std::unique_ptr<TextToSpeechProviderConfig> _tts_config;
+  // Path to TTS resources
+  std::string _tts_resource_path;
 
-  // RNG provided by context
+  // Configuration options provided to constructor
+  Json::Value _tts_platform_config;
+
+  // RNG provided to constructor
   Anki::Util::RandomGenerator * _rng = nullptr;
+
+ // Current locale, current language
+  std::string _locale;
+  std::string _language;
+
+  // Current configuration options
+  std::unique_ptr<TextToSpeechProviderConfig> _tts_config;
 
   //
   // BABILE Object State
@@ -76,10 +101,22 @@ private:
   BB_S32 _BAB_voicefreq = 0;
   BB_S32 _BAB_samplesize = 0;
 
+  // State of current utterance
+  std::string _str;
+  size_t _strlen = 0;
+  size_t _strpos = 0;
+  bool _draining = false;
+
+  //
+  // Internal state management
+  //
+  Result Initialize(const std::string & locale);
+  void Cleanup();
+
 }; // class TextToSpeechProviderImpl
 
 } // end namespace TextToSpeech
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 
 #endif // ANKI_PLATFORM_VICOS

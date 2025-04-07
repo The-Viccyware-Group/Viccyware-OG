@@ -21,9 +21,13 @@
 #include <set>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BEIConditionMessageHelper;
+
+namespace ExternalInterface {
+struct RobotObservedFace;
+}
 
 class ConditionFacePositionUpdated : public IBEICondition, private IBEIConditionEventHandler
 {
@@ -34,7 +38,7 @@ public:
 
 protected:
   virtual void GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const override {
-    requests.insert({ VisionMode::DetectingFaces, EVisionUpdateFrequency::Low });
+    requests.insert({ VisionMode::Faces, EVisionUpdateFrequency::Low });
   }
   virtual void InitInternal(BehaviorExternalInterface& behaviorExternalInterface) override;
   virtual bool AreConditionsMetInternal(BehaviorExternalInterface& behaviorExternalInterface) const override;
@@ -65,7 +69,7 @@ private:
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_WantsToRunStrategies_ConditionFacePositionUpdated_H__

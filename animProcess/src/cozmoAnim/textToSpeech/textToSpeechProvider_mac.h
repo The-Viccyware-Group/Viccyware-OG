@@ -17,6 +17,7 @@
 
 #include "textToSpeechProvider.h"
 #include "textToSpeechProviderConfig.h"
+#include "json/json.h"
 
 #include <string>
 
@@ -25,13 +26,13 @@ namespace Anki {
   namespace Util {
     class RandomGenerator;
   }
-  namespace Cozmo {
+  namespace Vector {
     class AnimContext;
   }
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace TextToSpeech {
 
 //
@@ -42,13 +43,40 @@ namespace TextToSpeech {
 class TextToSpeechProviderImpl
 {
 public:
-  TextToSpeechProviderImpl(const Cozmo::AnimContext* ctx, const Json::Value& tts_platform_config);
+  TextToSpeechProviderImpl(const Vector::Anim::AnimContext* ctx, const Json::Value& tts_platform_config);
   ~TextToSpeechProviderImpl();
 
-  Result CreateAudioData(const std::string& text, float durationScalar, TextToSpeechProviderData& data);
+  Result SetLocale(const std::string & locale);
+
+  // Initialize TTS utterance and get first chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetFirstAudioData(const std::string & text,
+                           float durationScalar,
+                           float pitchScalar,
+                           TextToSpeechProviderData & data,
+                           bool & done);
+
+  // Get next chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetNextAudioData(TextToSpeechProviderData & data, bool & done);
 
 private:
-  // Configurable parameters
+  // Pointer to RNG provided by context
+  Anki::Util::RandomGenerator * _rng = nullptr;
+
+  // Path to TTS resources
+  std::string _tts_resource_path;
+
+  // Platform configuration options
+  Json::Value _tts_platform_config;
+
+  // Current locale, current language
+  std::string _locale;
+  std::string _language;
+
+  // Current configuration
   std::unique_ptr<TextToSpeechProviderConfig> _tts_config;
 
   // License state
@@ -57,13 +85,15 @@ private:
   // Opaque handle to Acapela TTS SDK
   void* _lpBabTTS = nullptr;
 
-  // Pointer to RNG provided by context
-  Anki::Util::RandomGenerator * _rng = nullptr;
+
+  // Private methods
+  Result Initialize(const std::string & locale);
+  void Cleanup();
 
 }; // class TextToSpeechProviderImpl
 
 } // end namespace TextToSpeech
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 
 #endif // ANKI_PLATFORM_OSX

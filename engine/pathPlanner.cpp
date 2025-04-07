@@ -9,16 +9,17 @@
  * Copyright: Anki, Inc. 2014
  **/
 
+#include "anki/cozmo/shared/cozmoConfig.h"
 #include "coretech/common/engine/math/pose.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "coretech/planning/engine/robotActionParams.h"
 #include "pathPlanner.h"
 #include "util/logging/logging.h"
 #include "util/math/math.h"
 
+#define LOG_CHANNEL "Planner"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 IPathPlanner::IPathPlanner(const std::string& name)
@@ -33,30 +34,29 @@ Planning::GoalID IPathPlanner::ComputeClosestGoalPose(const Pose3d& startPose,
                                                       const std::vector<Pose3d>& targetPoses)
 {
   Planning::GoalID selectedTargetIdx = 0;
-  bool foundTarget = false;
-  f32 shortestDistToPose = -1.f;
+  f32 shortestDistToPose = std::numeric_limits<float>::max();
+
   for(size_t i=0; i<targetPoses.size(); ++i)
   {
     const Pose3d& targetPose = targetPoses[i];
         
     const f32 distToPose = (targetPose.GetTranslation() - startPose.GetTranslation()).LengthSq();
-    if (!foundTarget || distToPose < shortestDistToPose)
+    if (distToPose < shortestDistToPose)
     {
-      foundTarget = true;
       shortestDistToPose = distToPose;
       selectedTargetIdx = i;
     }
 
-    PRINT_NAMED_DEBUG("IPathPlanner.ComputeClosestGoalPose",
-                      "Candidate target pose: (%.2f %.2f %.2f), %.1fdeg @ (%.2f %.2f %.2f): dist %f",
-                      targetPose.GetTranslation().x(),
-                      targetPose.GetTranslation().y(),
-                      targetPose.GetTranslation().z(),
-                      targetPose.GetRotationAngle<'Z'>().getDegrees(),
-                      targetPose.GetRotationAxis().x(),
-                      targetPose.GetRotationAxis().y(),
-                      targetPose.GetRotationAxis().z(),
-                      distToPose);
+    LOG_DEBUG("IPathPlanner.ComputeClosestGoalPose",
+              "Candidate target pose: (%.2f %.2f %.2f), %.1fdeg @ (%.2f %.2f %.2f): dist %f",
+              targetPose.GetTranslation().x(),
+              targetPose.GetTranslation().y(),
+              targetPose.GetTranslation().z(),
+              targetPose.GetRotationAngle<'Z'>().getDegrees(),
+              targetPose.GetRotationAxis().x(),
+              targetPose.GetRotationAxis().y(),
+              targetPose.GetRotationAxis().z(),
+              distToPose);
   }
 
   return selectedTargetIdx;
@@ -102,45 +102,6 @@ EPlannerErrorType IPathPlanner::GetErrorType() const
          : EPlannerErrorType::None;
 }
 
-bool IPathPlanner::GetCompletePath(const Pose3d& currentRobotPose,
-                                   Planning::Path &path,
-                                   const PathMotionProfile* motionProfile)
-{
-  if (GetCompletePath_Internal(currentRobotPose, path)) {
-    
-    if (motionProfile != nullptr) {
-      ApplyMotionProfile(path, *motionProfile, _path);
-      path = _path;
-    } else {
-      _path = path;
-    }
-    return true;
-    
-  }
-  
-  return false;
-}
-  
-bool IPathPlanner::GetCompletePath(const Pose3d& currentRobotPose,
-                                   Planning::Path &path,
-                                   Planning::GoalID& selectedTargetIndex,
-                                   const PathMotionProfile* motionProfile)
-{
-  if (GetCompletePath_Internal(currentRobotPose, path, selectedTargetIndex)) {
-    
-    if (motionProfile != nullptr) {
-      ApplyMotionProfile(path, *motionProfile, _path);
-      path = _path;
-    } else {
-      _path = path;
-    }
-    return true;
-    
-  }
-  
-  return false;
-}
-
 bool IPathPlanner::CheckIsPathSafe(const Planning::Path& path, float startAngle) const
 {
   Planning::Path waste;
@@ -153,37 +114,11 @@ bool IPathPlanner::CheckIsPathSafe(const Planning::Path& path, float startAngle,
   return true;
 }
 
-  
-bool IPathPlanner::GetCompletePath_Internal(const Pose3d& currentRobotPose,
-                                            Planning::Path &path)
-{
-  if( ! _hasValidPath ) {
-    return false;
-  }
-  
-  path = _path;
-  return true;
-}
 
-bool IPathPlanner::GetCompletePath_Internal(const Pose3d& currentRobotPose,
-                                            Planning::Path &path,
-                                            Planning::GoalID& selectedTargetIndex)
+Planning::Path IPathPlanner::ApplyMotionProfile(const Planning::Path &in, const PathMotionProfile& motionProfile)
 {
-  if( ! _hasValidPath ) {
-    return false;
-  }
+  Planning::Path out;
   
-  path = _path;
-  selectedTargetIndex = _selectedTargetIdx;
-  return true;
-}
-
-
-bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
-                                      const PathMotionProfile& motionProfile,
-                                      Planning::Path &out)
-{
-  out.Clear();
   std::vector<Planning::PathSegment> reversedPath;
   
   const f32 lin_speed = fabsf(motionProfile.speed_mmps);
@@ -193,6 +128,11 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
   // valid motion profile on path.
   Planning::RobotActionParams actionParams;
   bool nextSegEndsInStop = true;
+
+  // Helper for computing max speed on arc
+  auto GetMaxAbsSpeedOnArc = [&actionParams](f32 arcRadius_mm) {
+    return std::fabsf((MAX_WHEEL_SPEED_MMPS * arcRadius_mm) / (arcRadius_mm + static_cast<f32>(actionParams.halfWheelBase_mm)));
+  };
   
   // Figure out proper path segment speeds to account for deceleration starting from the end of the path and working
   // towards the start since we know the last segment will end in a stop, this loop calculates each segments neccessary initial speed.
@@ -218,24 +158,31 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
     }
     
     // Limit linear speed based on direction-dependent max wheel speed
-    f32 speed = lin_speed;
+    f32 speed_mmps = lin_speed;
     if (seg.GetTargetSpeed() < 0) {
       const f32 absSpeed = fabsf(motionProfile.reverseSpeed_mmps);
       if (FLT_GT(absSpeed, 0.0f))
       {
-        speed = absSpeed;
+        speed_mmps = absSpeed;
       }
       else{
-        PRINT_NAMED_WARNING("IPathPlanner.ApplyMotionProfile", "Tried to set speed to 0! PathMotionProfile.reverseSpeed_mmps = 0! Using speed_mmps instead.");
+        LOG_WARNING("IPathPlanner.ApplyMotionProfile", "Tried to set speed to 0! PathMotionProfile.reverseSpeed_mmps = 0! Using speed_mmps instead.");
       }
     }
     
     switch(seg.GetType()) {
       case Planning::PST_ARC:
       {
-        // Scale speed along arc to accommodate the max wheel speed
-        f32 arcRadius_mm = std::fabsf(seg.GetDef().arc.radius);
-        speed = (arcRadius_mm * speed) / (arcRadius_mm + actionParams.halfWheelBase_mm);
+        // Check if any wheel speed exceeds MAX_WHEEL_SPEED_MMPS
+        const f32 arcRadius_mm = std::fabsf(seg.GetDef().arc.radius);
+        const f32 max_wheel_speed_mmps = (speed_mmps / arcRadius_mm) * (arcRadius_mm + actionParams.halfWheelBase_mm);
+
+        // Calculate new center speed assuming outer wheel speed of MAX_WHEEL_SPEED_MMPS
+        if (max_wheel_speed_mmps > MAX_WHEEL_SPEED_MMPS) {
+          speed_mmps = GetMaxAbsSpeedOnArc(arcRadius_mm);
+        }
+
+        seg.SetTargetSpeed(speed_mmps);
         // fall through to PST_LINE handling
       }
       case Planning::PST_LINE:
@@ -254,12 +201,12 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
         // final speeds will be zero causing this segment to have a deceleration of zero
         if(in.GetNumSegments() == 1)
         {
-          initialSpeed = motionProfile.speed_mmps;
+          initialSpeed = speed_mmps;
         }
         // Otherwise this segment is not the first segment of the path and it isn't a point turn
         else if(i > 0 && !prevSegIsPT)
         {
-          initialSpeed = motionProfile.speed_mmps;
+          initialSpeed = speed_mmps;
         }
         
         // Calculate the actual deceleration neccessary to slow down over this segment
@@ -269,7 +216,7 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
         if(NEAR_ZERO(actualSegDecel))
         {
           nextSegEndsInStop = false;
-          seg.SetSpeedProfile(std::copysign(seg.GetTargetSpeed(), speedSign),
+          seg.SetSpeedProfile(std::copysign(speed_mmps, speedSign),
                               motionProfile.accel_mmps2,
                               motionProfile.decel_mmps2);
           break;
@@ -303,8 +250,9 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
         break;
       }
       default:
-        PRINT_NAMED_WARNING("IPathPlanner.ApplyMotionProfile.UnknownSegment", "Path has invalid segment");
-        return false;
+        LOG_WARNING("IPathPlanner.ApplyMotionProfile.UnknownSegment", "Path has invalid segment");
+        out.Clear();
+        return out;
     }
     
     reversedPath.push_back(seg);
@@ -349,7 +297,7 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
     
     // If this is a line segment check if we can split it into two segments because we can finish decelerating before reaching
     // the end of the segment
-    if(seg.GetType() == Planning::PST_LINE)
+    if(seg.GetType() == Planning::PST_LINE || seg.GetType() == Planning::PST_ARC)
     {
       f32 initialSpeed = seg.GetTargetSpeed();
       
@@ -361,28 +309,52 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
          distToDecel < seg.GetLength() &&
          !NEAR(distToDecel, seg.GetLength(), distToDecelSegLenTolerance_mm))
       {
-        Planning::PathSegment newSeg;
-        f32 startX, startY, endX, endY, endA;
-        seg.GetStartPoint(startX, startY);
-        seg.GetEndPose(endX, endY, endA);
-        f32 newSegLen = std::copysign(seg.GetLength() - distToDecel, initialSpeed);
-        newSeg.DefineLine(startX,
-                          startY,
-                          startX+(newSegLen*cosf(endA)),
-                          startY+(newSegLen*sinf(endA)),
-                          initialSpeed,
-                          seg.GetAccel(),
-                          seg.GetDecel());
-        
-        // If the second half of this segment will end in a stop set its speed to finalPathSegmentSpeed to prevent us from
-        // prematurely stopping while following the path due to unknown forces
-        seg.DefineLine(startX+(newSegLen*cosf(endA)),
-                       startY+(newSegLen*sinf(endA)),
-                       endX,
-                       endY,
-                       (speed == 0 ? std::copysign(finalPathSegmentSpeed_mmps,initialSpeed) : std::copysign(speed, initialSpeed)),
-                       seg.GetAccel(),
-                       seg.GetDecel());
+        Planning::PathSegment newSeg = seg;
+        if (seg.GetType() == Planning::PST_LINE) {
+          f32 startX, startY, endX, endY, endA;
+          seg.GetStartPoint(startX, startY);
+          seg.GetEndPose(endX, endY, endA);
+          f32 newSegLen = std::copysign(seg.GetLength() - distToDecel, initialSpeed);
+          newSeg.DefineLine(startX,
+                            startY,
+                            startX+(newSegLen*cosf(endA)),
+                            startY+(newSegLen*sinf(endA)),
+                            initialSpeed,
+                            seg.GetAccel(),
+                            seg.GetDecel());
+
+          // If the second half of this segment will end in a stop set its speed to finalPathSegmentSpeed to prevent us from
+          // prematurely stopping while following the path due to unknown forces
+          seg.DefineLine(startX+(newSegLen*cosf(endA)),
+                         startY+(newSegLen*sinf(endA)),
+                         endX,
+                         endY,
+                         (speed == 0 ? std::copysign(finalPathSegmentSpeed_mmps,initialSpeed) : std::copysign(speed, initialSpeed)),
+                         seg.GetAccel(),
+                         seg.GetDecel());                            
+        } else {
+          const auto &arc = seg.GetDef().arc;
+          f32 newSweepRad = distToDecel / arc.radius;
+          newSeg.DefineArc(arc.centerPt_x,
+                           arc.centerPt_y,
+                           arc.radius,
+                           arc.startRad,
+                           arc.sweepRad - newSweepRad,
+                           initialSpeed,
+                           seg.GetAccel(),
+                           seg.GetDecel());
+
+          // If the second half of this segment will end in a stop set its speed to finalPathSegmentSpeed to prevent us from
+          // prematurely stopping while following the path due to unknown forces
+          seg.DefineArc(arc.centerPt_x,
+                        arc.centerPt_y,
+                        arc.radius,
+                        arc.startRad + arc.sweepRad - newSweepRad,
+                        newSweepRad,
+                        (speed == 0 ? std::copysign(finalPathSegmentSpeed_mmps,initialSpeed) : std::copysign(speed, initialSpeed)),
+                        seg.GetAccel(),
+                        seg.GetDecel());
+        }
         
         out.AppendSegment(newSeg);
         out.AppendSegment(seg);
@@ -406,9 +378,14 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
     bool lastSegmentAndPrevIsPT = (!hasNextSeg &&
                                    prevSegType == Planning::PST_POINT_TURN);
     
-    // Only update this segment's speed if it isn't the only segment, it isn't a point turn, the next segment isn't a point turn,
-    // and this isn't a special case where this is the last segment and the previous segment is a point turn
+    // Only update this segment's speed if all the following are true:
+    // * it isn't the only segment
+    // * it isn't an arc on which the new speed would be impossible to achieve
+    // * it isn't a point turn
+    // * the next segment isn't a point turn,
+    // * this isn't a special case where this is the last segment and the previous segment is a point turn
     if(numSegs > 1 &&
+       !(seg.GetType() == Planning::PST_ARC && std::fabsf(speed) > GetMaxAbsSpeedOnArc(seg.GetDef().arc.radius)) &&
        seg.GetType() != Planning::PST_POINT_TURN &&
        (hasNextSeg ? nextSeg.GetType() != Planning::PST_POINT_TURN : true) &&
        !lastSegmentAndPrevIsPT)
@@ -421,9 +398,9 @@ bool IPathPlanner::ApplyMotionProfile(const Planning::Path &in,
   
   out.PrintPath();
   
-  return true;
+  return out;
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

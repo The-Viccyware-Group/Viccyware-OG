@@ -20,7 +20,7 @@ endif()
 
 if (NOT TARGET clad)
   if (NOT CLAD_SOURCE_DIR)
-    set(CLAD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/message-buffers")
+    set(CLAD_SOURCE_DIR "${CMAKE_SOURCE_DIR}/victor-clad/tools/message-buffers")
   endif()
   add_subdirectory(${CLAD_SOURCE_DIR} "${CMAKE_BINARY_DIR}/message-buffers")
 endif()
@@ -37,14 +37,21 @@ if (NOT TARGET civetweb)
   add_subdirectory("source/3rd/civetweb")
 endif()
 
-if (NOT TARGET hdr_histogram)
+if (NOT TARGET hdr_histogram_static)
   add_subdirectory("source/3rd/hdrhistogram_c")
+  foreach(target hdr_histogram hdr_histogram_static)
+  anki_build_target_license(${target} "BSD-2,${CMAKE_CURRENT_SOURCE_DIR}/source/3rd/hdrhistogram_c/LICENSE.txt")
+  endforeach()
 endif()
 
 # Disable webp until we are going to use it
 # if (NOT TARGET webp)
 #  add_subdirectory("source/3rd/libwebp")
 # endif()
+
+if (NOT TARGET libev)
+  add_subdirectory("source/3rd/libev")
+endif()
 
 if (NOT TARGET audio_util)
   add_subdirectory("source/anki/audioUtil")

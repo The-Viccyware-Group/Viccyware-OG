@@ -32,6 +32,11 @@ target_include_directories(cti_common_clad
   $<BUILD_INTERFACE:${OUTPUT_DIR}>
 )
 
+target_compile_definitions(cti_common_clad
+  PUBLIC
+  USES_CLAD
+)
+
 target_link_libraries(cti_common_clad
   clad
 )
@@ -66,3 +71,10 @@ target_include_directories(cti_common_clad_cpplite
   PUBLIC
   $<BUILD_INTERFACE:${CPPLITE_OUTPUT_DIR}>
 )
+
+target_compile_definitions(cti_common_clad_cpplite
+  PUBLIC
+  USES_CPPLITE
+)
+
+anki_build_target_license(cti_common_clad_cpplite "ANKI")

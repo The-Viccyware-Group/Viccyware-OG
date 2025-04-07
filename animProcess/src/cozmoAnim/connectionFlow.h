@@ -16,10 +16,11 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
-
-class AnimContext;
-class AnimationStreamer;
+namespace Vector {
+namespace Anim {
+  class AnimContext;
+  class AnimationStreamer;
+}
 
 namespace SwitchboardInterface {
   struct SetConnectionStatus;
@@ -27,11 +28,11 @@ namespace SwitchboardInterface {
 
 void SetBLEPin(uint32_t pin);
 
-bool InitConnectionFlow(AnimationStreamer* animStreamer);
+bool InitConnectionFlow(Anim::AnimationStreamer* animStreamer);
 
 void UpdateConnectionFlow(const SwitchboardInterface::SetConnectionStatus& msg,
-                          AnimationStreamer* animStreamer,
-                          const AnimContext* context);
+                          Anim::AnimationStreamer* animStreamer,
+                          const Anim::AnimContext* context);
 
 }
 }

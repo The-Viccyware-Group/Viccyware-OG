@@ -17,12 +17,14 @@
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/aiWhiteboard.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
-#include "engine/aiComponent/beiConditions/conditions/conditionOffTreadsState.h"
-#include "engine/externalInterface/externalInterface.h"
-#include "clad/externalInterface/messageEngineToGame.h"
+#include "engine/components/sensors/cliffSensorComponent.h"
+
+#include "util/logging/DAS.h"
+#include "clad/robotInterface/messageRobotToEngine.h"
+#include "clad/types/motorTypes.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 using namespace ExternalInterface;
 
@@ -34,56 +36,90 @@ static const float kRobotMinLiftAngleForArmUpAnim_s = 45.f;
 BehaviorReactToRobotOnFace::BehaviorReactToRobotOnFace(const Json::Value& config)
 : ICozmoBehavior(config)
 {
-  _offTreadsCondition = std::make_shared<ConditionOffTreadsState>( OffTreadsState::OnFace, GetDebugLabel() );
+  SubscribeToTags({
+    RobotInterface::RobotToEngineTag::animEvent
+  });
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool BehaviorReactToRobotOnFace::WantsToBeActivatedBehavior() const
 {
-  return _offTreadsCondition->AreConditionsMet(GetBEI());
+  return true;
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorReactToRobotOnFace::InitBehavior()
 {
-  _offTreadsCondition->Init(GetBEI());
-}
-  
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorReactToRobotOnFace::OnBehaviorEnteredActivatableScope() {
-  _offTreadsCondition->SetActive(GetBEI(), true);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorReactToRobotOnFace::OnBehaviorLeftActivatableScope()
-{
-  _offTreadsCondition->SetActive(GetBEI(), false);
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorReactToRobotOnFace::OnBehaviorActivated()
 {
+  _dVars = DynamicVariables();
+  
   FlipOverIfNeeded();
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorReactToRobotOnFace::BehaviorUpdate()
+{
+  if (!IsActivated()) {
+    return;
+  }
+  
+  const bool onFace = (GetBEI().GetOffTreadsState() == OffTreadsState::OnFace);
+  if (!onFace && _dVars.cancelIfNotOnFace) {
+    LOG_WARNING("BehaviorReactToRobotOnFace.BehaviorUpdate.Canceling",
+                "Canceling the reaction since the robot is unexpectedly no longer OnFace");
+    CancelSelf();
+  }
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorReactToRobotOnFace::HandleWhileActivated(const RobotToEngineEvent& event)
+{
+  const auto& eventData = event.GetData();
+  if (eventData.GetTag() == RobotInterface::RobotToEngineTag::animEvent) {
+    if (eventData.Get_animEvent().event_id == AnimEvent::FLIP_DOWN_BEGIN) {
+      // We are about to begin actually flipping down from OnFace. At this point, we expect the OffTreadsState to
+      // transition away from OnFace, so we should not cancel the behavior if the OffTreadState changes.
+      _dVars.cancelIfNotOnFace = false;
+    }
+  }
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorReactToRobotOnFace::FlipOverIfNeeded()
 {
+  if (GetBEI().GetRobotInfo().IsBeingHeld()) {
+    CancelSelf();
+  }
+
   if( GetBEI().GetOffTreadsState() == OffTreadsState::OnFace ) {
     auto& robotInfo = GetBEI().GetRobotInfo();
-    AnimationTrigger anim;
-    if(robotInfo.GetLiftAngle() < kRobotMinLiftAngleForArmUpAnim_s){
-      anim = AnimationTrigger::DEPRECATED_FacePlantRoll;
-    }else{
-      anim = AnimationTrigger::DEPRECATED_FacePlantRollArmUp;
+    
+    if (robotInfo.GetCliffSensorComponent().IsCliffDetected()) {
+      AnimationTrigger anim;
+      if(robotInfo.GetLiftAngle() < kRobotMinLiftAngleForArmUpAnim_s){
+        anim = AnimationTrigger::FacePlantRoll;
+      }else{
+        anim = AnimationTrigger::FacePlantRollArmUp;
+      }
+      DelegateIfInControl(new TriggerAnimationAction(anim),
+                          &BehaviorReactToRobotOnFace::DelayThenCheckState);
+    } else {
+      const auto cliffs = robotInfo.GetCliffSensorComponent().GetCliffDataRaw();
+      PRINT_CH_INFO("Behaviors", "BehaviorReactToRobotOnFace.FlipOverIfNeeded.CalibratingHead",
+                       "%d %d %d %d", cliffs[0], cliffs[1], cliffs[2], cliffs[3]);
+      DelegateIfInControl(new CalibrateMotorAction(true, false, MotorCalibrationReason::BehaviorReactToOnFace),
+                          &BehaviorReactToRobotOnFace::DelayThenCheckState);
     }
-
-    DelegateIfInControl(new TriggerAnimationAction(anim),
-                &BehaviorReactToRobotOnFace::DelayThenCheckState);
   }
 }
 
@@ -93,7 +129,7 @@ void BehaviorReactToRobotOnFace::DelayThenCheckState()
 {
   if( GetBEI().GetOffTreadsState() == OffTreadsState::OnFace ) {
     DelegateIfInControl(new WaitAction(kWaitTimeBeforeRepeatAnim_s),
-                &BehaviorReactToRobotOnFace::CheckFlipSuccess);
+                        &BehaviorReactToRobotOnFace::CheckFlipSuccess);
   }
 
 }
@@ -103,10 +139,8 @@ void BehaviorReactToRobotOnFace::DelayThenCheckState()
 void BehaviorReactToRobotOnFace::CheckFlipSuccess()
 {
   if(GetBEI().GetOffTreadsState() == OffTreadsState::OnFace) {
-    DelegateIfInControl(new TriggerAnimationAction(AnimationTrigger::DEPRECATED_FailedToRightFromFace),
-                &BehaviorReactToRobotOnFace::FlipOverIfNeeded);
-  }else{
-    BehaviorObjectiveAchieved(BehaviorObjective::ReactedToRobotOnFace);
+    DelegateIfInControl(new TriggerAnimationAction(AnimationTrigger::FailedToRightFromFace),
+                        &BehaviorReactToRobotOnFace::FlipOverIfNeeded);
   }
 }
 
@@ -116,5 +150,5 @@ void BehaviorReactToRobotOnFace::OnBehaviorDeactivated()
 {
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

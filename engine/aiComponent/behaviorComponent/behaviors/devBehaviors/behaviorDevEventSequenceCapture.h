@@ -13,11 +13,12 @@
 #ifndef __Engine_AiComponent_BehaviorComponent_Behaviors_DevBehaviors_BehaviorDevEventSequenceCapture_H__
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_DevBehaviors_BehaviorDevEventSequenceCapture_H__
 
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "coretech/vision/engine/imageCache.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorDevEventSequenceCapture : public ICozmoBehavior
 {
@@ -38,7 +39,8 @@ protected:
     modifiers.wantsToBeActivatedWhenOffTreads = true;
     modifiers.wantsToBeActivatedWhenOnCharger = true;
     modifiers.behaviorAlwaysDelegates = false;
-    modifiers.visionModesForActiveScope->insert({VisionMode::SavingImages, EVisionUpdateFrequency::High});
+    modifiers.visionModesForActiveScope->insert({VisionMode::SaveImages, EVisionUpdateFrequency::High});
+    modifiers.visionModesForActiveScope->insert({VisionMode::MirrorMode,   EVisionUpdateFrequency::High});
   }
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
 
@@ -52,12 +54,16 @@ private:
     InstanceConfig();
     std::string imageSavePath;
     int8_t      imageSaveQuality;
-    Vision::ImageCache::Size  imageSaveSize;
+    Vision::ImageCacheSize  imageSaveSize;
     bool        useCapTouch;
 
     float       sequenceSetupTime;
     float       preEventCaptureTime;
     float       postEventCaptureTime;
+
+    bool        enableRandomHeadTilt;
+    float       minHeadTilt;
+    float       maxHeadTilt;
 
     std::list<std::string> classNames;
   };
@@ -73,14 +79,14 @@ private:
   struct DynamicVariables {
     DynamicVariables();
 
-    SequenceState seqState;
-    float         waitStartTime_s;
-    TimeStamp_t   seqStartTimeStamp;
-    TimeStamp_t   seqEventTimeStamp;
-    TimeStamp_t   seqEndTimeStamp;
-    int32_t       currentSeqNumber;
-    bool          wasTouched;
-    bool          wasLiftUp;
+    SequenceState      seqState;
+    float              waitStartTime_s;
+    RobotTimeStamp_t   seqStartTimeStamp;
+    RobotTimeStamp_t   seqEventTimeStamp;
+    RobotTimeStamp_t   seqEndTimeStamp;
+    int32_t            currentSeqNumber;
+    bool               wasTouched;
+    bool               wasLiftUp;
 
     std::list<std::string>::const_iterator currentClassIter;
   };
@@ -89,18 +95,19 @@ private:
   DynamicVariables _dVars;
 
   int32_t GetNumCurrentSequences() const;
-  TimeStamp_t GetTimestamp() const;
+  RobotTimeStamp_t GetTimestamp() const;
   float GetTimestampSec() const;
 
   std::string GetRelClassSavePath() const;
   std::string GetRelSequenceSavePath() const;
+  std::string GetAbsSequenceSavePath() const;
   std::string GetAbsInfoSavePath() const;
   std::string GetAbsBaseSavePath() const;
   void SwitchToNextClass();
 
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_DevBehaviors_BehaviorDevEventSequenceCapture_H__

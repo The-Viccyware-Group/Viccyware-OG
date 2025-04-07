@@ -31,7 +31,7 @@
 #define LOG_CHANNEL   "RobotDataLoader"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
 // We report some loading data info so the UI can inform the user. Ratio of time taken per section is approximate,
@@ -145,8 +145,10 @@ void CannedAnimationLoader::AddToLoadingRatio(float delta)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CannedAnimationLoader::LoadAnimationsInternal(const AnimDirInfo& info, CannedAnimationContainer* container)
 {
+#if ALLOW_DEBUG_LOGGING
   const double startTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
-
+#endif
+  
   // Disable super-verbose warnings about clipping face parameters in json files
   // To help find bad/deprecated animations, try removing this.
   ProceduralFace::EnableClippingWarning(false);
@@ -167,18 +169,20 @@ void CannedAnimationLoader::LoadAnimationsInternal(const AnimDirInfo& info, Cann
 
   ProceduralFace::EnableClippingWarning(true);
 
+#if ALLOW_DEBUG_LOGGING
   const double endTime = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
   const double loadTime = endTime - startTime;
 
-  LOG_INFO("CannedAnimationLoader.LoadAnimationsInternal.LoadTime",
-           "Time to load animations = %.2f ms",
-           loadTime);
+  LOG_DEBUG("CannedAnimationLoader.LoadAnimationsInternal.LoadTime",
+            "Time to load animations = %.2f ms",
+            loadTime);
 
   const auto & animNames = container->GetAnimationNames();
 
-  LOG_INFO("CannedAnimationLoader.LoadAnimations.CannedAnimationsCount",
-           "Total number of canned animations available = %zu",
-           animNames.size());
+  LOG_DEBUG("CannedAnimationLoader.LoadAnimations.CannedAnimationsCount",
+            "Total number of canned animations available = %zu",
+            animNames.size());
+#endif
 }
 
 
@@ -270,12 +274,17 @@ Result CannedAnimationLoader::DefineFromFlatBuf(const CozmoAnim::AnimClip* animC
 {
   Animation animation(animName);
 
-  Result lastResult = animation.DefineFromFlatBuf(animName, animClip, 
-                                                  _spriteMap, _spriteSequenceContainer);
+  Result lastResult = animation.DefineFromFlatBuf(animName, animClip, _spriteSequenceContainer);
 
   const Result res = SanityCheck(lastResult, animation, animName);
   if(res == Result::RESULT_OK){
-    container->AddAnimation(std::move(animation));
+    bool outOverwriting = false;
+    container->AddAnimation(std::move(animation), outOverwriting);
+    if(outOverwriting){
+      PRINT_NAMED_WARNING("CannedAnimationLoader.DefineFromFlatBuf.OverwritingExistingAnimation",
+                          "Container already had an animation named %s, overwriting",
+                          animName.c_str());
+    }
   }
   return res;
 
@@ -314,12 +323,17 @@ Result CannedAnimationLoader::DefineFromJson(const Json::Value& jsonRoot, std::s
   PRINT_CH_DEBUG(LOG_CHANNEL, "CannedAnimationLoader::DefineFromJson", "Loading '%s'", animationName.c_str());
 
   Animation animation(animationName);
-  Result lastResult = animation.DefineFromJson(animationName, jsonRoot[animationName],
-                                               _spriteMap, _spriteSequenceContainer);
+  Result lastResult = animation.DefineFromJson(animationName, jsonRoot[animationName], _spriteSequenceContainer);
 
   const Result res = SanityCheck(lastResult, animation, animationName);
   if(res == Result::RESULT_OK){
-    container->AddAnimation(std::move(animation));
+    bool outOverwriting = false;
+    container->AddAnimation(std::move(animation), outOverwriting);
+    if(outOverwriting){
+      PRINT_NAMED_WARNING("CannedAnimationLoader.DefineFromJson.OverwritingExistingAnimation",
+                          "Container already had an animation named %s, overwriting",
+                          animationName.c_str());
+    }
   }
   return res;
 } // CannedAnimationLoader::DefineFromJson()
@@ -348,5 +362,5 @@ Result CannedAnimationLoader::SanityCheck(Result lastResult, Animation& animatio
 } // CannedAnimationLoader::SanityCheck()
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

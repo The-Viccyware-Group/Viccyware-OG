@@ -27,6 +27,8 @@
 #include "util/logging/logging.h"
 #include "util/console/consoleSystem.h"
 #include "util/console/consoleChannel.h"
+#include "util/cpuProfiler/cpuProfiler.h"
+#include "util/dispatchQueue/dispatchQueue.h"
 #include "util/global/globalDefinitions.h"
 #include "util/helpers/ankiDefines.h"
 #include "util/helpers/templateHelpers.h"
@@ -47,13 +49,16 @@
 
 #define LOG_CHANNEL "WebService"
 
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 namespace {
 #ifndef SIMULATOR
-  bool s_WaitingForProcessStatus = false;
+  bool                     s_WaitingForProcessStatus = false;
   std::vector<std::string> s_ProcessStatuses;
+  std::mutex               s_ProcessStatusMutex;
+  std::condition_variable  s_ProcessStatusCondition;
 #endif
+  std::atomic_bool         s_ShuttingDown{false};
 }
 
 // Used websockets codes, see websocket RFC pg 29
@@ -62,6 +67,9 @@ enum {
   WebSocketsTypeText            = 0x1,
   WebSocketsTypeCloseConnection = 0x8
 };
+
+// 256KB to accommodate output of animation names
+static const size_t kBigBufferSize = 256*1024;
 
 class ExternalOnlyConsoleChannel : public Anki::Util::IConsoleChannel
 {
@@ -154,7 +162,7 @@ public:
 
 private:
 
-  static const size_t kTempBufferSize = 1024;
+  static const size_t kTempBufferSize = kBigBufferSize;
 
   char*     _tempBuffer;
   char*     _outText;
@@ -186,7 +194,7 @@ LogHandler(struct mg_connection *conn, void *cbdata)
 void ExecCommand(const std::vector<std::string>& args)
 {
   LOG_INFO("WebService.ExecCommand", "Called with cmd: %s (and %i arguments)",
-                   args[0].c_str(), (int)(args.size() - 1));
+           args[0].c_str(), (int)(args.size() - 1));
 
   pid_t pID = fork();
   if (pID == 0) // child
@@ -220,37 +228,37 @@ void ExecCommand(const std::vector<std::string>& args)
 
 static int
 ProcessRequest(struct mg_connection *conn, WebService::WebService::RequestType requestType,
-               const std::string& param1, const std::string& param2, const std::string& param3 = "", bool waitAndSendResponse = true)
+               const std::string& param1, const std::string& param2, const std::string& param3 = "",
+               bool waitAndSendResponse = true, WebService::WebService::ExternalCallback extCallback = nullptr,
+               void* cbdata = nullptr)
 {
-  WebService::WebService::Request* requestPtr = new WebService::WebService::Request(requestType, param1, param2, param3);
+  if (s_ShuttingDown)
+  {
+    return 1;
+  }
+
+  WebService::WebService::Request* requestPtr = new WebService::WebService::Request(requestType, param1, param2,
+                                                                                    param3, extCallback, cbdata);
 
   struct mg_context *ctx = mg_get_context(conn);
   WebService::WebService* that = static_cast<WebService::WebService*>(mg_get_user_data(ctx));
 
   that->AddRequest(requestPtr);
 
-  if( waitAndSendResponse ) {
-
-    // Now wait until the main thread processes the request
+  if (waitAndSendResponse)
+  {
+    // Wait until the main thread processes the request
     using namespace std::chrono;
-    static const double kTimeoutDuration_s = 10.0;
-    const auto startTime = steady_clock::now();
-    bool timedOut = false;
-    do
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
-      const auto now = steady_clock::now();
-      const auto elapsed_s = duration_cast<seconds>(now - startTime).count();
-      if (elapsed_s > kTimeoutDuration_s)
-      {
-        timedOut = true;
-        break;
-      }
-    } while (!requestPtr->_resultReady);
+    static const long long kTimeoutDuration_s = 10;
 
-    // We check if result is there because we just slept and it may have come in
-    // just before the timeout
-    if (timedOut && !requestPtr->_resultReady)
+    {
+      std::unique_lock<std::mutex> lk{requestPtr->_readyMutex};
+      requestPtr->_readyCondition.wait_for(lk,
+                                           seconds(kTimeoutDuration_s),
+                                           [requestPtr]{ return requestPtr->_resultReady; });
+    }
+
+    if (!requestPtr->_resultReady)
     {
       std::lock_guard<std::mutex> lock(that->_requestMutex);
       requestPtr->_result = "Timed out after " + std::to_string(kTimeoutDuration_s) + " seconds";
@@ -274,8 +282,14 @@ ConsoleVarsUI(struct mg_connection *conn, void *cbdata)
 {
   const mg_request_info* info = mg_get_request_info(conn);
   std::string category = ((info->query_string) ? info->query_string : "");
+  std::string standalone = "standalone";
+  if (category == "embedded")
+  {
+    category = "";
+    standalone = "";
+  }
 
-  const int returnCode = ProcessRequest(conn, WebService::WebService::RequestType::RT_ConsoleVarsUI, category, "");
+  const int returnCode = ProcessRequest(conn, WebService::WebService::RequestType::RT_ConsoleVarsUI, category, standalone);
 
   return returnCode;
 }
@@ -384,11 +398,16 @@ ConsoleFuncCall(struct mg_connection *conn, void *cbdata)
       args = func.substr(amp+6);  // skip over "args="
       func = func.substr(5, amp-5);
 
-      // unescape '+' => ' '
+      // unescape '+' => ' ',  except if it follows a '\', in which case keep the '+' and drop the '\'
 
       size_t plus = args.find("+");
       while (plus != std::string::npos) {
-        args = args.replace(plus, 1, " ");
+        if( (plus > 0) && (args[plus-1] == '\\') ) {
+          args.erase(plus-1, 1);
+          --plus;
+        } else {
+          args = args.replace(plus, 1, " ");
+        }
         plus = args.find("+", plus+1);
       }
 
@@ -445,20 +464,23 @@ TempEngineToApp(struct mg_connection *conn, void *cbdata)
 WebService::WebService::Request::Request(RequestType rt,
                                          const std::string& param1,
                                          const std::string& param2,
-                                         const std::string& param3)
+                                         const std::string& param3,
+                                         ExternalCallback extCallback,
+                                         void* cbdata)
 {
   _requestType = rt;
   _param1 = param1;
   _param2 = param2;
   _param3 = param3;
+  _externalCallback = extCallback;
+  _cbdata = cbdata,
   _result = "";
   _resultReady = false;
   _done = false;
 }
 WebService::WebService::Request::Request(RequestType rt, const std::string& param1, const std::string& param2)
-  : Request(rt, param1, param2, "")
+  : Request(rt, param1, param2, "", nullptr, nullptr)
 {
-
 }
 
 static int
@@ -517,10 +539,13 @@ static int GetInitialConfig(struct mg_connection *conn, void *cbdata)
   const std::string& allowPerfPage        = that->GetConfig()["allowPerfPage"].asString();
   const std::string& whichWebServer       = std::to_string(that->GetConfig()["whichWebServer"].asInt());
   const std::string& allowConsoleVarsPage = that->GetConfig()["allowConsoleVarsPage"].asString();
+  const std::string& allowPerfMetricPage  = that->GetConfig()["allowPerfMetricPage"].asString();
+  const int tickBudget_ms                 = that->GetConfig()["tickBudget_ms"].asInt();
 
-  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n", title0.c_str(), title1.c_str(),
+  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%d\n", title0.c_str(), title1.c_str(),
             startPage.c_str(), webotsSim.c_str(), allowPerfPage.c_str(),
-            whichWebServer.c_str(), allowConsoleVarsPage.c_str());
+            whichWebServer.c_str(), allowConsoleVarsPage.c_str(), allowPerfMetricPage.c_str(),
+            tickBudget_ms);
   return 1;
 }
 
@@ -532,7 +557,6 @@ static int GetMainRobotInfo(struct mg_connection *conn, void *cbdata)
             "close\r\n\r\n");
 
   const auto& osState = OSState::getInstance();
-  const std::string robotID        = std::to_string(osState->GetRobotID());
   const std::string serialNo       = osState->GetSerialNumberAsString();
   const std::string ip             = osState->GetIPAddress();
   const std::string robotName      = osState->GetRobotName();
@@ -571,8 +595,8 @@ static int GetMainRobotInfo(struct mg_connection *conn, void *cbdata)
 
 #endif
 
-  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-            robotID.c_str(), serialNo.c_str(), ip.c_str(),
+  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+            serialNo.c_str(), ip.c_str(),
             buildConfig.c_str(),
             procVersion.c_str(), procCmdLine.c_str(),
             robotName.c_str(), osBuildVersion.c_str(), sha.c_str(),
@@ -583,6 +607,11 @@ static int GetMainRobotInfo(struct mg_connection *conn, void *cbdata)
 
 static int GetPerfStats(struct mg_connection *conn, void *cbdata)
 {
+  if (s_ShuttingDown)
+  {
+    return 1;
+  }
+
   using namespace std::chrono;
   const auto startTime = steady_clock::now();
 
@@ -592,12 +621,14 @@ static int GetPerfStats(struct mg_connection *conn, void *cbdata)
     kStat_Uptime,
     kStat_IdleTime,
     kStat_RealTimeClock,
-    kStat_MemoryInfo,
+    kStat_MemoryInfo1,
+    kStat_MemoryInfo2,
     kStat_OverallCpu,
     kStat_Cpu0,
     kStat_Cpu1,
     kStat_Cpu2,
     kStat_Cpu3,
+    kStat_UserDiskSpace,
     kNumStats
   };
 
@@ -656,12 +687,19 @@ static int GetPerfStats(struct mg_connection *conn, void *cbdata)
     stat_rtc = ss.str();
   }
 
-  std::string stat_mem;
-  if (active[kStat_MemoryInfo]) {
-    // Memory use
-    uint32_t freeMem_kB;
-    const uint32_t totalMem_kB = osState->GetMemoryInfo(freeMem_kB);
-    stat_mem = std::to_string(totalMem_kB) + "," + std::to_string(freeMem_kB);
+  std::string stat_mem1;
+  std::string stat_mem2;
+  if (active[kStat_MemoryInfo1] || active[kStat_MemoryInfo2]) {
+    OSState::MemoryInfo info;
+    osState->GetMemoryInfo(info);
+    if (active[kStat_MemoryInfo1]) {
+      // Memory use 1
+      stat_mem1 = std::to_string(info.totalMem_kB) + "," + std::to_string(info.freeMem_kB);
+    }
+    if (active[kStat_MemoryInfo2]) {
+      // Memory use 2
+      stat_mem2 = std::to_string(info.totalMem_kB) + "," + std::to_string(info.availMem_kB);
+    }
   }
 
   std::vector<std::string> stat_cpuStat;
@@ -669,11 +707,28 @@ static int GetPerfStats(struct mg_connection *conn, void *cbdata)
       active[kStat_Cpu0] || active[kStat_Cpu1] ||
       active[kStat_Cpu2] || active[kStat_Cpu3]) {
     // CPU time stats
-    stat_cpuStat = osState->GetCPUTimeStats();
+    osState->GetCPUTimeStats(stat_cpuStat);
   }
-  else {
-    static const size_t kNumCPUTimeStats = 5;
+
+  static constexpr size_t kNumCPUTimeStats = 5;
+  if (stat_cpuStat.size() < kNumCPUTimeStats) {
     stat_cpuStat.resize(kNumCPUTimeStats);
+  }
+
+  std::string stat_userDiskSpace;
+  if (active[kStat_UserDiskSpace]) {
+#ifdef ANKI_PLATFORM_VICOS
+    OSState::DiskInfo info;
+    const bool success = osState->GetDiskInfo("/data", info);
+    if (success) {
+      stat_userDiskSpace = std::to_string(info.total_kB) + "," + std::to_string(info.avail_kB);
+    }
+    else {
+      stat_userDiskSpace = "1,0";
+    }
+#else
+    stat_userDiskSpace = "1,0"; // Not really applicable to webots
+#endif
   }
 
   const auto now = steady_clock::now();
@@ -684,19 +739,21 @@ static int GetPerfStats(struct mg_connection *conn, void *cbdata)
             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: "
             "close\r\n\r\n");
 
-  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n",
+  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
             stat_cpuFreq.c_str(),
             stat_temperature.c_str(),
             stat_uptime.c_str(),
             stat_idleTime.c_str(),
             stat_rtc.c_str(),
-            stat_mem.c_str());
-  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n",
+            stat_mem1.c_str(),
+            stat_mem2.c_str());
+  mg_printf(conn, "%s\n%s\n%s\n%s\n%s\n%s\n",
             stat_cpuStat[0].c_str(),
             stat_cpuStat[1].c_str(),
             stat_cpuStat[2].c_str(),
             stat_cpuStat[3].c_str(),
-            stat_cpuStat[4].c_str());
+            stat_cpuStat[4].c_str(),
+            stat_userDiskSpace.c_str());
 
   return 1;
 }
@@ -742,6 +799,11 @@ static int SystemCtl(struct mg_connection *conn, void *cbdata)
 
 static int GetProcessStatus(struct mg_connection *conn, void *cbdata)
 {
+  if (s_ShuttingDown)
+  {
+    return 1;
+  }
+
   std::string resultsString;
 
   using namespace std::chrono;
@@ -752,7 +814,7 @@ static int GetProcessStatus(struct mg_connection *conn, void *cbdata)
   if (query.substr(0, 5) == "proc=")
   {
     struct mg_context* ctx = mg_get_context(conn);
-    Anki::Cozmo::WebService::WebService* that = static_cast<Anki::Cozmo::WebService::WebService*>(mg_get_user_data(ctx));
+    Anki::Vector::WebService::WebService* that = static_cast<Anki::Vector::WebService::WebService*>(mg_get_user_data(ctx));
 
     std::string remainder = query.substr(5);
     std::vector<std::string> args;
@@ -774,40 +836,33 @@ static int GetProcessStatus(struct mg_connection *conn, void *cbdata)
       }
     }
 
-    s_WaitingForProcessStatus = true;
     ExecCommand(args);
 
-    static const double kTimeoutDuration_s = 10.0;
-    const auto startWaitTime = steady_clock::now();
-    bool timedOut = false;
-    do
+    static const long long kTimeoutDuration_s = 10;
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      const auto now = steady_clock::now();
-      const auto elapsed_s = duration_cast<seconds>(now - startWaitTime).count();
-      if (elapsed_s > kTimeoutDuration_s)
+      std::unique_lock<std::mutex> lk{s_ProcessStatusMutex};
+      s_WaitingForProcessStatus = true;
+      s_ProcessStatusCondition.wait_for(lk,
+                                        seconds(kTimeoutDuration_s),
+                                        []{ return !s_WaitingForProcessStatus; });
+
+      if (s_WaitingForProcessStatus)
       {
-        timedOut = true;
-        break;
+        LOG_INFO("WebService.GetProcessStatus", "GetProcessStatus timed out after %lld seconds",
+                 kTimeoutDuration_s);
       }
-    } while (s_WaitingForProcessStatus);
 
-    // We check if result is there because we just slept and it may have come in
-    // just before the timeout
-    if (timedOut && s_WaitingForProcessStatus)
-    {
-      LOG_INFO("WebService.GetProcessStatus", "GetProcessStatus timed out after %f seconds", kTimeoutDuration_s);
-    }
-
-    bool firstDone = false;
-    for (const auto& result : s_ProcessStatuses) {
-      if (firstDone) {
-        resultsString += "\n";
+      bool firstDone = false;
+      for (const auto& result : s_ProcessStatuses) {
+        if (firstDone) {
+          resultsString += "\n";
+        }
+        resultsString += result;
+        firstDone = true;
       }
-      resultsString += result;
-      firstDone = true;
     }
   }
+
   mg_printf(conn,
             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: "
             "close\r\n\r\n");
@@ -826,20 +881,26 @@ static int ProcessStatus(struct mg_connection *conn, void *cbdata)
   const mg_request_info* info = mg_get_request_info(conn);
   std::string results = info->query_string ? info->query_string : "";
 
-  s_ProcessStatuses.clear();
-  while (!results.empty()) {
-    const size_t amp = results.find('&');
-    if (amp != std::string::npos) {
-      s_ProcessStatuses.push_back(results.substr(0, amp));
-      results = results.substr(amp + 1);
-    }
-    else {
-      s_ProcessStatuses.push_back(results);
-      break;
-    }
-  }
+  {
+    std::unique_lock<std::mutex> lk{s_ProcessStatusMutex};
 
-  s_WaitingForProcessStatus = false;
+    s_ProcessStatuses.clear();
+    while (!results.empty()) {
+      const size_t amp = results.find('&');
+      if (amp != std::string::npos) {
+        s_ProcessStatuses.push_back(results.substr(0, amp));
+        results = results.substr(amp + 1);
+      }
+      else {
+        s_ProcessStatuses.push_back(results);
+        break;
+      }
+    }
+
+    // Notify the requesting thread that the result is now ready
+    s_WaitingForProcessStatus = false;
+  }
+  s_ProcessStatusCondition.notify_all();
 
   mg_printf(conn,
             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: "
@@ -853,7 +914,7 @@ static int ProcessStatus(struct mg_connection *conn, void *cbdata)
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace WebService {
 
 WebService::WebService()
@@ -907,6 +968,8 @@ void WebService::Start(Anki::Util::Data::DataPlatform* platform, const Json::Val
     "4",
     "url_rewrite_patterns",
     rewrite.c_str(),
+    "static_file_max_age",
+    "0",
 //https://ankiinc.atlassian.net/browse/VIC-1554
 //    "put_delete_auth_file",
 //    passwordFile.c_str(),
@@ -966,12 +1029,16 @@ void WebService::Start(Anki::Util::Data::DataPlatform* platform, const Json::Val
   _consoleVarsUIHTMLTemplate = Anki::Util::StringFromContentsOfFile(consoleVarsTemplate);
 
   _requests.clear();
+
+  _dispatchQueue = Util::Dispatch::Create("WebsocketSender");
 }
 
 
 // This is called from the main thread
 void WebService::Update()
 {
+  ANKI_CPU_PROFILE("WebService::Update");
+
   std::lock_guard<std::mutex> lock(_requestMutex);
 
   // First pass:  Delete any completely-finished requests from the list (and delete the requests themselves)
@@ -1005,7 +1072,8 @@ void WebService::Update()
       {
         case RT_ConsoleVarsUI:
           {
-            GenerateConsoleVarsUI(requestPtr->_result, requestPtr->_param1);
+            const bool standalone = (requestPtr->_param2 == "standalone");
+            GenerateConsoleVarsUI(requestPtr->_result, requestPtr->_param1, standalone);
           }
           break;
         case RT_ConsoleVarGet:
@@ -1068,7 +1136,6 @@ void WebService::Update()
             }
           }
           break;
-
         case RT_ConsoleVarList:
           {
             const std::string& key = requestPtr->_param1;
@@ -1087,7 +1154,6 @@ void WebService::Update()
             }
           }
           break;
-
         case RT_ConsoleFuncList:
           {
             const std::string& key = requestPtr->_param1;
@@ -1106,7 +1172,6 @@ void WebService::Update()
             }
           }
           break;
-
         case RT_ConsoleFuncCall:
           {
             const std::string& func = requestPtr->_param1;
@@ -1114,8 +1179,7 @@ void WebService::Update()
 
             Anki::Util::IConsoleFunction* consoleFunc = consoleSystem.FindFunction(func.c_str());
             if (consoleFunc) {
-              // 256KB to accommodate output of animation names
-              char outText[256*1024+1] = {0};
+              char outText[kBigBufferSize + 1] = {0};
               uint32_t outTextLength = sizeof(outText);
 
               ExternalOnlyConsoleChannel consoleChannel(outText, outTextLength);
@@ -1135,6 +1199,16 @@ void WebService::Update()
             }
           }
           break;
+        case RT_External:
+          {
+            // Call out to the external update handler
+            DEV_ASSERT(requestPtr->_externalCallback != nullptr, "Expecting valid externalCallback pointer");
+            const int returnCode = requestPtr->_externalCallback(requestPtr);
+            if (returnCode == 0) {
+              LOG_INFO("WebService.Update", "External callback failed");
+            }
+          }
+          break;
         case RT_TempAppToEngine:
           {
             _appToEngineOnData.emit( requestPtr->_param1 );
@@ -1150,10 +1224,10 @@ void WebService::Update()
           {
             const auto& moduleName = requestPtr->_param1;
             const auto& idxStr = requestPtr->_param2;
-            size_t idx = std::stoi( idxStr );
+            const size_t idx = std::stoi( idxStr );
 
             auto sendToClient = [idx, moduleName, this](const Json::Value& toSend){
-              // might crash if webservice is somehow destroyed after the subscriber, but only in dev
+              std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
               if( (idx < _webSocketConnections.size())
                  && (_webSocketConnections[idx].subscribedModules.count( moduleName ) > 0) )
               {
@@ -1187,17 +1261,45 @@ void WebService::Update()
       }
 
       // Notify the requesting thread that the result is now ready
-      requestPtr->_resultReady = true;
+      {
+        std::unique_lock<std::mutex> lk{requestPtr->_readyMutex};
+        requestPtr->_resultReady = true;
+      }
+      requestPtr->_readyCondition.notify_all();
     }
   }
 }
 
 void WebService::Stop()
 {
-  if (_ctx) {
+  s_ShuttingDown = true;
+  if (_ctx)
+  {
+    // Call update to process any pending request(s) and wake up the
+    // thread(s) that are waiting for those request(s) to be processed.
+    // This will allow the mg_stop call below to not take forever waiting
+    // for threads to shut down.
+    Update();
+
+#ifndef SIMULATOR
+    // Notify any pending thread that's waiting for process status, so that
+    // the mg_stop call below will not hang waiting for it
+    {
+      std::unique_lock<std::mutex> lk{s_ProcessStatusMutex};
+      s_ProcessStatuses.clear();
+      s_WaitingForProcessStatus = false;
+    }
+    s_ProcessStatusCondition.notify_all();
+#endif
+
+#ifdef VICOS
+    // shutdown nicely on the robot but let the OS handle it for the simulator, mg_stop triggers
+    // the thread sanitizer and execution stops here, by removing this line in SIMULATOR builds
+    // it allows the thread sanitizier to continue to do useful work.
     mg_stop(_ctx);
+#endif
+    _ctx = nullptr;
   }
-  _ctx = nullptr;
 }
 
 
@@ -1213,6 +1315,18 @@ void WebService::RegisterRequestHandler(std::string uri, mg_request_handler hand
   mg_set_request_handler(_ctx, uri.c_str(), handler, cbdata);
 }
 
+int WebService::ProcessRequestExternal(struct mg_connection* conn, void* cbdata,
+                                       ExternalCallback extCallback, const std::string& param1,
+                                       const std::string& param2, const std::string& param3)
+{
+  // This is a request coming from an 'external' handler that wants WebService
+  // to process the request at the end of the tick (in WebService::Update)
+  static const bool waitAndSendResponse = true;
+  return ProcessRequest(conn, WebService::WebService::RequestType::RT_External,
+                        param1, param2, param3, waitAndSendResponse, extCallback,
+                        cbdata);
+}
+
 static std::string sanitize_tag(const std::string& tag)
 {
   std::string sanitizedTag = tag;
@@ -1224,14 +1338,27 @@ static std::string sanitize_tag(const std::string& tag)
   return sanitizedTag;
 }
 
-void WebService::GenerateConsoleVarsUI(std::string& page, const std::string& category)
+void WebService::GenerateConsoleVarsUI(std::string& page, const std::string& category,
+                                       const bool standalone)
 {
+  ANKI_CPU_PROFILE("GenerateConsoleVarsUI");
+
+  std::string styleSheetIncludes;
+  std::string jqueryIncludes;
   std::string style;
   std::string script;
   std::string html;
   std::map<std::string, std::string> category_html;
 
   const Anki::Util::ConsoleSystem& consoleSystem = Anki::Util::ConsoleSystem::Instance();
+  
+  if (standalone)
+  {
+    styleSheetIncludes += "<link rel=\"stylesheet\" href=\"jquery-ui.css\">\n";
+    styleSheetIncludes += "<link rel=\"stylesheet\" href=\"style.css\">\n";
+    jqueryIncludes += "<script src=\"jquery-1.12.4.js\"></script>\n";
+    jqueryIncludes += "<script src=\"jquery-ui.js\"></script>\n";
+  }
 
   // Variables
 
@@ -1404,6 +1531,18 @@ void WebService::GenerateConsoleVarsUI(std::string& page, const std::string& cat
   std::string tmp;
   size_t pos;
 
+  tmp = "/* -- generated stylesheet includes -- */";
+  pos = page.find(tmp);
+  if (pos != std::string::npos) {
+    page = page.replace(pos, tmp.length(), styleSheetIncludes);
+  }
+
+  tmp = "/* -- generated jquery includes -- */";
+  pos = page.find(tmp);
+  if (pos != std::string::npos) {
+    page = page.replace(pos, tmp.length(), jqueryIncludes);
+  }
+
   tmp = "/* -- generated style -- */";
   pos = page.find(tmp);
   if (pos != std::string::npos) {
@@ -1426,6 +1565,7 @@ void WebService::GenerateConsoleVarsUI(std::string& page, const std::string& cat
 
 void WebService::SendToWebSockets(const std::string& moduleName, const Json::Value& data) const
 {
+  std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
   Json::Value payload;
   bool hasAssigned = false; // don't copy payload unless there is >= 1 client for this module
   for( const auto& connData : _webSocketConnections ) {
@@ -1439,12 +1579,13 @@ void WebService::SendToWebSockets(const std::string& moduleName, const Json::Val
     }
   }
 }
-  
+
 bool WebService::IsWebVizClientSubscribed(const std::string& moduleName) const
 {
+  std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
   for( const auto& connData : _webSocketConnections ) {
-    if( (moduleName.empty() && !connData.subscribedModules.empty()) // any module subscribed
-        || (connData.subscribedModules.find( moduleName ) != connData.subscribedModules.end()) )
+    if( (connData.subscribedModules.find( moduleName ) != connData.subscribedModules.end())
+        || (moduleName.empty() && !connData.subscribedModules.empty()) ) // any module subscribed
     {
       return true;
     }
@@ -1460,7 +1601,7 @@ int WebService::HandleWebSocketsConnect(const struct mg_connection* conn, void* 
 void WebService::HandleWebSocketsReady(struct mg_connection* conn, void* cbparams)
 {
   struct mg_context* ctx = mg_get_context(conn);
-  Anki::Cozmo::WebService::WebService* that = static_cast<Anki::Cozmo::WebService::WebService*>(mg_get_user_data(ctx));
+  Anki::Vector::WebService::WebService* that = static_cast<Anki::Vector::WebService::WebService*>(mg_get_user_data(ctx));
   DEV_ASSERT(that != nullptr, "Expecting valid webservice this pointer");
   that->OnOpenWebSocket( conn );
 }
@@ -1479,7 +1620,7 @@ int WebService::HandleWebSocketsData(struct mg_connection* conn, int bits, char*
     {
       if( (dataLen >= 2) && (data[0] == '{') ) {
         struct mg_context* ctx = mg_get_context(conn);
-        Anki::Cozmo::WebService::WebService* that = static_cast<Anki::Cozmo::WebService::WebService*>(mg_get_user_data(ctx));
+        Anki::Vector::WebService::WebService* that = static_cast<Anki::Vector::WebService::WebService*>(mg_get_user_data(ctx));
         DEV_ASSERT(that != nullptr, "Expecting valid webservice this pointer");
 
         Json::Reader reader;
@@ -1509,20 +1650,25 @@ int WebService::HandleWebSocketsData(struct mg_connection* conn, int bits, char*
 void WebService::HandleWebSocketsClose(const struct mg_connection* conn, void* cbparams)
 {
   struct mg_context* ctx = mg_get_context(conn);
-  Anki::Cozmo::WebService::WebService* that = static_cast<Anki::Cozmo::WebService::WebService*>(mg_get_user_data(ctx));
+  Anki::Vector::WebService::WebService* that = static_cast<Anki::Vector::WebService::WebService*>(mg_get_user_data(ctx));
   DEV_ASSERT(that != nullptr, "Expecting valid webservice this pointer");
   that->OnCloseWebSocket( conn );
 }
 
-void WebService::SendToWebSocket(struct mg_connection* conn, const Json::Value& data)
-{
-  // todo: deal with threads if this is used outside dev
 
-  std::stringstream ss;
-  ss << data;
-  std::string str = ss.str();
-  mg_websocket_write(conn, WebSocketsTypeText, str.c_str(), str.size());
+// This is always called in the main thread (whether we're sending or receiving)
+void WebService::SendToWebSocket(struct mg_connection* conn, const Json::Value& data) const
+{
+  // Dispatch work onto another thread (note we copy 'data' by value here)
+  Util::Dispatch::Async(_dispatchQueue, [conn, data] {
+    std::stringstream ss;
+    ss << data;
+    const std::string& str = ss.str();
+
+    mg_websocket_write(conn, WebSocketsTypeText, str.c_str(), str.size());
+  });
 }
+
 
 const std::string& WebService::getConsoleVarsTemplate()
 {
@@ -1533,13 +1679,14 @@ void WebService::OnOpenWebSocket(struct mg_connection* conn)
 {
   ASSERT_NAMED(conn != nullptr, "Can't create connection to n");
   // add a connection to the list that applies to all services
+  std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
   _webSocketConnections.push_back({});
   _webSocketConnections.back().conn = conn;
 }
 
 void WebService::OnReceiveWebSocket(struct mg_connection* conn, const Json::Value& data)
 {
-  // todo: deal with threads
+  std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
 
   // find connection
   auto it = std::find_if( _webSocketConnections.begin(), _webSocketConnections.end(), [&conn](const auto& perConnData) {
@@ -1549,7 +1696,7 @@ void WebService::OnReceiveWebSocket(struct mg_connection* conn, const Json::Valu
   if( it != _webSocketConnections.end() ) {
     if( !data["type"].isNull() && !data["module"].isNull() ) {
       const std::string& moduleName = data["module"].asString();
-      size_t idx = it - _webSocketConnections.begin();
+      const size_t idx = it - _webSocketConnections.begin();
 
       if( data["type"].asString() == "subscribe" ) {
         it->subscribedModules.insert( moduleName );
@@ -1591,6 +1738,7 @@ void WebService::OnReceiveWebSocket(struct mg_connection* conn, const Json::Valu
 
 void WebService::OnCloseWebSocket(const struct mg_connection* conn)
 {
+  std::lock_guard<std::mutex> lock(s_wsConnectionsMutex);
   // find connection
   auto it = std::find_if( _webSocketConnections.begin(), _webSocketConnections.end(), [&conn](const auto& perConnData) {
     return perConnData.conn == conn;
@@ -1603,13 +1751,13 @@ void WebService::OnCloseWebSocket(const struct mg_connection* conn)
 }
 
 } // namespace WebService
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #else
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace WebService {
 
   WebService::WebService()
@@ -1645,8 +1793,15 @@ namespace WebService {
   {
   }
 
+  int WebService::ProcessRequestExternal(struct mg_connection* /*conn*/, void* /*cbdata*/,
+                                         ExternalCallback /*extCallback*/, const std::string& /*param1*/,
+                                         const std::string& /*param2*/, const std::string& /*param3*/)
+  {
+    return 1;
+  }
+
 } // namespace WebService
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
-#endif // ANKI_WEBSERVICE_ENABLED
+#endif // ANKI_NO_WEBSERVER_ENABLED

@@ -11,6 +11,7 @@
 #include "anki/cozmo/robot/spi_imu.h"
 
 // Our Includes
+#include "anki/cozmo/robot/DAS.h"
 #include "anki/cozmo/robot/logging.h"
 #include "anki/cozmo/robot/hal.h"
 #include "anki/cozmo/shared/factory/faultCodes.h"
@@ -27,7 +28,7 @@
 #include <mutex>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace { // "Private members"
 
@@ -89,18 +90,31 @@ void ProcessIMUEvents()
   {
     tempCount = 0;
     imu_update_temperature();
-  } 
+  }
 
   IMURawData rawData[IMU_MAX_SAMPLES_PER_READ];
   HAL::IMU_DataStructure imuData;
   const int imu_read_samples = imu_manage(rawData);
+  if(imu_read_samples < 0)
+  {
+    AnkiError("HAL.ProcessIMUEvents.IMUManageFailed", "");
+
+    static bool sentDAS = false;
+    if(!sentDAS)
+    {
+      sentDAS = true;
+      DASMSG(imu_failure,
+             "robot.imu_failure",
+             "Indicates that we failed to read/write to the IMU and it may not be working correctly");
+      DASMSG_SEND_ERROR();
+    }
+  }
+
   for (int i=0; i < imu_read_samples; i++) {
-    imuData.acc_x = rawData[i].acc[0] * IMU_ACCEL_SCALE_G * MMPS2_PER_GEE;
-    imuData.acc_y = rawData[i].acc[1] * IMU_ACCEL_SCALE_G * MMPS2_PER_GEE;
-    imuData.acc_z = rawData[i].acc[2] * IMU_ACCEL_SCALE_G * MMPS2_PER_GEE;
-    imuData.rate_x = rawData[i].gyro[0] * IMU_GYRO_SCALE_DPS * RADIANS_PER_DEGREE;
-    imuData.rate_y = rawData[i].gyro[1] * IMU_GYRO_SCALE_DPS * RADIANS_PER_DEGREE;
-    imuData.rate_z = rawData[i].gyro[2] * IMU_GYRO_SCALE_DPS * RADIANS_PER_DEGREE;
+    for (int j=0 ; j<3 ; j++) {
+      imuData.accel[j] = rawData[i].acc[j]  * IMU_ACCEL_SCALE_G  * MMPS2_PER_GEE;
+      imuData.gyro[j]  = rawData[i].gyro[j] * IMU_GYRO_SCALE_DPS * RADIANS_PER_DEGREE;
+    }
     imuData.temperature_degC = IMU_TEMP_RAW_TO_C(rawData[i].temperature);
     PushIMU(imuData);
   }
@@ -148,7 +162,7 @@ void ProcessLoop()
     const auto start = std::chrono::steady_clock::now();
     ProcessIMUEvents();
     const auto end = std::chrono::steady_clock::now();
-    
+
     // Sleep such that there are 5ms between ProcessIMUEvent calls
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     std::chrono::duration<double, std::micro> sleepTime = std::chrono::milliseconds(5) - elapsed;
@@ -176,7 +190,6 @@ void InitIMU()
   // Spin up the processing thread and detach it
   // This will open, init, and read the imu
   _processor = std::thread(ProcessLoop);
-  _processor.detach();
 #else
   OpenIMU();
 #endif
@@ -186,9 +199,13 @@ void StopIMU()
 {
 #if PROCESS_IMU_ON_THREAD
   _stopProcessing = true;
+  if (_processor.joinable()) {
+    _processor.join();
+  }
 #else
   imu_close();
 #endif
+  AnkiInfo("HAL.StopIMU.Stopped", "");
 }
 
 
@@ -200,12 +217,12 @@ bool HAL::IMUReadData(HAL::IMU_DataStructure &imuData)
   TimeStamp_t now = HAL::GetTimeStamp();
   if (now - lastIMURead > 4) {
     // TEMP HACK: Send 0s because on my Nexus 5x, the gyro values are kinda crazy.
-    imuData.acc_x = 0.f;
-    imuData.acc_y = 0.f;
-    imuData.acc_z = 9800.f;
-    imuData.rate_x = 0.f;
-    imuData.rate_y = 0.f;
-    imuData.rate_z = 0.f;
+    imuData.accel[0] = 0.f;
+    imuData.accel[1] = 0.f;
+    imuData.accel[2] = 9800.f;
+    imuData.gyro[0] = 0.f;
+    imuData.gyro[1] = 0.f;
+    imuData.gyro[2] = 0.f;
 
     lastIMURead = now;
     return true;
@@ -216,5 +233,5 @@ bool HAL::IMUReadData(HAL::IMU_DataStructure &imuData)
 #endif
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

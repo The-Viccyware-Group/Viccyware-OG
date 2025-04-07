@@ -15,9 +15,10 @@
 #include "memoryMapData.h"
 
 #include "coretech/common/engine/math/pose.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // NavMemoryMapQuadData_Cliff
@@ -25,7 +26,7 @@ namespace Cozmo {
 struct MemoryMapData_Cliff : public MemoryMapData
 {
   // constructor
-  MemoryMapData_Cliff(const Pose3d& cliffPose, TimeStamp_t t);
+  MemoryMapData_Cliff(const Pose3d& cliffPose, RobotTimeStamp_t t);
   
   // create a copy of self (of appropriate subclass) and return it
   MemoryMapDataPtr Clone() const override;
@@ -40,6 +41,12 @@ struct MemoryMapData_Cliff : public MemoryMapData
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // If you add attributes, make sure you add them to ::Equals and ::Clone (if required)
   Pose3d pose; // location and direction we presume for the cliff (from detection)
+
+  // cliff detections from the cliff-sensor
+  bool isFromCliffSensor;
+
+  // cliff detections from vision require nearby connected cliff-sensor cliffs
+  bool isFromVision;
 
   static bool HandlesType(EContentType otherType) {
     return otherType == EContentType::Cliff;

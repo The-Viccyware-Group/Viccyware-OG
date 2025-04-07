@@ -22,11 +22,35 @@
 #define LOG_CHANNEL "Animations"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+
+#if ANKI_DEV_CHEATS
+
+CannedAnimationContainer* s_cubeAnimContainer = nullptr;
+const char* kCubeSpinnerAnimationName = "anim_spinner_tap_01";
+CONSOLE_VAR(int, kAdjustHeightOfSpinnerLift, "CubeSpinner", 81);
+
+void SetNewTapHeight(ConsoleFunctionContextRef context)
+{
+  if(s_cubeAnimContainer != nullptr){
+    Animation* anim = s_cubeAnimContainer->GetAnimation(kCubeSpinnerAnimationName);
+    auto& track = anim->GetTrack<LiftHeightKeyFrame>();
+    std::list<LiftHeightKeyFrame>& frames = track.GetAllKeyframes();
+    auto iter = frames.begin();
+    iter++;
+    iter->OverrideHeight(kAdjustHeightOfSpinnerLift);
+  }
+}
+
+CONSOLE_FUNC(SetNewTapHeight, "CubeSpinner");
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CannedAnimationContainer::CannedAnimationContainer()
 {
+  #if ANKI_DEV_CHEATS
+  s_cubeAnimContainer = this;
+  #endif
 }
 
 
@@ -72,7 +96,7 @@ const Animation* CannedAnimationContainer::GetAnimation(const std::string& name)
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CannedAnimationContainer::AddAnimation(Animation&& animation)
+void CannedAnimationContainer::AddAnimation(Animation&& animation, bool& outOverwriting)
 {
   const std::string& name = animation.GetName();
 
@@ -81,6 +105,7 @@ void CannedAnimationContainer::AddAnimation(Animation&& animation)
   auto iter = _animations.find(name);
   if(iter != _animations.end()) {
     _animations.erase(iter);
+    outOverwriting = true;
   }
 
   _animations.emplace(name, std::move(animation));
@@ -98,5 +123,5 @@ std::vector<std::string> CannedAnimationContainer::GetAnimationNames()
   return v;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

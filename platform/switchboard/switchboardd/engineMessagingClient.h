@@ -6,7 +6,7 @@
  *
  * Description: Communication point for message coming from / 
  *              going to the engine process. Currently this is
- *              using a tcp connection where engine acts as the
+ *              using a udp connection where engine acts as the
  *              server, and this is the client.
  *
  * Copyright: Anki, Inc. 2018
@@ -18,26 +18,32 @@
 
 #include <string>
 #include <signals/simpleSignal.hpp>
-#include "libev/libev.h"
+#include "ev++.h"
 #include "coretech/messaging/shared/socketConstants.h"
-#include "coretech/messaging/shared/TcpClient.h"
 #include "coretech/messaging/shared/LocalUdpClient.h"
 #include "clad/externalInterface/messageEngineToGame.h"
 #include "clad/externalInterface/messageGameToEngine.h"
+#include "switchboardd/ISwitchboardCommandClient.h"
 
 namespace Anki {
 namespace Switchboard {
 
-class EngineMessagingClient {
+class EngineMessagingClient : public ISwitchboardCommandClient {
 public:
-  using EngineMessageSignal = Signal::Signal<void (Anki::Cozmo::ExternalInterface::MessageEngineToGame)>;
+  using EngineMessageSignal = Signal::Signal<void (Anki::Vector::ExternalInterface::MessageEngineToGame)>;
   explicit EngineMessagingClient(struct ev_loop* loop);
   bool Init();
   bool Connect();
   bool Disconnect();
-  void SendMessage(const Anki::Cozmo::ExternalInterface::MessageGameToEngine& message);
+  void SendMessage(const Anki::Vector::ExternalInterface::MessageGameToEngine& message);
   void SetPairingPin(std::string pin);
-  void ShowPairingStatus(Anki::Cozmo::SwitchboardInterface::ConnectionStatus status);
+  void SendBLEConnectionStatus(bool connected);
+  void ShowPairingStatus(Anki::Vector::SwitchboardInterface::ConnectionStatus status);
+  void HandleWifiScanRequest();
+  void HandleWifiConnectRequest(const std::string& ssid,
+                                const std::string& pwd,
+                                bool disconnectAfterConnection);
+  void HandleHasBleKeysRequest();
   EngineMessageSignal& OnReceivePairingStatus() {
     return _pairingStatusSignal;
   }
@@ -46,7 +52,11 @@ public:
   }
   static void sEvEngineMessageHandler(struct ev_loop* loop, struct ev_timer* w, int revents);
 
+
 private:
+
+  void HandleWifiConnectRequest(const std::string& ssid);
+  
   LocalUdpClient _client;
   EngineMessageSignal _pairingStatusSignal;
   EngineMessageSignal _engineMessageSignal;
@@ -57,7 +67,6 @@ private:
     ev_timer timer;
     LocalUdpClient* client;
     EngineMessageSignal* signal;
-    EngineMessageSignal* websocketSignal;
   } _handleEngineMessageTimer;
 
   static uint8_t sMessageData[2048];

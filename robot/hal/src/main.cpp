@@ -14,6 +14,25 @@
 
 #include "platform/victorCrashReports/victorCrashReporter.h"
 
+#define LOG_PROCNAME "vic-robot"
+
+//
+// Enable Anki::Utils log provider?
+//
+#ifndef ANKI_ROBOT_VICTOR_LOGGER
+#define ANKI_ROBOT_VICTOR_LOGGER 0
+#endif
+
+#if ANKI_ROBOT_VICTOR_LOGGER
+
+#include "util/logging/victorLogger.h"
+
+namespace {
+  Anki::Util::VictorLogger gVictorLogger(LOG_PROCNAME);
+}
+
+#endif
+
 // For development purposes, while HW is scarce, it's useful to be able to run on phones
 #ifdef HAL_DUMMY_BODY
   #define HAL_NOT_PROVIDING_CLOCK
@@ -46,35 +65,17 @@ static void Shutdown(int signum)
 }
 
 
-int main(int argc, const char* argv[])
+int run()
 {
   using Result = Anki::Result;
-
-  mlockall(MCL_FUTURE);
-
-  struct sched_param params;
-  params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-  sched_setscheduler(0, SCHED_FIFO, &params);
-
-  signal(SIGTERM, Shutdown);
-
-  static char const* filenamePrefix = "robot";
-  Anki::Victor::InstallCrashReporter(filenamePrefix);
-
-  if (argc > 1) {
-    ccc_set_shutdown_function(Shutdown);
-    ccc_parse_command_line(argc-1, argv+1);
-  }
 
   AnkiInfo("robot.main", "Starting robot process");
 
   //Robot::Init calls HAL::INIT before anything else.
   // TODO: move HAL::Init here into HAL main.
-  const Result result = Anki::Cozmo::Robot::Init(&shutdownSignal);
+  const Result result = Anki::Vector::Robot::Init(&shutdownSignal);
   if (result != Result::RESULT_OK) {
     AnkiError("robot.main.InitFailed", "Unable to initialize (result %d)", result);
-    Anki::Victor::UninstallCrashReporter();
-    sync();
     if (shutdownSignal == SIGTERM) {
       return 0;
     } else if (shutdownSignal != 0) {
@@ -84,20 +85,29 @@ int main(int argc, const char* argv[])
     }
   }
 
+  // After Init, all memory we need has been initialized and the IMU thread (if used) has been
+  // instantiated, lock our pages
+  int lock_r = mlockall(MCL_FUTURE);
+  if (lock_r == -1) {
+    AnkiError("robot.main", "Failed to lock pages");
+  }
+
   auto start = std::chrono::steady_clock::now();
 #if FACTORY_TEST
   auto timeOfPowerOn = start;
-  wasPackedOutAtBoot = Anki::Cozmo::Factory::GetEMR()->fields.PACKED_OUT_FLAG;
+  wasPackedOutAtBoot = Anki::Vector::Factory::GetEMR()->fields.PACKED_OUT_FLAG;
 #endif
 
   for (;;) {
     //HAL::Step should never return !OK, but if it does, best not to trust its data.
-    if (Anki::Cozmo::HAL::Step() == Anki::RESULT_OK) {
-      if (Anki::Cozmo::Robot::step_MainExecution() != Anki::RESULT_OK) {
-        AnkiError("robot.main", "MainExecution failed");
-        Anki::Victor::UninstallCrashReporter();
+    if (Anki::Vector::HAL::Step() == Anki::RESULT_OK) {
+      if (Anki::Vector::Robot::step_MainExecution() != Anki::RESULT_OK) {
+        AnkiError("robot.main.MainStepFailed", "");
         return -1;
       }
+    } else {
+      AnkiError("robot.main.HALStepFailed", "");
+      return -2;
     }
 
     auto end = std::chrono::steady_clock::now();
@@ -107,7 +117,7 @@ int main(int argc, const char* argv[])
     std::this_thread::sleep_for(sleepTime);
     ///printf("Main tic: %lld, Sleep time: %f us\n", elapsed.count(), sleepTime.count());
 #endif
-    //printf("TS: %d\n", Anki::Cozmo::HAL::GetTimeStamp() );
+    //printf("TS: %d\n", Anki::Vector::HAL::GetTimeStamp() );
     start = end;
 
 #if FACTORY_TEST
@@ -117,7 +127,7 @@ int main(int argc, const char* argv[])
         seenChargerCnt < MAX_SEEN_CHARGER_CNT)
     {
       // Need to be on the charger for some number of ticks
-      if (Anki::Cozmo::HAL::BatteryIsOnCharger())
+      if (Anki::Vector::HAL::BatteryIsOnCharger())
       {
         seenChargerCnt++;
       }
@@ -131,12 +141,12 @@ int main(int argc, const char* argv[])
       auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - timeOfPowerOn);
       if (elapsed > std::chrono::seconds(15))
       {
-        Anki::Cozmo::Robot::Destroy();
+        Anki::Vector::Robot::Destroy();
 
         sync();
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-        Anki::Cozmo::HAL::Shutdown();
+        Anki::Vector::HAL::Shutdown();
         break;
       }
     }
@@ -144,12 +154,10 @@ int main(int argc, const char* argv[])
 
     if (shutdownSignal != 0) {
       if (shutdownCounter == SHUTDOWN_COUNTDOWN_TICKS) {
-        Anki::Cozmo::Robot::Destroy();
+        Anki::Vector::Robot::Destroy();
       } else if (shutdownCounter == 0) {
         AnkiInfo("robot.main.shutdown", "%d", shutdownSignal);
-        Anki::Victor::UninstallCrashReporter();
-        sync();
-        exit(0);
+        return 0;
       }
       --shutdownCounter;
     }
@@ -157,7 +165,50 @@ int main(int argc, const char* argv[])
   return 0;
 }
 
+
+int main(int argc, const char* argv[])
+{
+  // Set output buffering for use with systemd journal
+  setlinebuf(stdout);
+  setlinebuf(stderr);
+
+  struct sched_param params;
+  params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+  sched_setscheduler(0, SCHED_FIFO, &params);
+
+  signal(SIGTERM, Shutdown);
+
+  #if ANKI_ROBOT_VICTOR_LOGGER
+  Anki::Util::gLoggerProvider = &gVictorLogger;
+  Anki::Util::gEventProvider = &gVictorLogger;
+  #endif
+
+  Anki::Vector::InstallCrashReporter(LOG_PROCNAME);
+
+  if (argc > 1) {
+    ccc_set_shutdown_function(Shutdown);
+    ccc_parse_command_line(argc-1, argv+1);
+  }
+
+  int res = run();
+
+  Anki::Vector::Robot::Destroy();
+
+  Anki::Vector::UninstallCrashReporter();
+
+  #if ANKI_ROBOT_VICTOR_LOGGER
+  Anki::Util::gLoggerProvider = nullptr;
+  Anki::Util::gEventProvider = nullptr;
+  #endif
+
+  sync();
+
+  return res;
+}
+
+#ifdef DEBUG_SPINE_TEST
 #include "spine/spine.h"
+
 int main_test(int argc, const char* argv[])
 {
   mlockall(MCL_FUTURE);
@@ -172,7 +223,7 @@ int main_test(int argc, const char* argv[])
 
   while (1) {
     spine_test_loop_once();
-    Anki::Cozmo::Robot::step_MainExecution();
+    Anki::Vector::Robot::step_MainExecution();
   }
 
   if (shutdownSignal != 0 && --shutdownCounter == 0) {
@@ -181,3 +232,4 @@ int main_test(int argc, const char* argv[])
   }
   return 0;
 }
+#endif

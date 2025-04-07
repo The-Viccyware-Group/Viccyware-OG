@@ -18,7 +18,7 @@ function check_dep()
 {
     CHECK_CMD="$*"
     eval $CHECK_CMD && return 0
-    
+
     echo "Depdendency check failed: $CHECK_CMD"
     echo "If you have apt-get, you should make sure you have the following deps"
     echo ""
@@ -36,26 +36,24 @@ function check_dep()
 
 pushd "${TOPLEVEL}" > /dev/null 2>&1
 
-$GIT config --global url."git@github.com:".insteadOf https://github.com
-
 # Check for required programs
 check_dep which python2
 check_dep which python3
 check_dep which ninja
+#check_dep which git-lfs
+
 
 echo `pwd`
 
 vlog "vicos-sdk"
-./tools/build/tools/ankibuild/vicos.py --install 0.9-r03
+./tools/build/tools/ankibuild/vicos.py --install 1.1.0-r04
 
 vlog "CMake"
 ./tools/build/tools/ankibuild/cmake.py
 
-vlog "Go"
-./tools/build/tools/ankibuild/go.py
-
-vlog "protobuf"                                                                                     
-./tools/build/tools/ankibuild/protobuf.py --install
+#vlog "git lfs"
+#$GIT lfs install
+#$GIT lfs pull
 
 vlog "Build output dirs"
 mkdir -p generated

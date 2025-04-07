@@ -20,15 +20,16 @@
 #include "engine/cozmoContext.h"
 #include "engine/unitTestKey.h"
 #include "test/engine/behaviorComponent/testBehaviorFramework.h"
+#include "test/engine/callWithoutError.h"
 #include "util/fileUtils/fileUtils.h"
 #include "gtest/gtest.h"
 
 #include <unordered_map>
 
-extern Anki::Cozmo::CozmoContext* cozmoContext;
+extern Anki::Vector::CozmoContext* cozmoContext;
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 using BehaviorIDJsonMap = std::unordered_map<BehaviorID,  const Json::Value>;
 
@@ -62,6 +63,7 @@ TEST(BehaviorDirectoryStructure, Run)
 {
   const std::vector<std::string> directories = {
     "config/engine/behaviorComponent/behaviors/victorBehaviorTree",
+    "config/engine/behaviorComponent/behaviors/inProgress",
     "config/engine/behaviorComponent/behaviors/devBehaviors"
   };
   // this test serves three functions, related to ensuring all classes are contained within a single
@@ -88,9 +90,9 @@ TEST(BehaviorDirectoryStructure, Run)
   //          bool _gTestDumpAnimTriggers = false;
   //          std::set<std::string> _gTestAnimTriggers;
   //    (5) Still in animationTrigger.cpp, in the EnumToString() for anim triggers, add this before return true:
-  //        if( _gTestDumpAnimTriggers ) {
-  //          _gTestAnimTriggers.insert(str);
-  //        }
+  //          if( _gTestDumpAnimTriggers ) {
+  //            _gTestAnimTriggers.insert(str);
+  //          }
   //    (6) Rerun this test. (In Xcode, this won't cause the clad to regenerate, but if you're instead
   //        using build scripts, you'll have to disable clad generation.) You should now see an additional
   //        stdout output for all animation triggers used during a behavior's construction and Init()
@@ -128,18 +130,21 @@ TEST(BehaviorDirectoryStructure, Run)
   
   // manually add them so we can do checks
   for( const auto& behaviorIDJsonPair : behaviorData ) {
-    const auto& behaviorID = behaviorIDJsonPair.first;
-    const auto& behaviorJson = behaviorIDJsonPair.second;
-    EXPECT_TRUE( !behaviorJson.empty() );
-    const bool createdOK = tbf.GetBehaviorContainer().CreateAndStoreBehavior(behaviorJson);
-    EXPECT_TRUE( createdOK ) << BehaviorTypesWrapper::BehaviorIDToString(behaviorID) << " might reference a missing behavior";
-    EXPECT_FALSE( Anki::Util::_errG );
+    const bool hadErr = CallWithoutError([&](){
+      const auto& behaviorID = behaviorIDJsonPair.first;
+      const auto& behaviorJson = behaviorIDJsonPair.second;
+      EXPECT_TRUE( !behaviorJson.empty() );
+      const bool createdOK = tbf.GetBehaviorContainer().CreateAndStoreBehavior(behaviorJson);
+      EXPECT_TRUE( createdOK ) << BehaviorTypesWrapper::BehaviorIDToString(behaviorID) << " might reference a missing behavior";
+    });
+    EXPECT_FALSE( hadErr );
   }
   
-  // make sure they can all be init'd (this is where anonymous behaviors get loaded)
-  tbf.GetBehaviorContainer().Init( tbf.GetBehaviorExternalInterface() );
-  
-  EXPECT_FALSE( Anki::Util::_errG );
+  const bool hadErr = CallWithoutError([&](){
+    // make sure they can all be init'd (this is where anonymous behaviors get loaded)
+    tbf.GetBehaviorContainer().Init( tbf.GetBehaviorExternalInterface() );
+  });
+  EXPECT_FALSE( hadErr );
   
   // (Part 2) now get a list of behavior classes associated with this directory. most behaviors can be
   // obtained from the BehaviorContainer, but we need to walk the anonymous behavior map pointers
@@ -188,7 +193,7 @@ TEST(BehaviorDirectoryStructure, Run)
     ss += elem;
     ss += "\n";
   }
-  std::cout << "BEHAVIOR CLASSES USED:" << std::endl << ss;
+  std::cout << "<BEGIN_BEHAVIOR_CLASSES_USED>" << std::endl << ss << "<END_BEHAVIOR_CLASSES_USED>" << std::endl;
   
   // (Part 3) dump animation trigger loaded by config
 # if TEST_GENERATE_ANIMATION_TRIGGERS
@@ -199,7 +204,7 @@ TEST(BehaviorDirectoryStructure, Run)
         ss += trigger;
         ss += "\n";
       }
-      std::cout << "ANIMATIONTRIGGERS USED:" << std::endl << ss;
+      std::cout << "<BEGIN_ANIMATION_TRIGGERS_USED>" << std::endl << ss << "<END_ANIMATION_TRIGGERS_USED>" << std::endl;
     }
   }
 # endif

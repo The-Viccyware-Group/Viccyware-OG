@@ -18,6 +18,7 @@ include(anki_build_strip)
 if (VICOS)
 
   anki_build_cxx_library(victorCrashReports ${ANKI_SRCLIST_DIR} STATIC)
+  anki_build_target_license(victorCrashReports "ANKI")
 
   target_include_directories(victorCrashReports
     PRIVATE
@@ -36,6 +37,7 @@ if (VICOS)
     )
     target_link_libraries(victorCrashReports
       PRIVATE
+      util
       breakpad_client
     )
   endif()
@@ -47,6 +49,7 @@ if (VICOS)
     )
     target_link_libraries(victorCrashReports
       PRIVATE
+      util
       cutils
     )
   endif()

@@ -11,7 +11,18 @@
     "minTimeSinceChange_ms": 400
   },
 
+  "associatedActiveFeature": "NoFeature",
+  "behaviorStatToIncrement": "ReactedToSound",
+
   "emotionEventOnActivated": "ReactToSoundAsleep",
 
-  "FromSleep" : true
+  "micDirectionReactionBehavior" : "ReactToSoundDirectionAsleep",
+
+  // from sleep, only use absolute "loud" sound to wake up
+  "micAbsolutePowerThreshold": 3.10,
+
+  // impossibly high (this wont work during power save anyway)
+  "micMinPowerThreshold": 999.9,
+  "micConfidenceThresholdAtMinPower": 0
+
 }

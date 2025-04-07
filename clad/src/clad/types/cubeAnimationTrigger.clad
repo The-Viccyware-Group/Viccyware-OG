@@ -5,7 +5,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum int_32 CubeAnimationTrigger
 {
@@ -13,38 +13,66 @@ enum int_32 CubeAnimationTrigger
 
   Carrying,
   Connected,
+  CubeDrive,
   CubePouncePlayerLose,
   CubePouncePlayerWin,
-  Dance_01,
-  Dance_02,
-  Dance_03,
-  Dance_04,
-  Dance_05,
-  Dance_06,
-  DanceFadeOff,
   DrivingTo,
-  FeedingBlank,
-  FeedingCyanCycle,
-  FeedingCyanSolid,
   Flash,
   GatherCubesAllCubesInBeacon,
   GatherCubesCubeInBeacon,
   Interacting,
   InteractingBehaviorLock,
   Onboarding,
+  ShutDown,
   Sleep,
   SleepNoFade,
   SpeedTapWin,
   SpeedTapLose,
+
+
+  SpinnerBlueCelebration,
+  SpinnerBlueCycle,
+  SpinnerBlueLockIn,
+  SpinnerBlueLockedPulse,
+  SpinnerBlueLocked,
+
+  SpinnerGreenCelebration,
+  SpinnerGreenCycle,
+  SpinnerGreenLockIn,
+  SpinnerGreenLockedPulse,
+  SpinnerGreenLocked,
+
+  SpinnerPlayerError,
+
+  SpinnerPurpleCelebration,
+  SpinnerPurpleCycle,
+  SpinnerPurpleLockIn,
+  SpinnerPurpleLockedPulse,
+  SpinnerPurpleLocked,
+
+  SpinnerRedCelebration,
+  SpinnerRedCycle,
+  SpinnerRedLockIn,
+  SpinnerRedLockedPulse,
+  SpinnerRedLocked,
+
+  SpinnerStartGame,
+
+  SpinnerYellowCelebration,
+  SpinnerYellowCycle,
+  SpinnerYellowLockIn,
+  SpinnerYellowLockedPulse,
+  SpinnerYellowLocked,
+
+  TapResponsePulse,
   TestAllLeds,
   TestOffset,
   TestRotation,
   Visible,
   WakeUp,
-  Workout,
 
   Count
 }
 
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki

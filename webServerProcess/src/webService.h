@@ -35,12 +35,17 @@ namespace Json {
 namespace Anki {
 
 namespace Util {
+
 namespace Data {
   class DataPlatform;
-} // namespace Data
+}
+namespace Dispatch {
+  class Queue;
+}
+
 } // namespace Util
 
-namespace Cozmo {
+namespace Vector {
 
 namespace WebService {
 
@@ -96,6 +101,8 @@ public:
     RT_ConsoleFuncList,
     RT_ConsoleFuncCall,
     
+    RT_External,
+    
     RT_TempAppToEngine,
     RT_TempEngineToApp,
     
@@ -103,17 +110,25 @@ public:
     RT_WebsocketOnData,
   };
 
+  struct Request;
+  using ExternalCallback = int (*)(WebService::WebService::Request* request);
+
   struct Request
   {
     Request(RequestType rt, const std::string& param1, const std::string& param2);
-    Request(RequestType rt, const std::string& param1, const std::string& param2, const std::string& param3);
+    Request(RequestType rt, const std::string& param1, const std::string& param2,
+            const std::string& param3, ExternalCallback extCallback, void* cbdata);
     RequestType _requestType;
     std::string _param1;
     std::string _param2;
     std::string _param3;
+    ExternalCallback _externalCallback;
+    void*       _cbdata;
     std::string _result;
     bool        _resultReady; // Result is ready for use by the webservice thread
     bool        _done;        // Result has been used and now it's OK for main thread to delete this item
+    std::mutex  _readyMutex;
+    std::condition_variable _readyCondition;
   };
 
   void AddRequest(Request* requestPtr);
@@ -123,10 +138,14 @@ public:
   const Anki::Util::Data::DataPlatform* GetPlatform() { return _platform; }
 
   void RegisterRequestHandler(std::string uri, mg_request_handler handler, void* cbdata);
+  int ProcessRequestExternal(struct mg_connection *conn, void* cbdata,
+                             ExternalCallback extCallback, const std::string& param1 = "",
+                             const std::string& param2 = "", const std::string& param3 = "");
 
 private:
 
-  void GenerateConsoleVarsUI(std::string& page, const std::string& category);
+  void GenerateConsoleVarsUI(std::string& page, const std::string& category,
+                             const bool standalone);
 
   struct WebSocketConnectionData {
     struct mg_connection* conn = nullptr;
@@ -143,14 +162,15 @@ private:
   void OnOpenWebSocket(struct mg_connection* conn);
   void OnReceiveWebSocket(struct mg_connection* conn, const Json::Value& data);
   void OnCloseWebSocket(const struct mg_connection* conn);
-  
-  static void SendToWebSocket(struct mg_connection* conn, const Json::Value& data);
-  
+
+  void SendToWebSocket(struct mg_connection* conn, const Json::Value& data) const;
+
   // todo: OTA update somehow?
 
   struct mg_context* _ctx;
   
   std::vector<WebSocketConnectionData> _webSocketConnections;
+  mutable std::mutex s_wsConnectionsMutex;
 
   std::string _consoleVarsUIHTMLTemplate;
 
@@ -164,11 +184,13 @@ private:
   
   OnAppToEngineOnDataType _appToEngineOnData;
   OnAppToEngineRequestDataType _appToEngineRequestData;
+  
+  Util::Dispatch::Queue* _dispatchQueue = nullptr;
 };
 
 } // namespace WebService
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // defined(WEB_SERVICE_H)

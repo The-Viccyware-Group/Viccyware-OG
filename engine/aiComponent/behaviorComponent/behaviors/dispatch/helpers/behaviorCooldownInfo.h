@@ -21,7 +21,7 @@ namespace Util {
 class RandomGenerator;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorCooldownInfo
 {
@@ -40,12 +40,13 @@ public:
 
 private:
   // params
-  float _cooldown_s = 0.0f;;
+  float _cooldown_s = 0.0f;
   float _randomCooldownFactor = 0.0f;
 
   // members
   float _onCooldownUntil_s = -1.0f;
   
+  // Whether or not to ignore the dev-only time-speeder-upper (kTimeMultiplier)
   bool _ignoreFastForward = false;
 };
 

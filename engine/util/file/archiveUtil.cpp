@@ -15,6 +15,8 @@
 #include "util/logging/logging.h"
 #include "util/math/numericCast.h"
 
+#define ANKI_HAS_LIBARCHIVE 0
+
 #if ANKI_HAS_LIBARCHIVE
   #include "archive.h"
   #include "archive_entry.h"
@@ -24,7 +26,7 @@
 #include <fstream>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 bool ArchiveUtil::CreateArchiveFromFiles(const std::string& outputPath,
@@ -410,5 +412,5 @@ const char* ArchiveUtil::GetArchiveErrorString(int errorCode)
   }
 }
 
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki

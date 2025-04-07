@@ -2,7 +2,7 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class TestState {
   Init,
@@ -50,7 +50,8 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
   switch(_testState) {
     case TestState::Init:
     {
-      SendEnableBlockTapFilter(false);
+      // Request a cube connection
+      SendConnectToCube();
 
       SET_TEST_STATE(TapCube);
       break;
@@ -58,7 +59,7 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
 
     case TestState::TapCube:
     {
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(_numObjectsConnected == 1, 5) {
+      IF_CONDITION_WITH_TIMEOUT_ASSERT(_numObjectsConnected == 1, 15) {
         _wasTapped = false;
         _wasStopped = false;
         _wasMoved = false;
@@ -166,5 +167,5 @@ void CST_MotionMessagesFromBlocks::HandleActiveObjectConnectionState(const Exter
 }
 
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki

@@ -45,18 +45,6 @@ LightCube {
   rotation 0 0 1 0.523599
   colorizeStderrOutput TRUE
 }
-LightCube {
-  translation -0.010376264 0.32666562 0.0219929
-  rotation 1.3953699998618023e-5 -1.8370399998180594e-6 0.9999999999009599 0.261799
-  colorizeStderrOutput TRUE
-  objectType "Block_LIGHTCUBE3"
-}
-LightCube {
-  translation 0.08610605 0.32966413 0.0219929
-  rotation 0 0 -1 6.23319
-  colorizeStderrOutput TRUE
-  objectType "Block_LIGHTCUBE2"
-}
 CozmoBot2 {
   translation 0 0 0.005
   rotation 0 1 0 0.1222
@@ -64,11 +52,11 @@ CozmoBot2 {
   colorizeStderrOutput TRUE
 }
 WebotsKeyboardController {
-  intent "{\"intent\": \"intent_play_specific\", \"params\": {\"entity_behavior\": \"fist_bump\"}}"
+  behaviorName "ModeSelector"
+  intent "{\"intent\":\"intent_clock_settimer_extend\",\"params\": {\"timer_duration\":\"30\",\"unit\":\"s\"}}"
+  emotionVal 0.1
   consoleVarName "DevDispatchAfterShake"
   consoleVarValue "1"
-  emotionName "Stimulated"
-  emotionVal 0.1
   colorizeStderrOutput TRUE
   translation -0.24686749 0.2921897 0.08
   rotation 0 0 1 6.0213859

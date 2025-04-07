@@ -11,29 +11,43 @@
  *
  **/
 
-#include "coretech/common/engine/math/point_impl.h"
-#include "coretech/common/engine/math/poseOriginList.h"
-#include "engine/components/visionComponent.h"
-#include "engine/cozmoContext.h"
-#include "engine/externalInterface/externalInterface.h"
 #include "engine/faceWorld.h"
-#include "engine/robot.h"
+
+
+#include "anki/cozmo/shared/cozmoConfig.h"
 #include "clad/externalInterface/messageEngineToGame.h"
 #include "clad/externalInterface/messageGameToEngine.h"
 #include "clad/types/enrolledFaceStorage.h"
-#include "util/console/consoleInterface.h"
-#include "util/cpuProfiler/cpuProfiler.h"
-#include "webServerProcess/src/webService.h"
+#include "coretech/common/engine/math/poseOriginList.h"
+#include "coretech/common/shared/math/radians.h"
 
-#include "anki/cozmo/shared/cozmoConfig.h"
+#include "engine/actions/animActions.h"
+#include "engine/actions/basicActions.h"
+#include "engine/components/robotStatsTracker.h"
+#include "engine/components/visionComponent.h"
+#include "engine/cozmoContext.h"
+#include "engine/externalInterface/externalInterface.h"
+#include "engine/robot.h"
 #include "engine/smartFaceId.h"
 
+#include "util/console/consoleInterface.h"
+#include "util/cpuProfiler/cpuProfiler.h"
+#include "util/logging/DAS.h"
+#include "webServerProcess/src/webService.h"
+
+#include "clad/types/featureGateTypes.h"
+#include "engine/utils/cozmoFeatureGate.h"
+
+
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
   // How long before deleting an unnamed, unobserved face.
   // NOTE: we never delete _named_ faces.
-  CONSOLE_VAR(u32, kDeletionTimeout_ms, "Vision.FaceWorld", 15000);
+  // This used to be smaller, but we're starting it on the order of minutes. This might need to be
+  // settable by whatever behaviors are running
+  CONSOLE_VAR(u32, kDeletionTimeout_ms, "Vision.FaceWorld", 10*60*1000);
 
   // The distance threshold inside of which to head positions are considered to be the same face
   CONSOLE_VAR(float, kHeadCenterPointThreshold_mm, "Vision.FaceWorld", 220.f);
@@ -52,11 +66,16 @@ namespace Cozmo {
   CONSOLE_VAR(f32, kBodyTurnSpeedThreshFace_degs,  "WasRotatingTooFast.Face.Body_deg/s",    30.f);
   CONSOLE_VAR(u8,  kNumImuDataToLookBackFace,      "WasRotatingTooFast.Face.NumToLookBack", 5);
 
+  CONSOLE_VAR(bool,  kRenderGazeDirectionPoints,      "Vision.GazeDirection", false);
+
   static const char * const kLoggingChannelName = "FaceRecognizer";
-  static const char * const kIsNamedStringDAS = "1";
-  static const char * const kIsSessionOnlyStringDAS = "0";
 
   static const Point3f kHumanHeadSize{148.f, 225.f, 195.f};
+  static const Point3f kGazeGroundPointSize{100.f, 100.f, 100.f};
+
+  static const std::string kWebVizObservedObjectsName = "observedobjects";
+  static const std::string kWebVizNavMapName = "navmap";
+
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   FaceWorld::FaceEntry::FaceEntry(const Vision::TrackedFace& faceIn)
@@ -84,7 +103,7 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void FaceWorld::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents)
+  void FaceWorld::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps)
   {
     _robot = robot;
     if(robot->HasExternalInterface()) {
@@ -200,9 +219,12 @@ namespace Cozmo {
       const FaceEntry& newFaceEntry = result.first->second;
       if(oldID > 0 && newID > 0 && newFaceEntry.HasStableID())
       {
-        Util::sInfoF("robot.vision.update_face_id",
-                     {{DDATA, std::to_string(oldID).c_str()}},
-                     "%d", newID);
+        DASMSG(robot.vision.update_face_id,
+               "robot.vision.update_face_id",
+               "Face ID updated");
+        DASMSG_SET(i1, oldID, "Old ID");
+        DASMSG_SET(i2, newID, "New ID");
+        DASMSG_SEND();
       }
 
     } else if(oldID > 0){
@@ -225,11 +247,12 @@ namespace Cozmo {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   Result FaceWorld::AddOrUpdateFace(const Vision::TrackedFace& face)
   {
+
     // Head pose is stored w.r.t. historical world origin, but needs its parent
     // set up to be the robot's world origin here, using the origin ID from the
     // time the face was seen
     DEV_ASSERT(!face.GetHeadPose().HasParent(), "FaceWorld.AddOrUpdateFace.HeadPoseHasParent");
-    TimeStamp_t t=0;
+    RobotTimeStamp_t t=0;
     HistRobotState* histStatePtr = nullptr;
     HistStateKey histStateKey;
     const Result histStateResult = _robot->GetStateHistory()->ComputeAndInsertStateAt(face.GetTimeStamp(), t,
@@ -242,17 +265,18 @@ namespace Cozmo {
       return histStateResult;
     }
 
-    const PoseOriginID_t histOriginID = histStatePtr->GetPose().GetRootID();
+    const auto& origin = _robot->GetPoseOriginList().GetOriginByID(histStatePtr->GetPose().GetRootID());
     Pose3d headPoseWrtWorldOrigin(face.GetHeadPose());
-    headPoseWrtWorldOrigin.SetParent(_robot->GetPoseOriginList().GetOriginByID(histOriginID));
+    headPoseWrtWorldOrigin.SetParent(origin);
+
+    Pose3d eyePoseWrtWorldOrigin(face.GetEyePose());
+    eyePoseWrtWorldOrigin.SetParent(origin);
 
     const bool robotOnTreads = _robot->GetOffTreadsState() == OffTreadsState::OnTreads;
     const bool headBelowRobot = headPoseWrtWorldOrigin.GetTranslation().z() < 0.f;
     if(kIgnoreFacesBelowRobot && robotOnTreads && headBelowRobot)
     {
       // Don't report faces that are below the origin (which we are assuming is on the ground plane)
-      //PRINT_NAMED_DEBUG("VisionSystem.DetectFaces.IgnoreFaceBelowRobot",
-      //                  "z=%.2f", headPose.GetTranslation().z());
       PRINT_CH_DEBUG(kLoggingChannelName, "FaceWorld.AddOrUpdateFace.IgnoringFaceBelowRobot",
                      "z=%f", headPoseWrtWorldOrigin.GetTranslation().z());
       return RESULT_OK;
@@ -288,7 +312,6 @@ namespace Cozmo {
 
         // Note we're using really loose thresholds for checking pose sameness
         // since our ability to accurately localize face's 3D pose is limited.
-        Vec3f Tdiff;
         Radians angleDiff;
 
         const auto & entryRect = faceEntryIter->second.face.GetRect();
@@ -366,13 +389,16 @@ namespace Cozmo {
       if(isNewFace)
       {
         // Make sure we aren't rotating too fast to add a new face (this helps safeguard against false positives)
-        const bool rotatingTooFastCheckEnabled = (Util::IsFltGT(kBodyTurnSpeedThreshFace_degs, 0.f) ||
-                                                  Util::IsFltGT(kHeadTurnSpeedThreshFace_degs, 0.f));
-        const bool wasRotatingTooFast = (rotatingTooFastCheckEnabled &&
-                                         _robot->GetVisionComponent().WasRotatingTooFast(face.GetTimeStamp(),
-                                                                                        DEG_TO_RAD(kBodyTurnSpeedThreshFace_degs),
-                                                                                        DEG_TO_RAD(kHeadTurnSpeedThreshFace_degs),
-                                                                                        (face.IsBeingTracked() ? kNumImuDataToLookBackFace : 0)));
+        const bool fastRotationAllowed = (_robot->GetVisionComponent().IsVisionWhileRotatingFastEnabled() &&
+                                          (Util::IsFltGT(kBodyTurnSpeedThreshFace_degs, 0.f) ||
+                                           Util::IsFltGT(kHeadTurnSpeedThreshFace_degs, 0.f)));
+
+        auto const& imuHistory = _robot->GetImuComponent().GetImuHistory();
+        const bool wasRotatingTooFast = (!fastRotationAllowed &&
+                                         imuHistory.WasRotatingTooFast(face.GetTimeStamp(),
+                                                                       DEG_TO_RAD(kBodyTurnSpeedThreshFace_degs),
+                                                                       DEG_TO_RAD(kHeadTurnSpeedThreshFace_degs),
+                                                                       (face.IsBeingTracked() ? kNumImuDataToLookBackFace : 0)));
 
         if(wasRotatingTooFast)
         {
@@ -404,15 +430,45 @@ namespace Cozmo {
                               face.GetTimeStamp(), faceEntry->face.GetTimeStamp());
         }
 
-        if(!face.HasEyes()) {
-          // If no eyes were detected, the translation we have at this point was
-          // computed using "fake" eye locations, so just use the last translation
-          // estimate since we matched this to an existing face:
-          headPoseWrtWorldOrigin.SetTranslation(faceEntry->face.GetHeadPose().GetTranslation());
-        }
-
         faceEntry->face = face;
       }
+
+      // update the observation time if this is a named face. Note that this is using current wall time, which
+      // is slightly different from the actual image timestamp when the face was observed, but should be close
+      // enough. Only store if time is accurate.
+      if( face.HasName() ) {
+        WallTime::TimePoint_t wallTime;
+        if( WallTime::getInstance()->GetTime( wallTime ) ) {
+          auto it = _wallTimesObserved.find(face.GetID());
+          if( it != _wallTimesObserved.end() ) {
+            // update existing entry
+            it->second.push_back(wallTime);
+            while(it->second.size() > 2) {
+              it->second.pop_front();
+            }
+
+            // if the new sighting is in a different day than the last one, we need to update robot stats
+            const auto lastSeen = it->second.front();
+            if( !WallTime::AreTimePointsInSameDay(lastSeen, wallTime) ) {
+              PRINT_CH_INFO(kLoggingChannelName, "FaceWorld.UpdateFace.FaceSeenOnNewDay",
+                            "face %d seen on new day",
+                            face.GetID());
+              _robot->GetComponent<RobotStatsTracker>().IncrementNamedFacesPerDay();
+            }
+          }
+          else {
+            // new entry
+            _wallTimesObserved.emplace( face.GetID(), ObservationTimeHistory{{wallTime}} );
+
+            PRINT_CH_INFO(kLoggingChannelName, "FaceWorld.UpdateFace.NamedFaceFirstDaySeen",
+                          "face %d has been seen for the first time",
+                          face.GetID());
+
+            _robot->GetComponent<RobotStatsTracker>().IncrementNamedFacesPerDay();
+          }
+        }
+      }
+
     } // if(false == Vision::FaceTracker::IsRecognitionSupported()
 
     // By now, we should have either created a new face or be pointing at an
@@ -420,7 +476,13 @@ namespace Cozmo {
     assert(faceEntry != nullptr);
 
     faceEntry->face.SetHeadPose(headPoseWrtWorldOrigin);
+    faceEntry->face.SetEyePose(eyePoseWrtWorldOrigin);
     faceEntry->numTimesObserved++;
+
+    const auto* featureGate = _robot->GetContext()->GetFeatureGate();
+    if (featureGate->IsFeatureEnabled(FeatureType::GazeDirection)) {
+      AddOrUpdateGazeDirection(faceEntry->face);
+    }
 
     // Keep up with how many times non-tracking-only faces have been seen facing
     // facing the camera (and thus potentially recognizable)
@@ -433,26 +495,33 @@ namespace Cozmo {
     const bool isNamed = faceEntry->IsNamed();
     if(faceEntry->numTimesObserved == 1 && isNamed)
     {
-      // Log to DAS that we immediately recognized a new face with a name
-      Util::sInfoF("robot.vision.face_recognition.immediate_recognition", {{DDATA, kIsNamedStringDAS}},
-                   "%d", faceEntry->face.GetID());
+      DASMSG(robot.vision.face_recognition.immediate_recognition,
+             "robot.vision.face_recognition.immediate_recognition",
+             "We immediately recognized a new face with a name");
+      DASMSG_SET(i1, faceEntry->face.GetID(), "Face ID");
+      DASMSG_SEND();
     }
     else if(!isNamed && faceEntry->face.GetID() > 0 && faceEntry->numTimesObservedFacingCamera == kNumTimesToSeeFrontalToBeStable)
     {
-      // Log to DAS that we've seen this session-only face for awhile and not
-      // recognized it as someone else (so this is a stable session-only face)
-      // NOTE: we do this just once, when we cross the num times observed threshold
-      Util::sInfoF("robot.vision.face_recognition.persistent_session_only", {{DDATA, kIsSessionOnlyStringDAS}},
-                   "%d", faceEntry->face.GetID());
+      DASMSG(robot.vision.face_recognition.persistent_session_only,
+             "robot.vision.face_recognition.persistent_session_only",
+             "We have seen a session-only face for awhile and not recognized it as someone else (so this is a stable "
+             "session-only face) NOTE: we do this just once, when we cross the num times observed threshold");
+      DASMSG_SET(i1, faceEntry->face.GetID(), "Face ID");
+      DASMSG_SEND();
 
       // HACK: increment the counter again so we don't send this multiple times if not seeing frontal anymore
       faceEntry->numTimesObservedFacingCamera++;
     }
     else if(timeSinceLastSeen_ms > kTimeUnobservedBeforeReLoggingToDAS_ms && faceEntry->HasStableID())
     {
-      // Log to DAS that we are re-seeing this face after not having seen it for a bit
-      // (and recognizing it as an existing named person or stable session-only ID)
-      Util::sInfoF("robot.vision.face_recognition.re_recognized", {{DDATA, isNamed ? kIsNamedStringDAS : kIsSessionOnlyStringDAS}}, "%d", faceEntry->face.GetID());
+      DASMSG(robot.vision.face_recognition.persistent_session_only,
+             "robot.vision.face_recognition.persistent_session_only",
+             "We are re-seeing a face after not having seen it for a bit (and recognizing it as an existing named "
+             "person or stable session-only ID)");
+      DASMSG_SET(i1, faceEntry->face.GetID(), "Face ID");
+      DASMSG_SET(i2, isNamed, "1 if this is a named face, 0 or null otherwise");
+      DASMSG_SEND();
     }
 
     // Wait to report this face until we've seen it enough times to be convinced it's
@@ -461,10 +530,22 @@ namespace Cozmo {
     {
       // Update the last observed face pose.
       // If more than one was observed in the same timestamp then take the closest one.
-      if (((_lastObservedFaceTimeStamp != faceEntry->face.GetTimeStamp()) ||
-          (ComputeDistanceBetween(_robot->GetPose(), _lastObservedFacePose) >
-           ComputeDistanceBetween(_robot->GetPose(), faceEntry->face.GetHeadPose()))))
-      {
+      const bool newerThanLastObservation = (faceEntry->face.GetTimeStamp() > _lastObservedFaceTimeStamp);
+      bool closerThanLastObservation = false; // note: only computed if there were multiple observations in one tick
+      if (!newerThanLastObservation) {
+        // More than one face was observed in the same timestamp, so see if this one is closest
+        float lastObservedFaceDist_mm = 0.f;
+        float thisFaceDist_mm = 0.f;
+        if (!ComputeDistanceBetween(_robot->GetPose(), _lastObservedFacePose, lastObservedFaceDist_mm) ||
+            !ComputeDistanceBetween(_robot->GetPose(), faceEntry->face.GetHeadPose(), thisFaceDist_mm)) {
+          LOG_ERROR("FaceWorld.AddOrUpdateFace.ComputeDistanceFailure",
+                    "Failed computing distance between robot and faces");
+          return RESULT_FAIL;
+        }
+        closerThanLastObservation = (thisFaceDist_mm < lastObservedFaceDist_mm);
+      }
+
+      if (newerThanLastObservation || closerThanLastObservation) {
         _lastObservedFacePose = faceEntry->face.GetHeadPose();
         _lastObservedFaceTimeStamp = faceEntry->face.GetTimeStamp();
 
@@ -561,6 +642,37 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  Result FaceWorld::AddOrUpdateGazeDirection(Vision::TrackedFace& face)
+  {
+    // Only update the gaze direction for the given face if
+    // we have succesfully found parts for this face which are
+    // needed to determine the rotation of the head pose. The
+    // HasEyes method is proxy for this.
+    if (face.HasEyes())
+    {
+      auto& entry = _gazeDirection[face.GetID()];
+      entry.Update(face);
+
+      if (entry.GetExpired(face.GetTimeStamp()))
+      {
+        _gazeDirection.erase(face.GetID());
+      }
+      else
+      {
+        const bool isGazeStable = entry.IsStable();
+        face.SetGazeDirectionStable(isGazeStable);
+        if (isGazeStable)
+        {
+          auto faceDirectionAverage = entry.GetGazeDirectionAverage();
+          Pose3d gazeDirectionPose(0.f, Z_AXIS_3D(), faceDirectionAverage, _robot->GetWorldOrigin());
+          face.SetGazeDirectionPose(gazeDirectionPose);
+        }
+      }
+    }
+    return RESULT_OK;
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   Result FaceWorld::Update(const std::list<Vision::TrackedFace>& observedFaces)
   {
     ANKI_CPU_PROFILE("FaceWorld::Update");
@@ -575,7 +687,7 @@ namespace Cozmo {
       }
     }
 
-    const TimeStamp_t lastProcImageTime = _robot->GetVisionComponent().GetLastProcessedImageTimeStamp();
+    const RobotTimeStamp_t lastProcImageTime = _robot->GetVisionComponent().GetLastProcessedImageTimeStamp();
 
     // Delete any unnamed faces we haven't seen in awhile
     for(auto faceIter = _faceEntries.begin(); faceIter != _faceEntries.end(); )
@@ -586,15 +698,16 @@ namespace Cozmo {
       {
         PRINT_CH_INFO(kLoggingChannelName, "FaceWorld.Update.DeletingOldFace",
                       "Removing unnamed face %d at t=%d, because it hasn't been seen since t=%d.",
-                      faceIter->first, lastProcImageTime, face.GetTimeStamp());
+                      faceIter->first, (TimeStamp_t)lastProcImageTime, face.GetTimeStamp());
 
         if(faceIter->second.HasStableID())
         {
-          // Log to DAS the removal of any "stable" face that gets removed because
-          // we haven't seen it in awhile
-          Util::sInfoF("robot.vision.remove_unobserved_session_only_face",
-                       {{DDATA, std::to_string(face.GetTimeStamp()).c_str()}},
-                       "%d", faceIter->first);
+          DASMSG(robot.vision.remove_unobserved_session_only_face,
+                 "robot.vision.remove_unobserved_session_only_face",
+                 "Removing a 'stable' face because we have not seen it in awhile");
+          DASMSG_SET(i1, faceIter->first, "Face ID");
+          DASMSG_SET(i2, face.GetTimeStamp(), "Face time stamp");
+          DASMSG_SEND();
         }
 
         RemoveFace(faceIter); // Increments faceIter!
@@ -605,21 +718,46 @@ namespace Cozmo {
       }
     }
 
+    // Update anim focus (for keep face alive) with eye contact
+    static const std::string kKeepFaceAliveEyeContactName = "EyeContact";
+    const bool currentEyeContact = IsMakingEyeContact(0);
+    if (_previousEyeContact != currentEyeContact)
+    {
+      if (currentEyeContact)
+      {
+        _robot->GetAnimationComponent().AddKeepFaceAliveFocus(kKeepFaceAliveEyeContactName);
+      }
+      else
+      {
+        _robot->GetAnimationComponent().RemoveKeepFaceAliveFocus(kKeepFaceAliveEyeContactName);
+      }
+      _previousEyeContact = currentEyeContact;
+    }
+
     return RESULT_OK;
   } // Update()
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  bool FaceWorld::ShouldReturnFace(const FaceEntry& faceEntry, TimeStamp_t seenSinceTime_ms, bool includeRecognizableOnly) const
+  bool FaceWorld::ShouldReturnFace(const FaceEntry& faceEntry, RobotTimeStamp_t seenSinceTime_ms, bool includeRecognizableOnly,
+                                   float relativeRobotAngleTolerance_rad, const Radians& angleRelativeRobot_rad) const
   {
     if (faceEntry.face.GetTimeStamp() >= seenSinceTime_ms)
     {
       if( !includeRecognizableOnly || faceEntry.face.GetID() > 0 )
       {
-        const bool isWrtRobotOrigin = _robot->IsPoseInWorldOrigin(faceEntry.face.GetHeadPose());
-        if(isWrtRobotOrigin)
-        {
-          return true;
+        bool isFaceValid = _robot->IsPoseInWorldOrigin(faceEntry.face.GetHeadPose());
+        if(isFaceValid &&
+           (relativeRobotAngleTolerance_rad != kDontCheckRelativeAngle)){
+          const Pose3d& robotPose = _robot->GetPose();
+          Pose3d relPose;
+          if( faceEntry.face.GetHeadPose().GetWithRespectTo( robotPose, relPose ) ) {
+            Radians angle{ atan2f(relPose.GetTranslation().y(), relPose.GetTranslation().x()) };
+            if(!angle.IsNear(angleRelativeRobot_rad, relativeRobotAngleTolerance_rad)){
+              isFaceValid = false;
+            }
+          }
         }
+        return isFaceValid;
       }
     }
 
@@ -737,25 +875,25 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::set<Vision::FaceID_t> FaceWorld::GetFaceIDs(bool includeRecognizableOnly) const
-  {
-    return GetFaceIDsObservedSince(0, includeRecognizableOnly);
-  }
-
-  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  std::set<Vision::FaceID_t> FaceWorld::GetFaceIDsObservedSince(TimeStamp_t seenSinceTime_ms,
-                                                                bool includeRecognizableOnly) const
+  std::set<Vision::FaceID_t> FaceWorld::GetFaceIDs(RobotTimeStamp_t seenSinceTime_ms,
+                                                   bool includeRecognizableOnly,
+                                                   float relativeRobotAngleTolerance_rad,
+                                                   const Radians& angleRelativeRobot_rad) const
   {
     std::set<Vision::FaceID_t> faceIDs;
     auto faceEntryIter = _faceEntries.begin();
     while(faceEntryIter != _faceEntries.end())
     {
       DEV_ASSERT_MSG(faceEntryIter->first == faceEntryIter->second.face.GetID(),
-                     "FaceWorld.GetFaceIDsObservedSince.MismatchedIDs",
+                     "FaceWorld.GetFaceIDs.MismatchedIDs",
                      "Entry keyed with ID:%d but face has ID:%d",
                      faceEntryIter->first, faceEntryIter->second.face.GetID());
 
-      if(ShouldReturnFace(faceEntryIter->second, seenSinceTime_ms, includeRecognizableOnly))
+      if(ShouldReturnFace(faceEntryIter->second,
+                          seenSinceTime_ms,
+                          includeRecognizableOnly,
+                          relativeRobotAngleTolerance_rad,
+                          angleRelativeRobot_rad))
       {
         faceIDs.insert(faceEntryIter->first);
       }
@@ -767,7 +905,25 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  bool FaceWorld::HasAnyFaces(TimeStamp_t seenSinceTime_ms, bool includeRecognizableOnly) const
+  std::vector<SmartFaceID> FaceWorld::GetSmartFaceIDs(RobotTimeStamp_t seenSinceTime_ms,
+                                                      bool includeRecognizableOnly,
+                                                      float relativeRobotAngleTolerance_rad,
+                                                      const Radians& angleRelativeRobot_rad) const
+  {
+    std::set< Vision::FaceID_t > faces = GetFaceIDs(seenSinceTime_ms,
+                                                    includeRecognizableOnly,
+                                                    relativeRobotAngleTolerance_rad,
+                                                    angleRelativeRobot_rad);
+
+    std::vector<SmartFaceID> smartFaces;
+    for(auto& entry : faces){
+      smartFaces.emplace_back(GetSmartFaceID(entry));
+    }
+    return smartFaces;
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  bool FaceWorld::HasAnyFaces(RobotTimeStamp_t seenSinceTime_ms, bool includeRecognizableOnly) const
   {
     auto faceEntryIter = _faceEntries.begin();
     while(faceEntryIter != _faceEntries.end())
@@ -785,9 +941,9 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  TimeStamp_t FaceWorld::GetLastObservedFace(Pose3d& poseWrtRobotOrigin, bool inRobotOriginOnly) const
+  RobotTimeStamp_t FaceWorld::GetLastObservedFace(Pose3d& poseWrtRobotOrigin, bool inRobotOriginOnly) const
   {
-    TimeStamp_t returnTime = 0;
+    RobotTimeStamp_t returnTime = 0;
 
     if(_lastObservedFaceTimeStamp > 0)
     {
@@ -853,7 +1009,7 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void FaceWorld::DrawFace(FaceEntry& faceEntry, bool drawInImage)
+  void FaceWorld::DrawFace(FaceEntry& faceEntry, bool drawInImage) const
   {
     if(!ANKI_DEV_CHEATS) {
       // Don't draw anything in shipping builds
@@ -870,6 +1026,31 @@ namespace Cozmo {
                                                                               trackedFace.GetHeadPose(),
                                                                               drawFaceColor);
 
+    const auto* featureGate = _robot->GetContext()->GetFeatureGate();
+    if (kRenderGazeDirectionPoints && featureGate->IsFeatureEnabled(FeatureType::GazeDirection)) {
+      const auto& entry = _gazeDirection.find(trackedFace.GetID());
+      if (entry != _gazeDirection.end()) {
+        const auto& gazeDirection = entry->second;
+        const s32 startingObjectId = 2345;
+
+        const auto currentGazeDirection = gazeDirection.GetCurrentGazeDirection();
+        Pose3d currentGazePose(Transform3d(Rotation3d(0.f, Z_AXIS_3D()), currentGazeDirection));
+        faceEntry.vizHandle = _robot->GetContext()->GetVizManager()->DrawCuboid(startingObjectId,
+                                                                                kGazeGroundPointSize,
+                                                                                currentGazePose,
+                                                                                ::Anki::NamedColors::ORANGE);
+
+        if (gazeDirection.IsStable()) {
+          const auto averageGazeDirection = gazeDirection.GetGazeDirectionAverage();
+          Pose3d averageGazePose(Transform3d(Rotation3d(0.f, Z_AXIS_3D()), averageGazeDirection));
+          faceEntry.vizHandle = _robot->GetContext()->GetVizManager()->DrawCuboid(startingObjectId + 1,
+                                                                                  kGazeGroundPointSize,
+                                                                                  averageGazePose,
+                                                                                  ::Anki::NamedColors::GREEN);
+        }
+      }
+    }
+
     if(drawInImage)
     {
       // Draw box around recognized face (with ID) now that we have the real ID set
@@ -878,24 +1059,38 @@ namespace Cozmo {
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void FaceWorld::Enroll(Vision::FaceID_t faceID)
+  void FaceWorld::Enroll(Vision::FaceID_t faceID, bool forceNewID)
   {
+    SetFaceEnrollmentComplete(false);
+
     // If starting session enrollment, then set the num enrollments to -1 to get "ongoing"
     // enrollment. Otherwise, use the max we can store.
     const bool sessionOnly = (Vision::UnknownFaceID == faceID);
     const s32 numEnrollmentsRequired = (sessionOnly ? -1 :
                                         (s32)Vision::FaceRecognitionConstants::MaxNumEnrollDataPerAlbumEntry);
 
-    _robot->GetVisionComponent().SetFaceEnrollmentMode(Vision::FaceEnrollmentPose::LookingStraight,
-                                                      faceID,
-                                                      numEnrollmentsRequired);
+    _robot->GetVisionComponent().SetFaceEnrollmentMode(faceID, numEnrollmentsRequired, forceNewID);
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  void FaceWorld::Enroll(const SmartFaceID& faceID)
+  void FaceWorld::Enroll(const SmartFaceID& faceID, bool forceNewID)
   {
-    Enroll(faceID.GetID());
+    Enroll(faceID.GetID(), forceNewID);
   }
+
+#if ANKI_DEV_CHEATS
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void FaceWorld::SaveAllRecognitionImages(const std::string& imagePathPrefix)
+  {
+    _robot->GetVisionComponent().SaveAllRecognitionImages(imagePathPrefix);
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void FaceWorld::DeleteAllRecognitionImages()
+  {
+    _robot->GetVisionComponent().DeleteAllRecognitionImages();
+  }
+#endif
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void FaceWorld::SendObjectUpdateToWebViz( const ExternalInterface::RobotDeletedFace& msg ) const
@@ -904,14 +1099,14 @@ namespace Cozmo {
       return; // ignore half-recognized or invalid faces
     }
 
-    Json::Value data;
-    data["type"] = "RobotDeletedFace";
-    data["faceID"] = msg.faceID;
-
     const auto* webService = _robot->GetContext()->GetWebService();
     if( webService != nullptr ) {
-      webService->SendToWebViz( "observedobjects", data );
-      webService->SendToWebViz( "navmap", data );
+      Json::Value data;
+      data["type"] = "RobotDeletedFace";
+      data["faceID"] = msg.faceID;
+
+      webService->SendToWebViz( kWebVizObservedObjectsName, data );
+      webService->SendToWebViz( kWebVizNavMapName, data );
     }
 
   }
@@ -919,59 +1114,182 @@ namespace Cozmo {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   void FaceWorld::SendObjectUpdateToWebViz( const ExternalInterface::RobotObservedFace& msg ) const
   {
-
     if( msg.faceID <= 0 ) {
       return; // ignore half-recognized or invalid faces
     }
-    Json::Value data;
-    data["type"] = "RobotObservedFace";
-    data["faceID"] = msg.faceID;
-    if( !msg.name.empty() ) {
-      data["name"] = msg.name;
-    }
-    data["timestamp"] = msg.timestamp;
-    data["originID"] = msg.pose.originID;
 
     const auto* webService = _robot->GetContext()->GetWebService();
     if( webService != nullptr ) {
+      const bool isSubscribedObservedObjects = webService->IsWebVizClientSubscribed(kWebVizObservedObjectsName);
+      const bool isSubscribedNavMap = webService->IsWebVizClientSubscribed(kWebVizNavMapName);
+
       // this is used by two modules
-      {
-        const std::string moduleName = "observedobjects";
-        webService->SendToWebViz( moduleName, data );
-      }
+      if (isSubscribedObservedObjects || isSubscribedNavMap) {
+        Json::Value data;
+        data["faceID"] = msg.faceID;
+        if( !msg.name.empty() ) {
+          data["name"] = msg.name;
+        }
+        data["timestamp"] = msg.timestamp;
+        data["originID"] = msg.pose.originID;
 
-      {
-        data["type"] = "MemoryMapFace";
-        auto& pose = data["pose"];
-        Pose3d objPose( msg.pose, _robot->GetPoseOriginList() );
-        pose["x"] = objPose.GetTranslation().x();
-        pose["y"] = objPose.GetTranslation().y();
-        pose["z"] = objPose.GetTranslation().z();
-        pose["qW"] = objPose.GetRotation().GetQuaternion().w();
-        pose["qX"] = objPose.GetRotation().GetQuaternion().x();
-        pose["qY"] = objPose.GetRotation().GetQuaternion().y();
-        pose["qZ"] = objPose.GetRotation().GetQuaternion().z();
-        const std::string moduleName = "navmap";
-        webService->SendToWebViz( moduleName, data );
-      }
+        if (isSubscribedObservedObjects) {
+          data["type"] = "RobotObservedFace";
+          webService->SendToWebViz( kWebVizObservedObjectsName, data );
+        }
 
+        if (isSubscribedNavMap) {
+          data["type"] = "MemoryMapFace";
+          auto& pose = data["pose"];
+          Pose3d objPose( msg.pose, _robot->GetPoseOriginList() );
+          pose["x"] = objPose.GetTranslation().x();
+          pose["y"] = objPose.GetTranslation().y();
+          pose["z"] = objPose.GetTranslation().z();
+          pose["qW"] = objPose.GetRotation().GetQuaternion().w();
+          pose["qX"] = objPose.GetRotation().GetQuaternion().x();
+          pose["qY"] = objPose.GetRotation().GetQuaternion().y();
+          pose["qZ"] = objPose.GetRotation().GetQuaternion().z();
+          webService->SendToWebViz( kWebVizNavMapName, data );
+        }
+      }
     }
-
   }
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  bool FaceWorld::IsMakingEyeContact() const
+  bool FaceWorld::IsMakingEyeContact(const u32 withinLast_ms) const
   {
+    // Loop over all the faces and see if any of them are making eye contact
+    const RobotTimeStamp_t lastImgTime = _robot->GetLastImageTimeStamp();
+    const RobotTimeStamp_t recentTime = lastImgTime > withinLast_ms ?
+                                        ( lastImgTime - withinLast_ms ) :
+                                        0;
     // Loop over all the faces and see if any of them are making eye contact
     for (const auto& entry: _faceEntries)
     {
-      if (entry.second.face.IsMakingEyeContact())
+      if (ShouldReturnFace(entry.second, recentTime, false))
       {
-        return true;
+        if (entry.second.face.IsMakingEyeContact())
+        {
+          return true;
+        }
       }
     }
     return false;
   }
 
-} // namespace Cozmo
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  bool FaceWorld::GetGazeDirectionPose(const u32 withinLast_ms, Pose3d& gazeDirectionPose,
+                                       SmartFaceID& faceID) const
+  {
+    const RobotTimeStamp_t lastImgTime = _robot->GetLastImageTimeStamp();
+    const RobotTimeStamp_t recentTime = lastImgTime > withinLast_ms ?
+                                        ( lastImgTime - withinLast_ms ) :
+                                        0;
+
+    for (const auto& entry: _faceEntries)
+    {
+      if (ShouldReturnFace(entry.second, recentTime, false))
+      {
+        if (entry.second.face.IsGazeDirectionStable())
+        {
+          gazeDirectionPose = entry.second.face.GetGazeDirectionPose();
+          faceID.Reset(*_robot, entry.second.face.GetID());
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  bool FaceWorld::AnyStableGazeDirection(const u32 withinLast_ms) const
+  {
+    Pose3d gazeDirectionPose;
+    SmartFaceID faceID;
+    return GetGazeDirectionPose(withinLast_ms, gazeDirectionPose, faceID);
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  bool FaceWorld::ClearGazeDirectionHistory(const SmartFaceID& faceID)
+  {
+    // Loop over all the faces and see if any of them are making eye contact
+    for (const auto& entry: _faceEntries)
+    {
+      if (faceID.MatchesFaceID(entry.second.face.GetID()))
+      {
+        const auto& gazeDirectionEntry = _gazeDirection.find(entry.second.face.GetID());
+        if (gazeDirectionEntry != _gazeDirection.end()) {
+          gazeDirectionEntry->second.ClearHistory();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  bool FaceWorld::FaceInTurnAngle(const Radians& turnAngle, const SmartFaceID& smartFaceIDToIgnore,
+                                  const Pose3d& robotPose, SmartFaceID& faceIDToTurnTowards) const
+  {
+    for (const auto& entry: _faceEntries)
+    {
+      const auto& headPose = entry.second.face.GetHeadPose();
+      Pose3d headPoseWRTRobot;
+      if (headPose.GetWithRespectTo(robotPose, headPoseWRTRobot))
+      {
+        const Radians& horizontalFOV = _robot->GetVisionComponent().GetCamera().GetCalibration()->ComputeHorizontalFOV();
+        const Radians faceTurnAngle = TurnTowardsPoseAction::GetRelativeBodyAngleToLookAtPose(headPoseWRTRobot.GetTranslation());
+        if (Util::InRange( turnAngle - faceTurnAngle, -horizontalFOV/2.f, horizontalFOV/2.f) &&
+            !smartFaceIDToIgnore.MatchesFaceID(entry.second.face.GetID()))
+        {
+          faceIDToTurnTowards.Reset(*_robot, entry.second.face.GetID());
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  void FaceWorld::InitLoadedKnownFaces(const std::list<Vision::LoadedKnownFace>& loadedFaces)
+  {
+    for( const auto& loadedFace : loadedFaces ) {
+      const auto epoch = WallTime::getInstance()->GetEpochTime();
+      const auto sinceEpoch = std::chrono::seconds(loadedFace.lastSeenSecondsSinceEpoch);
+      const auto wallTime = epoch + sinceEpoch;
+
+      if( ANKI_VERIFY(!loadedFace.name.empty(),
+                      "FaceWorld.InitLoadedKnownFaces.NoName",
+                      "Face id %d loaded from disk but doesn't have name",
+                      loadedFace.faceID) ) {
+        _wallTimesObserved.emplace( loadedFace.faceID, ObservationTimeHistory{{wallTime}} );
+
+        PRINT_CH_INFO(kLoggingChannelName, "FaceWorld.InitLoadedKnownFaces.InitFace",
+                      "Loaded face %d, last observed at time (since epoch): %llu",
+                      loadedFace.faceID,
+                      wallTime.time_since_epoch().count());
+      }
+    }
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  const FaceWorld::ObservationTimeHistory& FaceWorld::GetWallTimesObserved(const SmartFaceID& faceID)
+  {
+    return GetWallTimesObserved(faceID.GetID());
+  }
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  const FaceWorld::ObservationTimeHistory& FaceWorld::GetWallTimesObserved(Vision::FaceID_t faceID)
+  {
+    auto it = _wallTimesObserved.find(faceID);
+    if( it != _wallTimesObserved.end() ) {
+      return it->second;
+    }
+
+    static const ObservationTimeHistory kEmptyQueue;
+    return kEmptyQueue;
+  }
+
+
+} // namespace Vector
 } // namespace Anki

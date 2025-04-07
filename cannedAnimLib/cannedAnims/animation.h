@@ -21,6 +21,7 @@
 #include "anki/cozmo/shared/animationTag.h"
 #include "cannedAnimLib/baseTypes/keyframe.h"
 #include "cannedAnimLib/baseTypes/track.h"
+#include "cannedAnimLib/cannedAnims/spriteBoxCompositor.h"
 #include <list>
 #include <queue>
 
@@ -29,7 +30,14 @@ namespace CozmoAnim {
 }
 
 namespace Anki {
-namespace Cozmo {
+
+// Fwd Declaration
+namespace Vision{
+  class SpriteCache;
+  class SpriteSequenceContainer;
+}
+
+namespace Vector {
 
 class Animation
 {
@@ -37,11 +45,13 @@ public:
 
   Animation(const std::string& name = "");
 
+  bool operator==(const Animation &other) const;
+
   // For reading canned animations from files
   Result DefineFromFlatBuf(const std::string& name, const CozmoAnim::AnimClip* animClip, 
-                           const Vision::SpritePathMap* spriteMap, Vision::SpriteSequenceContainer* seqContainer);
+                           Vision::SpriteSequenceContainer* seqContainer);
   Result DefineFromJson(const std::string& name, const Json::Value& json,
-                        const Vision::SpritePathMap* spriteMap, Vision::SpriteSequenceContainer* seqContainer);
+                        Vision::SpriteSequenceContainer* seqContainer);
 
   // For defining animations at runtime (e.g. live animation)
   template<class KeyFrameType>
@@ -49,6 +59,34 @@ public:
   
   template<class KeyFrameType>
   Result AddKeyFrameByTime(const KeyFrameType& kf);
+
+  Result AddSpriteBoxKeyFrame(Vision::SpriteBoxKeyFrame&& keyFrame)
+  {
+    return _spriteBoxCompositor.AddKeyFrame(std::move(keyFrame));
+  }
+
+  void SetFaceImageOverride(const Vision::SpriteHandle& spriteHandle,
+                            const TimeStamp_t relativeStreamTime_ms,
+                            const TimeStamp_t duration_ms)
+  {
+    return _spriteBoxCompositor.SetFaceImageOverride(spriteHandle, relativeStreamTime_ms, duration_ms);
+  }
+
+  void SetOverrideAllSpritesToEyeHue()
+  {
+    _spriteBoxCompositor.SetOverrideAllSpritesToEyeHue();
+  }
+
+  void ClearOverrides()
+  {
+    _spriteBoxCompositor.ClearOverrides();
+  }
+
+  void AddSpriteBoxRemap(const Vision::SpriteBoxName& spriteBoxName,
+                         const Vision::SpritePathMap::AssetID remappedAssetID)
+  {
+    return _spriteBoxCompositor.AddSpriteBoxRemap(spriteBoxName, remappedAssetID);
+  }
 
   // Get a track by KeyFrameType
   template<class KeyFrameType>
@@ -62,6 +100,8 @@ public:
     // is to have a different specialization for each type, in order to return the correct Track member.
     return const_cast<Animation*>(this)->GetTrack<KeyFrameType>();
   }
+
+  const Animations::SpriteBoxCompositor& GetSpriteBoxCompositor() const { return _spriteBoxCompositor; }
   
   // Calls all tracks' Init() methods
   Result Init(Vision::SpriteCache* cache);
@@ -99,6 +139,19 @@ public:
   // NOTE: This function only moves tracks forwards
   void AdvanceTracks(const TimeStamp_t toTime_ms);
 
+  // Takes a CompositeImage for rendering to the face. If this animation has
+  // any SpriteBoxKeyFrames, they will be added to the provided CompositeImage
+  // and we'll return true. Else returns false.
+  bool PopulateCompositeImage(Vision::SpriteCache& spriteCache,
+                              Vision::SpriteSequenceContainer& spriteSeqContainer,
+                              TimeStamp_t timeSinceAnimStart_ms,
+                              Vision::CompositeImage& outCompImg){
+    return _spriteBoxCompositor.PopulateCompositeImage(spriteCache,
+                                                       spriteSeqContainer,
+                                                       timeSinceAnimStart_ms,
+                                                       outCompImg);
+  }
+
 private:
 
   // Name of this animation
@@ -108,7 +161,6 @@ private:
   // All the animation tracks, storing different kinds of KeyFrames
   Animations::Track<HeadAngleKeyFrame>      _headTrack;
   Animations::Track<LiftHeightKeyFrame>     _liftTrack;
-  Animations::Track<SpriteSequenceKeyFrame> _spriteSequenceTrack;
   Animations::Track<ProceduralFaceKeyFrame> _proceduralFaceTrack;
   Animations::Track<EventKeyFrame>          _eventTrack;
   Animations::Track<BackpackLightsKeyFrame> _backpackLightsTrack;
@@ -117,6 +169,8 @@ private:
   Animations::Track<TurnToRecordedHeadingKeyFrame> _turnToRecordedHeadingTrack;
   Animations::Track<RobotAudioKeyFrame>     _robotAudioTrack;
   
+  Animations::SpriteBoxCompositor _spriteBoxCompositor;
+
   // Compare if the track's last key frame time is gerater then the lastFrameTime_ms argument
   // Return the greater time
   template<class KeyFrameType>
@@ -126,9 +180,6 @@ private:
   // Return the greater time
   template<class KeyFrameType>
   TimeStamp_t CompareLastFrameEndTime(const TimeStamp_t lastFrameTime_ms) const;
-
-  // Iterate through all tracks and set keyframe durations
-  void SetKeyFrameDuration_ms();
   
 }; // class Animation
 
@@ -148,12 +199,9 @@ Result Animation::AddKeyFrameToBack(const KeyFrameType& kf)
 
   if((oldKF != nullptr) &&
      (newKF->GetTriggerTime_ms() == 0)){
-    const auto lastTriggerTime = oldKF->GetTriggerTime_ms();
-    const auto lastDuration = oldKF->GetKeyframeDuration_ms();
-    newKF->SetTriggerTime_ms(lastTriggerTime + lastDuration);
+    newKF->SetTriggerTime_ms(oldKF->GetTimestampActionComplete_ms());
   }
 
-  SetKeyFrameDuration_ms();
   return addResult;
 }
 
@@ -167,12 +215,11 @@ Result Animation::AddKeyFrameByTime(const KeyFrameType& kf)
                       GetName().c_str());
   }
 
-  SetKeyFrameDuration_ms();
   return addResult;
 }
     
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMO_CANNED_ANIMATION_H

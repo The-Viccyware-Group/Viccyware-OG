@@ -1,0 +1,9 @@
+{
+  "behaviorID": "ShowWallTime",  
+  "behaviorClass" : "DisplayWallTime",
+
+  "getInAnimTrigger" : "ClockGetIn",
+  "getOutAnimTrigger" : "ClockGetOut",
+  "displayClockFor_s" : 5,
+  "shouldPlayAudioOnClockUpdates" : false
+}

@@ -34,7 +34,7 @@ namespace CozmoAnim {
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace Animations {
 
@@ -84,6 +84,12 @@ public:
     return *this;
   }
 
+  bool operator ==(const Track<FRAME_TYPE>& other) const
+  {
+    return _frames == other._frames;
+  }
+
+
   Result AddKeyFrameToBack(const FRAME_TYPE& keyFrame);
 
   // Define from JSON. Second argument is used to print nicer debug strings if something goes wrong.
@@ -127,6 +133,8 @@ public:
   const FRAME_TYPE* GetLastKeyFrame() const;
   FRAME_TYPE* GetLastKeyFrame();
   
+  std::list<FRAME_TYPE> GetCopyOfKeyframes() const { return _frames;}
+
   std::list<FRAME_TYPE>& GetAllKeyframes() { return _frames;}
 
   
@@ -151,7 +159,7 @@ public:
   bool HasFramesLeft() const { return _frameIter != _frames.end(); }
 
   // Check to see whether the return value of GetCurrentKeyFrame is valid
-  bool CurrentFrameIsValid (const TimeStamp_t relativeStreamingTime_ms) const {  
+  bool CurrentFrameIsValid(const TimeStamp_t relativeStreamingTime_ms) const {
     return HasFramesLeft() && 
            GetCurrentKeyFrame().IsTimeToPlay(relativeStreamingTime_ms);
   }
@@ -161,10 +169,10 @@ public:
 
 
   void Clear() { _frames.clear(); _frameIter = _frames.end(); }
-  
+
   // Clear all frames up to, but not including, the current one.
   void ClearUpToCurrent();
-  
+
   // Append Track to current track
   void AppendTrack(const Track& appendTrack, const TimeStamp_t appendStartTime_ms);
 
@@ -172,28 +180,29 @@ public:
   // NOTE: This function only moves the track forward
   void AdvanceTrack(const TimeStamp_t toTime_ms);
 
-  // Set all keyframe durations within the track
-  void SetKeyFrameDuration_ms();
+
 
   std::list<FRAME_TYPE>& GetAllFrames() { return _frames;}
 
 private:
-  
+
   using FrameList = std::list<FRAME_TYPE>;
   using FrameListIter = typename std::list<FRAME_TYPE>::iterator;
-  
+
   // List of frames
   FrameList _frames;
-  
+
   // Pointer to current position
   FrameListIter _frameIter = _frames.begin();
-  
+
   Result AddKeyFrameToBackHelper(const FRAME_TYPE& keyFrame, FRAME_TYPE* &prevKeyFrame);
   Result AddKeyFrameByTimeHelper(const FRAME_TYPE& keyFrame, FRAME_TYPE* &prevKeyFrame);
-  
+
   // Use to setup keyframe duration for specific keyframe types
   void SetKeyFrameDurationHelper();
-  
+  void AdvanceTrackHelper(const TimeStamp_t toTime_ms);
+
+
 }; // class Track
   
 template<typename FRAME_TYPE>
@@ -315,9 +324,13 @@ Result Track<FRAME_TYPE>::AddKeyFrameToBackHelper(const FRAME_TYPE& keyFrame,
 template<typename FRAME_TYPE>
 inline Result Track<FRAME_TYPE>::AddKeyFrameToBack(const FRAME_TYPE& keyFrame)
 {
-  FRAME_TYPE* dummy;
+  FRAME_TYPE* dummy = nullptr;
   return AddKeyFrameToBackHelper(keyFrame, dummy);
 }
+
+template<> Result
+Track<ProceduralFaceKeyFrame>::AddKeyFrameToBack(const ProceduralFaceKeyFrame& keyFrame);
+
   
 // Specialization for BodyMotion keyframes (implemented in .cpp)
 template<>
@@ -421,7 +434,16 @@ Result Track<FRAME_TYPE>::AddKeyFrameToBack(const CozmoAnim::ProceduralFace* pro
   if(RESULT_OK != lastResult) {
     return lastResult;
   }
-  return AddNewKeyFrameToBack(newKeyFrame);
+  const auto res =  AddNewKeyFrameToBack(newKeyFrame);
+  auto& allKeyframes = GetAllKeyframes();
+  if(allKeyframes.size() >= 2){
+    auto backIter = allKeyframes.rbegin();
+    auto oldBackIter = allKeyframes.rbegin();
+    oldBackIter++;
+    oldBackIter->SetKeyframeActiveDuration_ms(backIter->GetTriggerTime_ms() - oldBackIter->GetTriggerTime_ms());
+  }
+  
+  return res;
 }
 
 template<typename FRAME_TYPE>
@@ -553,27 +575,42 @@ void Track<FRAME_TYPE>::AppendTrack(const Track<FRAME_TYPE>& appendTrack, const 
 template<class FRAME_TYPE>
 void Track<FRAME_TYPE>::AdvanceTrack(const TimeStamp_t toTime_ms)
 {
+  AdvanceTrackHelper(toTime_ms);
+}
+
+
+template<>
+void Track<ProceduralFaceKeyFrame>::AdvanceTrack(const TimeStamp_t toTime_ms);
+  
+template<class FRAME_TYPE>
+void Track<FRAME_TYPE>::AdvanceTrackHelper(const TimeStamp_t toTime_ms)
+{
   const auto upperBound = _frames.size() + 1;
   BOUNDED_WHILE(upperBound, _frameIter != _frames.end()) {
-    if(_frameIter->IsDone(toTime_ms)){
+    // Ensure tracks don't overlap
+    if(ANKI_DEV_CHEATS){
+      if(GetNextKeyFrame() != nullptr){
+        if((_frameIter->GetTimestampActionComplete_ms() > toTime_ms) &&
+           (GetNextKeyFrame()->IsTimeToPlay(toTime_ms))){
+          PRINT_NAMED_ERROR("Track.AdvanceTrack.KeyframeStillActiveButTimeToPlayNextFrame",
+                            "Keyframe lasts till %u, but next frame wants to start at %u",
+                            _frameIter->GetTimestampActionComplete_ms(), toTime_ms);
+        }
+      }
+    }
+    
+    if(_frameIter->GetTimestampActionComplete_ms() <= toTime_ms){
       _frameIter++;
     }else{
       break;
     }
   }
 }
-
-// Default template implementation
-template<class FRAME_TYPE>
-void Track<FRAME_TYPE>::SetKeyFrameDuration_ms() { }
-// Specialized implementations in .cpp
-template<> void Track<BodyMotionKeyFrame>::SetKeyFrameDuration_ms();
-template<> void Track<ProceduralFaceKeyFrame>::SetKeyFrameDuration_ms();
-template<> void Track<SpriteSequenceKeyFrame>::SetKeyFrameDuration_ms();
-
+  
+  
   
 } // end namespace Animations
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 
 

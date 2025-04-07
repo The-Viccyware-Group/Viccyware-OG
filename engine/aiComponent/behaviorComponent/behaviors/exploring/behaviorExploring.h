@@ -14,14 +14,22 @@
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorExploring__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
+#include "coretech/common/engine/math/polygon_fwd.h"
 #include "coretech/common/engine/math/pose.h"
+#include "util/random/rejectionSamplerHelper_fwd.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 class BehaviorExploringExamineObstacle;
 class INavMap;
 struct PathMotionProfile;
+namespace RobotPointSamplerHelper {
+  class RejectIfNotInRange;
+  class RejectIfWouldCrossCliff;
+  class RejectIfChargerOutOfView;
+  class RejectIfCollidesWithMemoryMap;
+}
 
 class BehaviorExploring : public ICozmoBehavior
 {
@@ -41,12 +49,15 @@ protected:
   virtual bool WantsToBeActivatedBehavior() const override;
   virtual void InitBehavior() override;
   virtual void OnBehaviorActivated() override;
+  virtual void OnBehaviorDeactivated() override;
   virtual void BehaviorUpdate() override;
+  virtual bool CanBeGentlyInterruptedNow() const override;
 
 private:
   
   void TransitionToDriving();
-  void TransitionToArrived();
+  void TransitionToArrived(const bool forceReferencing = false);
+  void TransitionToHumanSearch();
   
   // helper to decide state once a delegated behavior finishes
   void RegainedControl();
@@ -64,6 +75,9 @@ private:
   
   // euclidean dist to goal[idx], which must exist
   float CalcDistToCachedGoal(int idx) const;
+
+  // tell system it's ok to interrupt this tick (or next tick)
+  void SetGentleInterruptionOKForNow();
   
   // object helpers
   
@@ -83,15 +97,15 @@ private:
   // also lie within some distance to the charger, using rejection sampling. Some other criteria apply,
   // such as not being on the other side of a cliff obstacle, etc. After kNumSampleSteps samples,
   // retPoses contains however many samples have been accepted (which might be none!)
-  void SampleVisitLocationsOpenSpace( const INavMap* memoryMap,
+  void SampleVisitLocationsOpenSpace( std::shared_ptr<const INavMap> memoryMap,
                                       bool tooFarFromCharger,
                                       bool chargerEqualsRobot,
-                                      const Point2f& chargerPos,
+                                      const Pose3d& chargerPose,
                                       const Point2f& robotPos,
                                       std::vector<Pose3d>& retPoses ) const;
   
   // samples UP TO kNumProxPoses that are slightly offset from an unexplored prox obstacle and facing it
-  void SampleVisitLocationsFacingObstacle( const INavMap* memoryMap,
+  void SampleVisitLocationsFacingObstacle( std::shared_ptr<const INavMap> memoryMap,
                                            const ObservableObject* charger,
                                            const Point2f& robotPos,
                                            std::vector<Pose3d>& retPoses ) const;
@@ -101,6 +115,7 @@ private:
     Invalid=0,
     Driving,    // driving to point
     Arrived,    // arrived at sample point, looking around
+    SearchForHuman,
     Complete,
   };
 
@@ -112,10 +127,19 @@ private:
     float pAcceptKnownAreas;
     
     std::shared_ptr<BehaviorExploringExamineObstacle> examineBehavior;
-    ICozmoBehaviorPtr confirmChargerBehavior;
-    ICozmoBehaviorPtr confirmCubeBehavior;
+    
+    ICozmoBehaviorPtr referenceHumanBehavior;
+    ICozmoBehaviorPtr searchForHumanBehavior;
     
     std::unique_ptr<PathMotionProfile> customMotionProfile;
+    
+    std::unique_ptr<Util::RejectionSamplerHelper<Point2f>> openSpacePointEvaluator;
+    std::unique_ptr<Util::RejectionSamplerHelper<Poly2f>> openSpacePolyEvaluator;
+    std::shared_ptr<RobotPointSamplerHelper::RejectIfNotInRange> condHandleNearCharger;
+    std::shared_ptr<RobotPointSamplerHelper::RejectIfWouldCrossCliff> condHandleCliffs;
+    std::shared_ptr<RobotPointSamplerHelper::RejectIfChargerOutOfView> condHandleChargerOutOfView;
+    std::shared_ptr<RobotPointSamplerHelper::RejectIfCollidesWithMemoryMap> condHandleCollisions;
+    std::shared_ptr<RobotPointSamplerHelper::RejectIfCollidesWithMemoryMap> condHandleUnknowns;
   };
 
   struct DynamicVariables {
@@ -126,12 +150,19 @@ private:
     std::vector<Pose3d> sampledPoses;
     bool posesHaveBeenPruned; // true if poses now contains only the selected goal
     float distToGoal_mm; // the distance to the selected goal, if posesHaveBeenPruned, otherwise negative
-    int numDriveAttemps;
+    int numDriveAttempts;
     bool hasTakenPitStop;
-    float timeFinishedConfirmCharger_s;
-    float timeFinishedConfirmCube_s;
+    std::string endReason; // for DAS
     
     size_t devWarnIfNotInterruptedByTick;
+
+    // The robot pose at which we last looked at the charger to confirm its position
+    Pose3d lastReferenceChargerPose;
+    
+    float lastSearchForFaceTime_s;
+    float timeDeactivated_s;
+
+    size_t gentleInterruptionOKUntilTick;
   };
 
   InstanceConfig _iConfig;
@@ -139,7 +170,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorExploring__

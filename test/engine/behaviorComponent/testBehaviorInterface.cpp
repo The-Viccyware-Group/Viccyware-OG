@@ -12,8 +12,8 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
-#include "clad/types/behaviorComponent/behaviorTypes.h"
-#include "clad/types/behaviorComponent/userIntent.h"
+#include "clad/types/behaviorComponent/behaviorClasses.h"
+#include "clad/types/behaviorComponent/behaviorIDs.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/actions/basicActions.h"
 #include "engine/aiComponent/aiComponent.h"
@@ -28,9 +28,10 @@
 #include "engine/robot.h"
 #include "gtest/gtest.h"
 #include "test/engine/behaviorComponent/testBehaviorFramework.h"
+#include "test/engine/callWithoutError.h"
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 static const BehaviorClass emptyClass = BEHAVIOR_CLASS(Wait);
 static const BehaviorID emptyID = BEHAVIOR_ID(Wait);
@@ -85,7 +86,7 @@ TEST(BehaviorInterface, Init)
   b.OnEnteredActivatableScope();
 
   EXPECT_FALSE( b._inited );
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
   EXPECT_TRUE( b._inited );
   EXPECT_EQ( b._numUpdates, 0 );
@@ -113,7 +114,7 @@ TEST(BehaviorInterface, InitWithInterface)
   b.OnEnteredActivatableScope();
 
   EXPECT_FALSE( b._inited );
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
   EXPECT_TRUE( b._inited );
   EXPECT_EQ( b._numUpdates, 0 );
@@ -144,7 +145,7 @@ TEST(BehaviorInterface, Run)
   b.InitBehaviorOperationModifiers();
   b.OnEnteredActivatableScope();
   
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
 
@@ -177,7 +178,7 @@ TEST(BehaviorInterface, HandleMessages)
   b2.Init(behaviorExternalInterface);
   b2.InitBehaviorOperationModifiers();
   b2.OnEnteredActivatableScope();
-  b2.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b2.WantsToBeActivated();
   InjectBehaviorIntoStack(b2, testBehaviorFramework);
 
   Robot& robot = testBehaviorFramework.GetRobot();
@@ -251,7 +252,7 @@ TEST(BehaviorInterface, OutsideAction)
   b.Init(behaviorExternalInterface);
   b.InitBehaviorOperationModifiers();
   b.OnEnteredActivatableScope();
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
   
@@ -348,18 +349,28 @@ TEST(BehaviorInterface, DelegateIfInControlFailures)
   
   bool done = false;
   EXPECT_TRUE( b.CallDelegateIfInControl(robot, done) );
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  
+  bool errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
 
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   EXPECT_FALSE(robot.GetActionList().IsEmpty());
 
   done = true;
 
   // action hasn't updated yet, so it's done. Should still fail to start a new action
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
 
@@ -496,7 +507,7 @@ TEST(BehaviorInterface, DelegateIfInControlWhenNotRunning)
   b.OnLeftActivatableScope();
   b.OnEnteredActivatableScope();
   
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
@@ -696,9 +707,6 @@ public:
       intent.Set_test_name( UserIntent_Test_Name{""} );
       AddWaitForUserIntent( std::move(intent) );
     }
-    else if( _type == "trigger" ) {
-      SetRespondToTriggerWord( true );
-    }
     // otherwise don't do anything
   }
   
@@ -748,9 +756,6 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
     }
     else if( i == 10 || i == 11 ) { // 10-11 are intents with null string (intent with null string, intent with nonnull string)
       config["responseType"] = "user intent intent empty";
-    }
-    else if( i == 12 ) { // 12 is trigger
-      config["responseType"] = "trigger";
     }
     TestBehavior_RespondsUserIntents b(config);
     
@@ -845,15 +850,6 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
         b.OnActivated();
         EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_name)) );
         EXPECT_FALSE( uic.IsAnyUserIntentPending() );
-      }
-        break;
-      case 12: // behavior is waiting for a trigger
-      {
-        EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetTriggerWordPending();
-        EXPECT_TRUE( b.WantsToBeActivated() );
-        b.OnActivated();
-        EXPECT_FALSE( uic.IsTriggerWordPending() );
       }
         break;
     }

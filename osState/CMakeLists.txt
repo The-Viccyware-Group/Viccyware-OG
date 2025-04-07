@@ -5,6 +5,7 @@ project(osState)
 include(anki_build_cxx)
 
 anki_build_cxx_library(osState ${ANKI_SRCLIST_DIR})
+anki_build_target_license(osState "ANKI")
 
 set(PLATFORM_LIBS "")
 set(PLATFORM_COMPILE_DEFS "")
@@ -26,12 +27,13 @@ PRIVATE
   cti_common
 # platform
   ${PLATFORM_LIBS}
+  ${ASAN_LINKER_FLAGS}
 )
 
 anki_build_strip(TARGET osState)
 
 target_compile_definitions(osState
-  PRIVATE
+  PUBLIC
   ${PLATFORM_COMPILE_DEFS}
 )
 

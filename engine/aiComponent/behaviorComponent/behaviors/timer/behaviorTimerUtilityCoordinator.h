@@ -18,7 +18,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/timer/behaviorProceduralClock.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // forward declarations
 class BehaviorAdvanceClock;
@@ -35,6 +35,8 @@ public:
   virtual ~BehaviorTimerUtilityCoordinator();
 
   bool IsTimerRinging();
+
+  void SuppressAnticThisTick(unsigned long tickCount);
 
   #if ANKI_DEV_CHEATS
   void DevSetForceAntic() { _lParams.shouldForceAntic = true; };
@@ -61,21 +63,29 @@ protected:
 
 private:
   struct InstanceParams{
+    std::string timerRingingBehaviorStr;
     std::shared_ptr<BehaviorProceduralClock> setTimerBehavior;
-    std::shared_ptr<BehaviorProceduralClock> timerAnticBehavior;
+    std::shared_ptr<BehaviorProceduralClock> anticDisplayClock;
     std::shared_ptr<BehaviorProceduralClock> timerCheckTimeBehavior;
-    std::shared_ptr<BehaviorAnimGetInLoop>   timerRingingBehavior;
+    ICozmoBehaviorPtr                        anticBaseBehavior;
+    ICozmoBehaviorPtr                        timerRingingBehavior;
     ICozmoBehaviorPtr                        timerAlreadySetBehavior;
     ICozmoBehaviorPtr                        iCantDoThatBehavior;
     std::shared_ptr<BehaviorAdvanceClock>    cancelTimerBehavior;
     std::unique_ptr<AnticTracker>            anticTracker;
     int                                      minValidTimer_s;
     int                                      maxValidTimer_s;
+
+    int                                      touchTimeToCancelTimer_ms;
   };
 
   struct LifetimeParams{
     LifetimeParams();
     bool shouldForceAntic;
+    unsigned long tickToSuppressAnticFor;
+    bool touchReleasedSinceStartedRinging;
+    bool robotPlacedDownSinceStartedRinging;
+    float timeRingingStarted_s;
   };
 
   InstanceParams _iParams;
@@ -85,6 +95,8 @@ private:
   TimerUtility& GetTimerUtility() const;
   
   void SetupTimerBehaviorFunctions();
+  
+  bool CheckAndDelegate( IBehavior* behavior, bool runCallbacks = false );
 
   void TransitionToSetTimer();
   void TransitionToPlayAntic();
@@ -105,7 +117,7 @@ private:
   void CheckShouldShowTimeRemaining();
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

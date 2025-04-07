@@ -12,12 +12,12 @@
 
 #include "engine/components/cubes/cubeAccelListeners/upAxisChangedListener.h"
 
-#include "coretech/common/engine/math/point_impl.h"
+#include "coretech/common/shared/math/point.h"
 
 #include "util/logging/logging.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace CubeAccelListeners {
 
 namespace {
@@ -70,10 +70,12 @@ void UpAxisChangedListener::UpdateInternal(const ActiveAccel& accel)
     }
   }
   
-  if (currUpAxis != _upAxis) {
+  const bool newUpAxis = (currUpAxis != _upAxis) &&
+                         (_upAxis != UpAxis::UnknownAxis);
+  if (newUpAxis) {
     _callback(currUpAxis);
-    _upAxis = currUpAxis;
   }
+  _upAxis = currUpAxis;
 }
   
 void UpAxisChangedListener::Init(const ActiveAccel& accel) {

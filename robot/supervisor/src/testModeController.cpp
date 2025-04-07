@@ -23,7 +23,7 @@
 
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     namespace TestModeController {
       
       // "Private Member Variables"
@@ -947,8 +947,8 @@ namespace Anki {
           HAL::IMU_DataStructure data = IMUFilter::GetLatestRawData();
 
           AnkiInfo( "TestModeController.IMUTestUpdate", "Gyro (%f,%f,%f) rad/s, (%f,%f,%f) mm/s^2",
-                data.rate_x, data.rate_y, data.rate_z,
-                data.acc_x, data.acc_y, data.acc_z);
+                data.gyro[0], data.gyro[1], data.gyro[2],
+                data.accel[0], data.accel[1], data.accel[2]);
 
 
           // IMUFilter readings
@@ -1189,5 +1189,5 @@ namespace Anki {
       }      
 
     } // namespace TestModeController
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

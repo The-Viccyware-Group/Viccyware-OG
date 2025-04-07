@@ -19,8 +19,10 @@
 
 // Forward declarations
 namespace Anki {
-  namespace Cozmo {
-    class AnimContext;
+  namespace Vector {
+    namespace Anim {
+      class AnimContext;
+    }
     namespace TextToSpeech {
       class TextToSpeechProviderImpl;
     }
@@ -32,7 +34,7 @@ namespace Json {
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace TextToSpeech {
 
 //
@@ -88,10 +90,24 @@ private:
 class TextToSpeechProvider
 {
 public:
-  TextToSpeechProvider(const AnimContext* ctx, const Json::Value& tts_config);
+  TextToSpeechProvider(const Anim::AnimContext* ctx, const Json::Value& tts_config);
   ~TextToSpeechProvider();
 
-  Result CreateAudioData(const std::string& text, float durationScalar, TextToSpeechProviderData& data);
+  Result SetLocale(const std::string & locale);
+
+  // Initialize TTS utterance and get first chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetFirstAudioData(const std::string & text,
+                           float durationScalar,
+                           float pitchScalar,
+                           TextToSpeechProviderData & data,
+                           bool & done);
+
+  // Get next chunk of TTS audio.
+  // Returns RESULT_OK on success, else error code.
+  // Sets done to true when audio generation is complete.
+  Result GetNextAudioData(TextToSpeechProviderData & data, bool & done);
 
 private:
   // Pointer to platform-specific implementation
@@ -101,7 +117,7 @@ private:
 
 
 } // end namespace TextToSpeech
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 
 #endif //__Anki_cozmo_cozmoAnim_textToSpeech_textToSpeechProvider_H__

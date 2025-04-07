@@ -466,7 +466,7 @@ class HStructEmitter(BaseEmitter):
 
     def emitMembers(self, node, globals):
         if node.members():
-            emitter = CPPLiteMemberDeclarationEmitter(self.output, self.options, group_compounds=False)
+            emitter = CPPLiteMemberDeclarationEmitter(self.output, self.options, group_compounds=False, do_initialize_values=True)
             for member in node.members():
                 emitter.visit(member)
         else:
@@ -761,12 +761,19 @@ class CPPUnionEmitter(HUnionEmitter):
 
 class CPPLiteMemberDeclarationEmitter(BaseEmitter):
     
-    def __init__(self, output, options, group_compounds):
+    def __init__(self, output, options, group_compounds, do_initialize_values = False):
         super(CPPLiteMemberDeclarationEmitter, self).__init__(output, options)
         self.group_compounds = group_compounds
+        self.do_initialize_values = do_initialize_values
     
     def visit_MessageMemberDecl(self, node):
         self.visit(node.type, member_name=node.name)
+        # check for initialization for member
+        if (self.do_initialize_values and node.init):
+            initial_value = node.init
+            member_val = initial_value.value
+            member_str = hex(member_val) if initial_value.type == "hex" else str(member_val)
+            self.output.write(" = %s" % member_str)
         self.output.write(';\n')
     
     def emitSimple(self, node, member_name):
@@ -898,19 +905,22 @@ if __name__ == '__main__':
     option_parser.add_argument('-r', '--header-output-directory', metavar='dir',
         help='The directory to output the {language} header file(s) to.'.format(language=language))
     option_parser.add_argument('--max-message-size', metavar='bytes', type=int,
-        help='Maximum serialized size that any single union or message can be.'.format(language=language))
+        help='Maximum serialized size that any single union or message can be.')
     
     options = option_parser.parse_args()
     if not options.header_output_directory:
         options.header_output_directory = options.output_directory
     
     tree = emitterutil.parse(options)
+
     comment_lines = emitterutil.get_comment_lines(options, language)
     
     ConstraintVisitor(options=options).visit(tree)
     
+    namespace_emitter = HNamespaceEmitter(options=options)
     def main_output_header_callback(output):
-        HNamespaceEmitter(output, options=options).visit(tree)
+        namespace_emitter.output = output
+        namespace_emitter.visit(tree)
     
     main_output_header = emitterutil.get_output_file(options, header_extension)
     emitterutil.write_c_file(options.header_output_directory, main_output_header,

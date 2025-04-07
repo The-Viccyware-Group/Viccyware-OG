@@ -2,10 +2,9 @@
   "behaviorID" : "GoToSleep",
   "behaviorClass" : "AnimSequence",
 
-  "playOnChargerWithoutBody": true,
+  "associatedActiveFeature": "Sleeping",
 
   "animTriggers": [
-    "GoToSleepGetIn",
-    "GoToSleepSleeping"
+    "GoToSleepGetIn"
   ]
 }

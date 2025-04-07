@@ -250,6 +250,8 @@ int spine_get_payload_len(PayloadId payload_type, enum MsgDir dir)
   case PAYLOAD_DATA_FRAME:
     return (dir == dir_SEND) ? sizeof(struct HeadToBody) : sizeof(struct BodyToHead);
     break;
+  case PAYLOAD_LIGHT_STATE:
+    return sizeof(struct LightState);
   case PAYLOAD_VERSION:
     return (dir == dir_SEND) ? 0 : sizeof(struct VersionInfo);
     break;
@@ -497,7 +499,7 @@ ssize_t spine_write_frame(spine_ctx_t spine, PayloadId type, const void* data, i
   const ssize_t outBufferLen = sizeof(spine->buf_tx);
   ssize_t remaining = outBufferLen;
 
-  struct SpineMessageHeader* outHeader = (struct SpineMessageHeader*)spine->buf_tx;
+  struct SpineMessageHeader* outHeader = (struct SpineMessageHeader*)outBytes;
   ssize_t r = spine_construct_header(type, len, outHeader);
   if (r < 0) {
     return r;

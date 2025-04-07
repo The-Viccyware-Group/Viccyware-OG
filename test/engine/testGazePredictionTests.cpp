@@ -15,13 +15,14 @@
 
 #include "coretech/common/engine/utils/data/dataPlatform.h"
 #include "coretech/vision/engine/camera.h"
+#include "coretech/vision/engine/compressedImage.h"
 #include "coretech/vision/engine/faceTracker.h"
 #include "coretech/vision/engine/eyeContact.h"
 #include "engine/cozmoContext.h"
 
 #include <fstream>
 
-extern Anki::Cozmo::CozmoContext* cozmoContext;
+extern Anki::Vector::CozmoContext* cozmoContext;
 
 using namespace Anki::Vision;
 using namespace Anki;
@@ -50,7 +51,7 @@ TEST(EyeContact, GazeEstimationInterface)
   config["FaceRecognition"] = faceRecognition;
 
   Json::Value initialVisionModes;
-  initialVisionModes["DetectingFaces"] = true;
+  initialVisionModes["Faces"] = true;
   config["InitialVisionModes"] = initialVisionModes;
   config["FaceAlbum"] = "robot";
 
@@ -74,7 +75,9 @@ TEST(EyeContact, GazeEstimationInterface)
     // Do the gaze estimation
     std::list<TrackedFace> faces;
     std::list<UpdatedFaceID> updatedIDs;
-    lastResult = faceTracker.Update(image, faces, updatedIDs);
+    DebugImageList<CompressedImage> debugImages;
+    const float cropFactor = 1.f;
+    lastResult = faceTracker.Update(image, cropFactor, faces, updatedIDs, debugImages);
     // We don't detect a face in the first frame (even though
     // there is one present) but should find one face in the
     // rest of the frames

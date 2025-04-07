@@ -28,6 +28,7 @@
 #include "engine/aiComponent/beiConditions/beiConditionFactory.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionLambda.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionTimerInRange.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionCarryingCube.h"
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
 #include "engine/components/sensors/cliffSensorComponent.h"
 #include "engine/moodSystem/moodManager.h"
@@ -37,15 +38,22 @@
 
 #include <cctype>
 
+#define LOG_CHANNEL "Behaviors"
+
+namespace {
+  #define CONSOLE_GROUP "Behaviors.InternalStatesBehavior"
+  CONSOLE_VAR(bool, kDebugInternalStatesBehavior, CONSOLE_GROUP, false);
+}
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 CONSOLE_VAR_EXTERN(float, kTimeMultiplier);
 
 namespace {
 
-constexpr const char* kStateConfgKey = "states";
-constexpr const char* kStateNameConfgKey = "name";
+constexpr const char* kStateConfigKey = "states";
+constexpr const char* kStateNameConfigKey = "name";
 constexpr const char* kResumeReplacementsKey = "resumeReplacements";
 constexpr const char* kTransitionDefinitionsKey = "transitionDefinitions";
 constexpr const char* kInitialStateKey = "initialState";
@@ -55,8 +63,11 @@ constexpr const char* kEmotionEventKey = "emotionEvent";
 constexpr const char* kBehaviorKey = "behavior";
 constexpr const char* kGetInBehaviorKey = "getInBehavior";
 constexpr const char* kResetBehaviorTimerKey = "resetBehaviorTimer";
+constexpr const char* kCancelSelfKey = "cancelSelf";
+constexpr const char* kIgnoreMissingTransitionsKey = "ignoreMissingTransitions";
+constexpr const char* kEnsureMinStimKey = "ensureMinStimValue";
 
-static const BackpackLights kLightsOff = {
+static const BackpackLightAnimation::BackpackAnimation kLightsOff = {
   .onColors               = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
   .offColors              = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
   .onPeriod_ms            = {{0,0,0}},
@@ -95,17 +106,17 @@ public:
       , emotionEvent(emotionEvent)
       {
       }
-      
+
     StateID toState;
     IBEIConditionPtr condition;
     std::string emotionEvent;
   };
-      
+
   explicit State(const Json::Value& config);
 
   // initialize this state after construction to fill in the behavior pointer
   void Init(BehaviorExternalInterface& bei);
-  
+
   void AddTransition(TransitionType transType, const Transition& transition);
 
   void OnActivated(BehaviorExternalInterface& bei, bool isResuming);
@@ -119,7 +130,7 @@ public:
   // interruption, the timer pauses rather than resetting (or continuing to track) and resumes if the state is
   // resumed.
   float GetTimeActive();
-  
+
   std::string _name;
 
   // note that these also count a state as "starting" and "ending" when this behavior itself is interrupted
@@ -129,7 +140,7 @@ public:
 
   // This tracks an "adjusted" start time for use with GetTimeActive()
   float _adjustedStartTime_s = -std::numeric_limits<float>::min();
-  
+
   // Transitions are evaluated in order, and if the function returns true, we will transition to the given
   // state id.
   using Transitions = std::vector<Transition>;
@@ -137,10 +148,10 @@ public:
   using TransitionMap = std::map<TransitionType, Transitions>;
 
   TransitionMap _transitions;
-  
+
   // optional light debugging color
   ColorRGBA _debugColor = NamedColors::BLACK;
-  
+
   UserIntentTag _activateIntent = USER_INTENT(INVALID);
 
   std::string _behaviorName;
@@ -149,9 +160,11 @@ public:
   std::string _getInBehaviorName;
   ICozmoBehaviorPtr _getInBehavior;
 
+  float _ensureMinStim = -1.0f;
+
   BehaviorTimerTypes _behaviorTimer = BehaviorTimerTypes::Invalid;
 
-};  
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -162,28 +175,30 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
   , _states(new StateMap)
   , _currDebugLights(kLightsOff)
 {
-  
+
   _useDebugLights = config.get("use_debug_lights", false).asBool();
+
+  _ignoreMissingTransitions = config.get(kIgnoreMissingTransitionsKey, false).asBool();
 
   // create custom BEI conditions for timers (if any are specified)
   CustomBEIConditionHandleList customTimerHandles = CreateCustomTimerConditions(config);
-  
+
   // First, parse the state definitions to create all of the "state names" as a first pass
-  for( const auto& stateConfig : config[kStateConfgKey] ) {
-    AddStateName( JsonTools::ParseString(stateConfig, kStateNameConfgKey, "InternalStatesBehavior.StateConfig") );
+  for( const auto& stateConfig : config[kStateConfigKey] ) {
+    AddStateName( JsonTools::ParseString(stateConfig, kStateNameConfigKey, "InternalStatesBehavior.StateConfig") );
   }
-  
+
   // Parse the state config again to create the actual states
-  for( const auto& stateConfig : config[kStateConfgKey] ) {
+  for( const auto& stateConfig : config[kStateConfigKey] ) {
     State state(stateConfig);
-    PRINT_CH_DEBUG("Behaviors", "HighLevelAI.LoadStateFromConfig",
-                   "%s",
-                   state._name.c_str());
+    if (kDebugInternalStatesBehavior) {
+      PRINT_CH_DEBUG("Behaviors", "InternalStatesBehavior.LoadStateFromConfig", "%s", state._name.c_str());
+    }
     AddState(std::move(state));
   }
 
   DEV_ASSERT( _states->size() == _stateNameToID.size(),
-              "HighLevelAI.StateConfig.InternalError.NotAllStatesDefined");
+              "InternalStatesBehavior.StateConfig.InternalError.NotAllStatesDefined");
 
   ////////////////////////////////////////////////////////////////////////////////
   // Define transitions from json
@@ -192,7 +207,7 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
   // keep set of which states we've used so we can warn later if they aren't all used
   std::set< StateID > allFromStates;
   std::set< StateID > allToStates;
-  
+
   for( const auto& transitionDefConfig : config[kTransitionDefinitionsKey] ) {
     std::vector<StateID> fromStates;
     if( transitionDefConfig["from"].isArray() ) {
@@ -208,7 +223,17 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
         }
       }
     } else {
-      fromStates.push_back( ParseStateFromJson(transitionDefConfig, "from") );
+
+      const std::string& stateStr = transitionDefConfig["from"].asString();
+      if( stateStr == "*" ) {
+        // special case: all states
+        for( const auto statePair : *_states ) {
+          fromStates.push_back( statePair.first );
+        }
+      }
+      else {
+        fromStates.push_back( GetStateID( stateStr ) );
+      }
     }
 
     for( const StateID fromStateID : fromStates ) {
@@ -222,7 +247,7 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
       auto parseTransitions =
         [this, &transitionDefConfig, &allToStates, &fromState](const std::string& key,
                                                                const TransitionType transitionType) {
-        
+
         for( const auto& transitionConfig : transitionDefConfig[key] ) {
           const StateID toState = ParseStateFromJson(transitionConfig, "to");
           IBEIConditionPtr condition = ParseTransitionStrategy(transitionConfig);
@@ -241,22 +266,22 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
   }
 
   if( allFromStates.size() != _states->size() ) {
-    PRINT_NAMED_WARNING("HighLevelAI.TransitionDefinitions.DeadEndStates",
+    PRINT_NAMED_WARNING("InternalStatesBehavior.TransitionDefinitions.DeadEndStates",
                         "Some states don't have any outgoing transition strategies! %zu from states, but %zu states",
                         allFromStates.size(),
                         _states->size());
   }
 
-  if( allToStates.size() != _states->size() ) {
-    PRINT_NAMED_WARNING("HighLevelAI.TransitionDefinitions.UnusedStates",
+  if( (allToStates.size() != _states->size()) && !_ignoreMissingTransitions ) {
+    PRINT_NAMED_WARNING("InternalStatesBehavior.TransitionDefinitions.UnusedStates",
                         "Some states don't have any incoming transition strategies! %zu to states, but %zu states",
                         allToStates.size(),
                         _states->size());
   }
 
-  PRINT_CH_INFO("Behaviors", "HighLevelAI.StatesCreated",
-                "Created %zu states",
-                _states->size());
+  PRINT_CH_DEBUG("Behaviors", "InternalStatesBehavior.StatesCreated",
+                 "Created %zu states",
+                 _states->size());
 
   const std::string& initialStateStr = JsonTools::ParseString(config, kInitialStateKey, "InternalStatesBehavior.StateConfig");
   auto stateIt = _stateNameToID.find(initialStateStr);
@@ -267,7 +292,7 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
     _currState = stateIt->second;
     _defaultState = stateIt->second;
   }
-  
+
   // fill out _resumeReplacements with any state replacements to be made when re-activating the behavior
   if( !config[kResumeReplacementsKey].isNull() ) {
     const auto& replacementsList = config[kResumeReplacementsKey];
@@ -281,7 +306,7 @@ InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config,
   // warn if any of the custom conditions aren't used
   BEIConditionFactory::CheckConditionsAreUsed(customTimerHandles, GetDebugLabel());
 }
-  
+
 InternalStatesBehavior::InternalStatesBehavior(const Json::Value& config)
   : InternalStatesBehavior( config, {} )
 {
@@ -292,11 +317,11 @@ CustomBEIConditionHandleList InternalStatesBehavior::CreateCustomTimerConditions
   CustomBEIConditionHandleList handles;
 
   static const char* kDebugName = "InternalStatesBehavior.CreateCustomTimerConditions";
-  
+
   for( const auto& timerConfig : config[kStateTimerConditionsKey] ) {
-    const std::string& name = JsonTools::ParseString(timerConfig, kStateNameConfgKey, kDebugName);
+    const std::string& name = JsonTools::ParseString(timerConfig, kStateNameConfigKey, kDebugName);
     const float beginTime_s = JsonTools::ParseFloat(timerConfig, kBeginTimeKey, kDebugName);
-  
+
     handles.emplace_back(
       BEIConditionFactory::InjectCustomBEICondition(
         name,
@@ -309,23 +334,24 @@ CustomBEIConditionHandleList InternalStatesBehavior::CreateCustomTimerConditions
           },
           GetDebugLabel() )));
   }
-  
+
   return handles;
 }
 
 InternalStatesBehavior::~InternalStatesBehavior()
 {
 }
-  
+
 void InternalStatesBehavior::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const
 {
   const char* list[] = {
-    kStateConfgKey,
+    kStateConfigKey,
     kResumeReplacementsKey,
     kTransitionDefinitionsKey,
     kInitialStateKey,
     kStateTimerConditionsKey,
-    kEmotionEventKey
+    kEmotionEventKey,
+    kIgnoreMissingTransitionsKey,
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
 }
@@ -333,7 +359,7 @@ void InternalStatesBehavior::GetBehaviorJsonKeys(std::set<const char*>& expected
 void InternalStatesBehavior::InitBehavior()
 {
   std::set< std::shared_ptr<IBEICondition> > allTransitions;
-  
+
   // init all of the states
   for( auto& statePair : *_states ) {
     auto& state = statePair.second;
@@ -341,14 +367,16 @@ void InternalStatesBehavior::InitBehavior()
     state.GetAllTransitions(allTransitions);
   }
 
+  _putDownBlockBehavior = GetBEI().GetBehaviorContainer().FindBehaviorByID(BEHAVIOR_ID(PutDownBlock));
+
   // initialize all transitions (from the set so they each only get initialized once)
   for( auto& strategy : allTransitions ) {
     strategy->Init(GetBEI());
   }
 
-  PRINT_CH_INFO("Behaviors", "HighLevelAI.Init",
-                "initialized %zu states",
-                _states->size());
+  PRINT_CH_DEBUG("Behaviors", "InternalStatesBehavior.Init",
+                 "initialized %zu states",
+                 _states->size());
 }
 
 void InternalStatesBehavior::AddState( State&& state )
@@ -365,6 +393,8 @@ void InternalStatesBehavior::AddState( State&& state )
 
 void InternalStatesBehavior::GetAllDelegates(std::set<IBehavior*>& delegates) const
 {
+  delegates.insert(_putDownBlockBehavior.get());
+
   for( const auto& statePair : *_states ) {
     if( statePair.second._behavior != nullptr ) {
       delegates.insert(statePair.second._behavior.get());
@@ -378,11 +408,18 @@ void InternalStatesBehavior::GetAllDelegates(std::set<IBehavior*>& delegates) co
 
 void InternalStatesBehavior::OnBehaviorActivated()
 {
+  OnBehaviorActivatedInternal();
+
+  if (_firstTimeActivated_s < 0.0f ) {
+    const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    _firstTimeActivated_s = currTime_s;
+  }
+
   if( _useDebugLights ) {
     // force an update
     _debugLightsDirty = true;
   }
-  
+
   if( !_firstRun ) {
     // resuming this behavior -- see if we should be resuming in a different state than when we were
     // previously de-activated
@@ -406,7 +443,7 @@ void InternalStatesBehavior::OnBehaviorActivated()
   else {
     TransitionToState(_defaultState);
   }
-  
+
   _firstRun = false;
 }
 
@@ -418,6 +455,8 @@ void InternalStatesBehavior::OnBehaviorDeactivated()
   const StateID endState = _currState;
   TransitionToState(InvalidStateID);
   _currState = endState;
+
+  OnBehaviorDeactivatedInternal();
 }
 
 void InternalStatesBehavior::BehaviorUpdate()
@@ -442,25 +481,25 @@ void InternalStatesBehavior::BehaviorUpdate()
     }
 
     auto& robotInfo = GetBEI().GetRobotInfo();
-    
+
     ColorRGBA robotStateColor = NamedColors::BLACK;
     if( robotInfo.IsOnChargerPlatform() ) {
       robotStateColor.SetG(1.0f);
     }
-    if( robotInfo.GetCliffSensorComponent().IsCliffDetectedStatusBitOn() ) {
+    if( robotInfo.GetCliffSensorComponent().IsCliffDetected() ) {
       robotStateColor.SetR(1.0f);
     }
 
     if( _currDebugLights.onColors[kDebugRobotStatusLED] != robotStateColor ) {
       _currDebugLights.onColors[  kDebugRobotStatusLED]  = robotStateColor;
       _currDebugLights.offColors[ kDebugRobotStatusLED]  = robotStateColor;
-      
+
       _debugLightsDirty = true;
     }
 
     if( _debugLightsDirty ) {
-      
-      GetBEI().GetBodyLightComponent().SetBackpackLights(_currDebugLights);
+
+      GetBEI().GetBackpackLightComponent().SetBackpackAnimation(_currDebugLights);
       _debugLightsDirty = false;
     }
   }
@@ -473,9 +512,9 @@ void InternalStatesBehavior::BehaviorUpdate()
     }
     return;
   }
-  
+
   State& state = _states->at(_currState);
-  
+
   if( ANKI_DEV_CHEATS ) {
     // check for console var transitions
     if( _consoleFuncState != InvalidStateID ) {
@@ -490,12 +529,18 @@ void InternalStatesBehavior::BehaviorUpdate()
     if( transition.condition->AreConditionsMet(GetBEI()) ) {
       if( !transition.emotionEvent.empty() ) {
         GetBEI().GetMoodManager().TriggerEmotionEvent(transition.emotionEvent);
-      }      
+      }
       TransitionToState(transition.toState);
       return true;
     }
     return false;
   };
+
+  if( _isRunningPutDownBlock ) {
+    // Don't check any conditions until we've finished putting down the block
+    return;
+  }
+
 
   // first check the interrupting conditions
   for( const auto& transition : state._transitions[TransitionType::Interrupting] ) {
@@ -507,21 +552,10 @@ void InternalStatesBehavior::BehaviorUpdate()
   // if we get here, then there must be no interrupting conditions that activated
 
   if( _isRunningGetIn ) {
-    if( !IsControlDelegated() ) {
-      // we were running a get in but it stopped, transition on to the normal state behavior
-      PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Complete",
-                    "%s: in state '%s', finished get in behavior",
-                    GetDebugLabel().c_str(),
-                    state._name.c_str());
-      _isRunningGetIn = false;
-      if( state._behavior->WantsToBeActivated() ) {
-        DelegateIfInControl(state._behavior.get() );
-      }
-    }
     // else, the get in is still running, so don't evaluate non-interrupting conditions (or exit conditions)
     return;
   }
-  
+
   // it's ok to dispatch now if either we aren't dispatched to anything, or the behavior we are dispatched to
   // is ok with a "gentle" interruption
   bool okToDispatch = ! IsControlDelegated();
@@ -557,10 +591,17 @@ void InternalStatesBehavior::BehaviorUpdate()
 
     // if we get here, then there is no state we want to switch to, so re-start the current one if it wants to
     // run and isn't already running
-    
+
     // TODO:(bn) can behaviors be null?
     if( !IsControlDelegated() ) {
-      if( state._behavior->WantsToBeActivated() ) {
+      if( nullptr == state._behavior ) {
+        PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.BehaviorUpdate.CancelSelf",
+                      "%s: in state '%s', behavior not specified, canceling self",
+                      GetDebugLabel().c_str(),
+                      state._name.c_str());
+        CancelSelf();
+      }
+      else if( state._behavior->WantsToBeActivated() ) {
         DelegateIfInControl( state._behavior.get() );
       } else if( _lastTransitionTick == BaseStationTimer::getInstance()->GetTickCount() - 1 ) {
         PRINT_NAMED_WARNING( "InternalStateBehavior.BehaviorUpdate.NoTransition",
@@ -578,10 +619,10 @@ void InternalStatesBehavior::BehaviorUpdate()
 void InternalStatesBehavior::TransitionToState(const StateID targetState)
 {
 
-  // TODO:(bn) don't de- and re-activate behaviors if switching states doesn't change the behavior  
+  // TODO:(bn) don't de- and re-activate behaviors if switching states doesn't change the behavior
 
   const bool isResuming = (targetState == _currState) && !_firstRun;
-  
+
   if( _currState != InvalidStateID ) {
     _states->at(_currState).OnDeactivated(GetBEI());
     const bool allowCallback = false;
@@ -589,19 +630,27 @@ void InternalStatesBehavior::TransitionToState(const StateID targetState)
   }
   else {
     DEV_ASSERT( !IsControlDelegated() || targetState == InvalidStateID,
-                "HighLevelAI.TransitionToState.WasInCountButHadDelegate" );
+                "InternalStatesBehavior.TransitionToState.WasInCountButHadDelegate" );
   }
-          
+
   // TODO:(bn) channel for high level ai?
-  PRINT_CH_INFO("Unfiltered", "HighLevelAI.TransitionToState",
+  const std::string& oldStateStr = (_currState  != InvalidStateID) ? _states->at(_currState )._name : "<NONE>";
+  const std::string& newStateStr = (targetState != InvalidStateID) ? _states->at(targetState)._name : "<NONE>";
+  PRINT_CH_INFO("Unfiltered", "InternalStatesBehavior.TransitionToState",
                 "Transition from state '%s' -> '%s'",
-                _currState  != InvalidStateID ? _states->at(_currState )._name.c_str() : "<NONE>",
-                targetState != InvalidStateID ? _states->at(targetState)._name.c_str() : "<NONE>");
-  
+                oldStateStr.c_str(), newStateStr.c_str());
+  // tell subclass for debug/das
+  OnStateNameChange( oldStateStr, newStateStr );
+
   _currState = targetState;
+
 
   // any transition clears the "get in" that may be playing
   _isRunningGetIn = false;
+
+  // Although state transitions shouldn't be internally driven while putting down a cube, external interrupts could
+  // occur which would leave this state hung if we don't clear it deliberately
+  _isRunningPutDownBlock = false;
 
   if( _currState != InvalidStateID ) {
     State& state = _states->at(_currState);
@@ -617,22 +666,9 @@ void InternalStatesBehavior::TransitionToState(const StateID targetState)
     }
 
     const bool canPlayGetIn = !isResuming || _firstRun;
-    if( canPlayGetIn && state._getInBehavior != nullptr ) {
-      if( state._getInBehavior->WantsToBeActivated() ) {
-        _isRunningGetIn = true;
-        PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Delegate",
-                      "%s: transitioning into state '%s', so will delegate to get in '%s'",
-                      GetDebugLabel().c_str(),
-                      state._name.c_str(),
-                      state._getInBehavior->GetDebugLabel().c_str());
-        DelegateIfInControl(state._getInBehavior.get());
-      }
-      else {
-        PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Skip",
-                      "%s: transitioning into state '%s', but get in behavior '%s' doesn't want to activate",
-                      GetDebugLabel().c_str(),
-                      state._name.c_str(),
-                      state._getInBehavior->GetDebugLabel().c_str());
+    if( !PutDownBlockIfNecessary(state) ){
+      if( !canPlayGetIn || !RunStateGetInIfAble(state)){
+        RunMainStateBehavior(state);
       }
     }
 
@@ -640,15 +676,87 @@ void InternalStatesBehavior::TransitionToState(const StateID targetState)
       GetBEI().GetBehaviorTimerManager().GetTimer( state._behaviorTimer  ).Reset();
     }
 
-    if( !IsControlDelegated() && state._behavior->WantsToBeActivated() ) {
-      DelegateIfInControl(state._behavior.get() );
-    } else {
-      PRINT_NAMED_WARNING( "InternalStatesBehavior.TransitionToState.NoActivation",
-                           "Transitioning to state %s but behavior %s doesn't want to activate",
-                           state._name.c_str(),
-                           state._behaviorName.c_str() );
-    }
     _lastTransitionTick = BaseStationTimer::getInstance()->GetTickCount();
+  }
+}
+
+bool InternalStatesBehavior::PutDownBlockIfNecessary(State& state)
+{
+  if( _putDownBlockBehavior->WantsToBeActivated() ) {
+    BehaviorOperationModifiers modifiers;
+    state._behavior->GetBehaviorOperationModifiers(modifiers);
+    if( !modifiers.wantsToBeActivatedWhenCarryingObject ) {
+      _isRunningPutDownBlock = true;
+      DelegateIfInControl(_putDownBlockBehavior.get(),
+        [this, &state](){
+          PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.PutDownBlockBehavior.Complete",
+                        "%s: in state '%s', finished PutDownBlock behavior",
+                        GetDebugLabel().c_str(),
+                        state._name.c_str());
+          _isRunningPutDownBlock = false;
+          if(!RunStateGetInIfAble(state)){
+            RunMainStateBehavior(state);
+          }
+        });
+      _isRunningPutDownBlock = true;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool InternalStatesBehavior::RunStateGetInIfAble(State& state)
+{
+  if(state._getInBehavior != nullptr ) {
+    if( state._getInBehavior->WantsToBeActivated() ) {
+      _isRunningGetIn = true;
+      PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Delegate",
+                    "%s: transitioning into state '%s', so will delegate to get in '%s'",
+                    GetDebugLabel().c_str(),
+                    state._name.c_str(),
+                    state._getInBehavior->GetDebugLabel().c_str());
+      DelegateIfInControl(state._getInBehavior.get(),
+        [this, &state](){
+          PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Complete",
+                        "%s: in state '%s', finished get in behavior",
+                        GetDebugLabel().c_str(),
+                        state._name.c_str());
+          _isRunningGetIn = false;
+          RunMainStateBehavior(state);
+        });
+      return true;
+    }
+    else {
+      PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Skip",
+                    "%s: transitioning into state '%s', but get in behavior '%s' doesn't want to activate",
+                    GetDebugLabel().c_str(),
+                    state._name.c_str(),
+                    state._getInBehavior->GetDebugLabel().c_str());
+      return false;
+    }
+  }
+
+  return false;
+}
+
+void InternalStatesBehavior::RunMainStateBehavior(State& state)
+{
+  if( nullptr == state._behavior ) {
+    PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.TransitionToState.CancelSelf",
+                  "%s: in state '%s', doesn't have normal behavior, canceling",
+                  GetDebugLabel().c_str(),
+                  state._name.c_str());
+    CancelSelf();
+  }
+  else if( state._behavior->WantsToBeActivated() ) {
+    DelegateIfInControl(state._behavior.get() );
+  }
+  else {
+    PRINT_NAMED_WARNING( "InternalStatesBehavior.TransitionToState.NoActivation",
+                          "Transitioning to state %s but behavior %s doesn't want to activate",
+                          state._name.c_str(),
+                          state._behaviorName.c_str() );
   }
 }
 
@@ -669,17 +777,25 @@ float InternalStatesBehavior::GetCurrentStateActiveTime_s() const
 
 InternalStatesBehavior::State::State(const Json::Value& config)
 {
-  _name = JsonTools::ParseString(config, kStateNameConfgKey, "InternalStatesBehavior.StateConfig");
-  _behaviorName = JsonTools::ParseString(config, kBehaviorKey, "InternalStatesBehavior.StateConfig");
+  _name = JsonTools::ParseString(config, kStateNameConfigKey, "InternalStatesBehavior.StateConfig");
   _getInBehaviorName = config.get(kGetInBehaviorKey, "").asString();
+  _ensureMinStim = config.get(kEnsureMinStimKey, -1.0f).asFloat(); // -1 means disabled
 
-  if( config[kResetBehaviorTimerKey].isString() ) {    
+  _behaviorName = config.get(kBehaviorKey, "").asString();
+
+  const bool cancelSelf = config.get(kCancelSelfKey, false).asBool();
+  ANKI_VERIFY(cancelSelf != !_behaviorName.empty(),
+              "InternalStatesBehavior.StateConfig.MissingBehavior",
+              "State '%s' does not specify behavior or cancelSelf",
+              _name.c_str());
+
+  if( config[kResetBehaviorTimerKey].isString() ) {
     _behaviorTimer = BehaviorTimerManager::BehaviorTimerFromString( config[kResetBehaviorTimerKey].asString() );
   }
 
   const std::string& debugColorStr = config.get("debugColor", "BLACK").asString();
   _debugColor = NamedColors::GetByString(debugColorStr);
-  
+
   const std::string& activateIntent = config.get("activateIntent", "").asString();
   if( !activateIntent.empty() ) {
     ANKI_VERIFY( UserIntentTagFromString( activateIntent, _activateIntent ),
@@ -692,23 +808,29 @@ InternalStatesBehavior::State::State(const Json::Value& config)
 void InternalStatesBehavior::State::Init(BehaviorExternalInterface& bei)
 {
   const auto& BC = bei.GetBehaviorContainer();
-  _behavior = BC.FindBehaviorByID( BehaviorTypesWrapper::BehaviorIDFromString( _behaviorName ) );
-  DEV_ASSERT_MSG(_behavior != nullptr, "HighLevelAI.State.NoBehavior",
-                 "State '%s' cannot find behavior '%s'",
-                 _name.c_str(),
-                 _behaviorName.c_str());
+  if( _behaviorName.empty() ) {
+    _behavior = nullptr;
+  }
+  else {
+    _behavior = BC.FindBehaviorByID( BehaviorTypesWrapper::BehaviorIDFromString( _behaviorName ) );
+    DEV_ASSERT_MSG(_behavior != nullptr, "InternalStatesBehavior.State.NoBehavior",
+                   "State '%s' cannot find behavior '%s'",
+                   _name.c_str(),
+                   _behaviorName.c_str());
+  }
+
   if( !_getInBehaviorName.empty() ) {
     _getInBehavior = BC.FindBehaviorByID( BehaviorTypesWrapper::BehaviorIDFromString( _getInBehaviorName ) );
-    DEV_ASSERT_MSG(_getInBehavior != nullptr, "HighLevelAI.State.NoGetInBehavior",
+    DEV_ASSERT_MSG(_getInBehavior != nullptr, "InternalStatesBehavior.State.NoGetInBehavior",
                    "State '%s' cannot find getInBehavior '%s'",
                    _name.c_str(),
                    _getInBehaviorName.c_str());
 
-    PRINT_CH_INFO("Behaviors", "InternalStatesBehavior.GetInBehavior.Defined",
-                  "state '%s' found behavior %p matching name '%s'",
-                  _name.c_str(),
-                  _getInBehavior.get(),
-                  _getInBehaviorName.c_str());
+    PRINT_CH_DEBUG("Behaviors", "InternalStatesBehavior.GetInBehavior.Defined",
+                   "state '%s' found behavior %p matching name '%s'",
+                   _name.c_str(),
+                   _getInBehavior.get(),
+                   _getInBehaviorName.c_str());
   }
 }
 
@@ -732,7 +854,14 @@ void InternalStatesBehavior::State::OnActivated(BehaviorExternalInterface& bei, 
   if( _activateIntent != USER_INTENT(INVALID) ) {
     auto& uic = bei.GetAIComponent().GetComponent<BehaviorComponent>().GetComponent<UserIntentComponent>();
     if( uic.IsUserIntentPending( _activateIntent ) ) {
-      uic.ActivateUserIntent( _activateIntent, ("InternalState:" + _name) );
+      // if we have a behavior associated with this state, activate the intent through it so that
+      // it can control how it wants to display the active intent feedback
+      if( nullptr != _behavior ) {
+        _behavior->ActivateUserIntentHelper( _activateIntent, ("InternalState:" + _name) );
+      }
+      else {
+        uic.ActivateUserIntent( _activateIntent, ("InternalState:" + _name), true );
+      }
     }
   }
 
@@ -761,13 +890,26 @@ void InternalStatesBehavior::State::OnActivated(BehaviorExternalInterface& bei, 
                      pausedFor_s,
                      currTime_s,
                      _lastTimeEnded_s ) ) {
-      
+
       _adjustedStartTime_s += pausedFor_s;
 
       PRINT_CH_DEBUG("Behaviors", "InternalStatesBehavior.State.PausedFor",
                      "State '%s' was paused for %fs",
                      _name.c_str(),
                      pausedFor_s);
+    }
+  }
+
+  if( !isResuming && _ensureMinStim > 0.0f ) {
+    auto& moodManager = bei.GetMoodManager();
+    const float currStim = moodManager.GetEmotionValue(EmotionType::Stimulated);
+    if( currStim < _ensureMinStim ) {
+      LOG_DEBUG("InternalStatesBehavior.State.OnActivated.EnsureMinStim",
+                "State '%s': stim was %f, bringing up to min of %f",
+                _name.c_str(),
+                currStim,
+                _ensureMinStim);
+      moodManager.SetEmotion(EmotionType::Stimulated, _ensureMinStim, "MinStimForInternalState");
     }
   }
 }
@@ -782,7 +924,15 @@ void InternalStatesBehavior::State::OnDeactivated(BehaviorExternalInterface& bei
 
   if( _activateIntent != USER_INTENT(INVALID) ) {
     auto& uic = bei.GetAIComponent().GetComponent<BehaviorComponent>().GetComponent<UserIntentComponent>();
-    uic.DeactivateUserIntent( _activateIntent );
+    if( uic.IsUserIntentActive( _activateIntent ) ) {
+      // if the behavior activated the intent, it needs to deactivate it
+      if( nullptr != _behavior ) {
+        _behavior->DeactivateUserIntentHelper( _activateIntent );
+      }
+      else {
+        uic.DeactivateUserIntent( _activateIntent );
+      }
+    }
   }
 
   const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
@@ -802,15 +952,39 @@ float InternalStatesBehavior::State::GetTimeActive()
   return returnTime;
 }
 
-bool InternalStatesBehavior::StateExitCooldownExpired(StateID state, float timeout, bool valueIfNeverRun) const
+bool InternalStatesBehavior::StateExitCooldownExpired(StateID state,
+                                                      float timeout,
+                                                      InternalStatesBehavior::StateCooldownDefault neverRunDefault) const
 {
   const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  const bool neverRun = valueIfNeverRun && (_states->at(state)._lastTimeEnded_s < 0.0f);
-  if( neverRun || (_states->at(state)._lastTimeEnded_s + timeout <= currTime_s) ) {
-    return true;
+
+  const auto it = _states->find(state);
+  if( it != _states->end() &&
+      it->second._lastTimeEnded_s >= 0.0f) {
+    const float endTime = it->second._lastTimeEnded_s;
+    const bool cooldownExpired = (endTime + timeout <= currTime_s);
+    return cooldownExpired;
   }
   else {
-    return false;
+    // never run
+    switch(neverRunDefault) {
+      case StateCooldownDefault::True:
+        return true;
+
+      case StateCooldownDefault::False:
+        return false;
+
+      case StateCooldownDefault::UseBehaviorActivationTime: {
+        const float lastTime = GetTimeActivated_s();
+        const bool cooldownExpired = (lastTime + timeout <= currTime_s);
+        return cooldownExpired;
+      }
+
+      case StateCooldownDefault::UseFirstBehaviorActivationTime: {
+        const bool cooldownExpired = (_firstTimeActivated_s + timeout <= currTime_s);
+        return cooldownExpired;
+      }
+    }
   }
 }
 
@@ -828,12 +1002,24 @@ InternalStatesBehavior::StateID InternalStatesBehavior::AddStateName(const std::
   }
   return InvalidStateID;
 }
-  
+
 void InternalStatesBehavior::AddConsoleVarTransitions( const char* uniqueVarName, const char* category )
 {
   if( ANKI_DEV_CHEATS ) {
     auto func = [this](ConsoleFunctionContextRef context) {
       const char* stateName = ConsoleArg_Get_String(context, "stateName");
+
+      // special case, just log the states and return
+      if( strncmp(stateName, "list", 5) == 0 ) {
+        std::stringstream states;
+        for( const auto& pair : _stateNameToID ) {
+          states << pair.first << ' ';
+        }
+
+        context->channel->WriteLog("%s", states.str().c_str());
+        return;
+      }
+
       // case insensitive find for convenience
       auto tolower = [](const char c) { return std::tolower(c); };
       // lower cased request
@@ -857,6 +1043,19 @@ void InternalStatesBehavior::AddConsoleVarTransitions( const char* uniqueVarName
           _consoleFuncState = stateID;
         }
       }
+      else {
+        // state did not match, list out states to the console
+        std::stringstream states;
+        for( const auto& pair : _stateNameToID ) {
+          states << pair.first << ", ";
+        }
+
+        context->channel->WriteLog("No state '%s', available states: %s", stateName, states.str().c_str());
+
+        PRINT_NAMED_WARNING("InternalStatesBehavior.InvalidState",
+                            "No state '%s', available states: %s", stateName, states.str().c_str());
+      }
+
     };
     auto* cfunc = new Anki::Util::IConsoleFunction( uniqueVarName, std::move(func), category, "const char* stateName" );
     _consoleFunc.reset( cfunc );
@@ -874,28 +1073,47 @@ InternalStatesBehavior::StateID InternalStatesBehavior::GetStateID(const std::st
   }
   return InvalidStateID;
 }
-  
+
+const std::string& InternalStatesBehavior::GetStateName(const StateID state)
+{
+  if( state == InternalStatesBehavior::InvalidStateID ) {
+    static const std::string invalidStr = "<INVALID>";
+    return invalidStr;
+  }
+
+  const auto it = _states->find(state);
+  if( it == _states->end() ) {
+    PRINT_NAMED_ERROR("InternalStatesBehavior.GetStateName.InvalidState",
+                      "Invalid state %zu",
+                      state);
+    static const std::string empty;
+    return empty;
+  }
+
+  return it->second._name;
+}
+
 float InternalStatesBehavior::GetLastTimeStarted(StateID state) const
 {
   return _states->at(state)._lastTimeStarted_s;
 }
-  
+
 float InternalStatesBehavior::GetLastTimeEnded(StateID state) const
 {
   return _states->at(state)._lastTimeEnded_s;
 }
-  
+
 InternalStatesBehavior::StateID InternalStatesBehavior::ParseStateFromJson(const Json::Value& config,
                                                                            const std::string& key)
 {
   if( ANKI_VERIFY( config[key].isString(),
-                   "HighLevelAI.ParseStateFromJson.InvalidJson",
+                   "InternalStatesBehavior.ParseStateFromJson.InvalidJson",
                    "key '%s' not present in json",
                    key.c_str() ) ) {
     return GetStateID( config[key].asString() );
   }
   else {
-    JsonTools::PrintJsonError(config, "HighLevelAI.ParseStateFromJson.InvalidJson", 2);
+    JsonTools::PrintJsonError(config, "InternalStatesBehavior.ParseStateFromJson.InvalidJson", 2);
   }
   return InvalidStateID;
 }
@@ -927,7 +1145,7 @@ InternalStatesBehavior::TransitionType InternalStatesBehavior::TransitionTypeFro
     return TransitionType::Exit;
   }
 }
-  
+
 std::vector<std::pair<std::string, std::vector<IBEIConditionPtr>>>
   InternalStatesBehavior::TESTONLY_GetAllTransitions( UnitTestKey key ) const
 {
@@ -945,7 +1163,7 @@ std::vector<std::pair<std::string, std::vector<IBEIConditionPtr>>>
   }
   return ret;
 }
-  
+
 bool InternalStatesBehavior::TESTONLY_IsStateRunning( UnitTestKey key, const std::string& name ) const
 {
   return (GetCurrentStateID() != InvalidStateID)

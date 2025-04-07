@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -e
 set -u
 
 GIT=`which git`
@@ -15,8 +15,6 @@ function vlog()
 }
 
 pushd "${TOPLEVEL}" > /dev/null 2>&1
-
-$GIT config --global url."git@github.com:".insteadOf https://github.com
 
 #vlog "Check brew installation."
 is_brew=`which brew`
@@ -34,19 +32,31 @@ vlog "Check homebrew dependencies"
     python3 \
     git-lfs \
     libsndfile \
-    node
+    node \
+    rsync \
+    openssl \
+    curl-openssl
 
 vlog "vicos sdk"
-./tools/build/tools/ankibuild/vicos.py --install 0.9-r03
+./tools/build/tools/ankibuild/vicos.py --install 1.1.0-r04
 
 vlog "CMake"
 ./tools/build/tools/ankibuild/cmake.py
 
-vlog "Go"
-./tools/build/tools/ankibuild/go.py
+vlog "git-lfs"
+$GIT lfs install
+$GIT lfs pull
 
-vlog "protobuf"
-./tools/build/tools/ankibuild/protobuf.py --install
+if [ -d "/Applications/Webots.app" ]; then
+  vlog "check webots version"
+  webotsVer=`cat /Applications/Webots.app/resources/version.txt`
+  supportedVerFile=./simulator/supportedWebotsVersions.txt
+  if ! grep -Fxq "$webotsVer" $supportedVerFile ; then
+    vlog "Webots version $webotsVer is unsupported. Here are the supported versions:"
+    cat $supportedVerFile
+    exit 1
+  fi
+fi
 
 vlog "Build output dirs"
 mkdir -p generated

@@ -16,7 +16,9 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+
+class BehaviorTimerUtilityCoordinator;
 
 class BehaviorQuietModeCoordinator : public ICozmoBehavior
 {
@@ -56,8 +58,10 @@ private:
     InstanceConfig();
     
     float activeTime_s;
+    float timeToPowerSave_s;
     std::vector<BehaviorInfo> behaviors;
     ICozmoBehaviorPtr wakeWordBehavior;
+    std::shared_ptr<BehaviorTimerUtilityCoordinator> timerBehavior;
   };
 
   struct DynamicVariables {
@@ -65,6 +69,7 @@ private:
     
     bool audioActive;
     bool wasFixed;
+    bool requestedPowerSave;
   };
 
   InstanceConfig _iConfig;
@@ -72,7 +77,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorQuietModeCoordinator__

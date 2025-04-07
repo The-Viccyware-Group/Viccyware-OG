@@ -17,7 +17,7 @@
 #include "engine/aiComponent/beiConditions/iBEIConditionEventHandler.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BEIConditionMessageHelper;
 
@@ -33,11 +33,17 @@ protected:
   virtual bool AreConditionsMetInternal(BehaviorExternalInterface& behaviorExternalInterface) const override;
   
 private:
+  
+  uint8_t _numCliffDetectionsToTrigger;
+  bool _shouldDetectNoCliffs;
+  
+  int _minDuration_ms;
+  int _maxDuration_ms;
 
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AiComponent_BeiConditions_ConditionCliffDetected__

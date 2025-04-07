@@ -28,7 +28,7 @@
 #include "coretech/common/engine/jsonTools.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 const char* kNumRequestsKey                = "numRequests";
@@ -49,7 +49,16 @@ BehaviorRequestToGoHome::InstanceConfig::InstanceConfig()
   pickupAnimTrigger = AnimationTrigger::Count;
   maxFaceAge_sec = 0.f;
 }
-
+ 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+BehaviorRequestToGoHome::RequestParams::RequestParams()
+{
+  numRequests = 0;
+  requestAnimTrigger = AnimationTrigger::Count;
+  getoutAnimTrigger = AnimationTrigger::Count;
+  waitLoopAnimTrigger = AnimationTrigger::Count;
+  idleWaitTime_sec = 0.f;
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorRequestToGoHome::DynamicVariables::DynamicVariables(const InstanceConfig& iConfig)
@@ -171,9 +180,9 @@ void BehaviorRequestToGoHome::BehaviorUpdate()
 void BehaviorRequestToGoHome::TransitionToCheckForFaces()
 {
   // Do we have any known faces?
-  TimeStamp_t maxFaceAge_ms = Util::numeric_cast<TimeStamp_t>(1000.f * _iConfig.maxFaceAge_sec);
+  RobotTimeStamp_t maxFaceAge_ms = Util::numeric_cast<TimeStamp_t>(1000.f * _iConfig.maxFaceAge_sec);
   maxFaceAge_ms = std::min(maxFaceAge_ms, _dVars.imageTimestampWhenActivated);
-  TimeStamp_t oldestFaceTimestamp = _dVars.imageTimestampWhenActivated - maxFaceAge_ms;
+  RobotTimeStamp_t oldestFaceTimestamp = _dVars.imageTimestampWhenActivated - maxFaceAge_ms;
   
   const bool hasFace = GetBEI().GetFaceWorld().HasAnyFaces(oldestFaceTimestamp);
   if (hasFace) {
@@ -222,11 +231,11 @@ void BehaviorRequestToGoHome::TransitionToRequestWaitLoopAnim()
 {
   const auto animTimeout = _dVars.currRequestParamsPtr->idleWaitTime_sec;
   const auto& animTrigger = _dVars.currRequestParamsPtr->waitLoopAnimTrigger;
-  auto* action = new TriggerAnimationAction(animTrigger,
-                                            0,    // numLoops
-                                            true, // interrupt running
-                                            (u8)AnimTrackFlag::NO_TRACKS,
-                                            animTimeout);
+  auto* action = new ReselectingLoopAnimationAction(animTrigger,
+                                                    0,    // numLoops
+                                                    true, // interrupt running
+                                                    (u8)AnimTrackFlag::NO_TRACKS,
+                                                    animTimeout);
   
   DelegateIfInControl(action, &BehaviorRequestToGoHome::TransitionToRequestGetoutAnim);
 }
@@ -303,5 +312,5 @@ void BehaviorRequestToGoHome::LoadConfig(const Json::Value& config)
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

@@ -11,13 +11,12 @@
  */
 
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/robot.h"
 
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
     enum class TestState {
       Init,
@@ -69,10 +68,10 @@ namespace Anki {
             m.idTag = 1;
             m.numRetries = 3;
             // Pickup object with type LIGHTCUBE3, whatever its ID happens to be
-            auto objectsWithType = GetAllObjectIDsByFamilyAndType(ObjectFamily::LightCube, ObjectType::Block_LIGHTCUBE3);
+            auto objectsWithType = GetAllObjectIDsByType(ObjectType::Block_LIGHTCUBE3);
             CST_ASSERT(objectsWithType.size()==1, "Expecting 1 object of type LIGHTCUBE3");
             _id = objectsWithType.front();
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(_id, _defaultTestMotionProfile, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(_id, _defaultTestMotionProfile, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -94,6 +93,6 @@ namespace Anki {
       }
       return _result;
     }
-  } // end namespace Cozmo
+  } // end namespace Vector
 } // end namespace Anki
 

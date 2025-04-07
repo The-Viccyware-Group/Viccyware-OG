@@ -17,51 +17,47 @@
 #include "engine/actions/driveToActions.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/charger.h"
-#include "engine/components/batteryComponent.h"
-#include "engine/drivingAnimationHandler.h"
+#include "engine/components/battery/batteryComponent.h"
 #include "engine/robot.h"
 
+#define LOG_CHANNEL "Actions"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 #pragma mark ---- MountChargerAction ----
   
 MountChargerAction::MountChargerAction(ObjectID chargerID,
-                                       const bool useCliffSensorCorrection,
-                                       const bool shouldPlayDrivingAnimation)
+                                       const bool useCliffSensorCorrection)
   : IAction("MountCharger",
             RobotActionType::MOUNT_CHARGER,
             (u8)AnimTrackFlag::BODY_TRACK | (u8)AnimTrackFlag::HEAD_TRACK | (u8)AnimTrackFlag::LIFT_TRACK)
   , _chargerID(chargerID)
   , _useCliffSensorCorrection(useCliffSensorCorrection)
-  , _playDrivingAnimation(shouldPlayDrivingAnimation)
 {
   
 }
 
 
 MountChargerAction::~MountChargerAction()
-{
-  if (HasRobot() && _playDrivingAnimation) {
-    GetRobot().GetDrivingAnimationHandler().ActionIsBeingDestroyed();
+{  
+  if (_mountAction != nullptr) {
+    _mountAction->PrepForCompletion();
+  }
+  if (_driveForRetryAction != nullptr) {
+    _driveForRetryAction->PrepForCompletion();
   }
 }
 
   
 ActionResult MountChargerAction::Init()
 {
-  if (_playDrivingAnimation) {
-    // Init the driving animation handler
-    GetRobot().GetDrivingAnimationHandler().Init(GetTracksToLock(), GetTag(), IsSuppressingTrackLocking(), true);
-  }
-  
   // Reset the compound actions to ensure they get re-configured:
   _mountAction.reset();
   _driveForRetryAction.reset();
   
   // Verify that we have a charger in the world that matches _chargerID
-  const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID, ObjectFamily::Charger);
+  const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID);
   if ((charger == nullptr) ||
       (charger->GetType() != ObjectType::Charger_Basic)) {
     PRINT_NAMED_WARNING("MountChargerAction.Init.InvalidCharger",
@@ -91,7 +87,7 @@ ActionResult MountChargerAction::CheckIfDone()
     // turned away from the charger, then position for a retry
     if (IActionRunner::GetActionResultCategory(result) == ActionResultCategory::RETRY) {
       bool isFacingAwayFromCharger = true;
-      const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID, ObjectFamily::Charger);
+      const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID);
       if (charger != nullptr) {
         const auto& chargerAngle = charger->GetPose().GetRotation().GetAngleAroundZaxis();
         const auto& robotAngle = GetRobot().GetPose().GetRotation().GetAngleAroundZaxis();
@@ -128,6 +124,17 @@ ActionResult MountChargerAction::CheckIfDone()
 }
 
 
+void MountChargerAction::SetDockingAnimTriggers(const AnimationTrigger& start,
+                                                const AnimationTrigger& loop,
+                                                const AnimationTrigger& end)
+{
+  _dockingStartTrigger = start;
+  _dockingLoopTrigger  = loop;
+  _dockingEndTrigger   = end;
+  _dockingAnimTriggersSet = true;
+}
+
+
 ActionResult MountChargerAction::ConfigureMountAction()
 {
   DEV_ASSERT(_mountAction == nullptr, "MountChargerAction.ConfigureMountAction.AlreadyConfigured");
@@ -141,30 +148,12 @@ ActionResult MountChargerAction::ConfigureMountAction()
     _mountAction->AddAction(new MoveLiftToHeightAction(backingUpLiftHeight_mm));
   }
   
-  // Play the driving Start anim if necessary
-  if (_playDrivingAnimation) {
-    _mountAction->AddAction(new WaitForLambdaAction([](Robot& robot) {
-      robot.GetDrivingAnimationHandler().StartDrivingAnim();
-      return true;
-    }));
-  }
-  
   // Back up into the charger
-  _mountAction->AddAction(new BackupOntoChargerAction(_chargerID,
-                                                      _useCliffSensorCorrection));
-  
-  // Play the driving End anim if necessary
-  if (_playDrivingAnimation) {
-    _mountAction->AddAction(new WaitForLambdaAction([](Robot& robot) {
-      if (robot.GetDrivingAnimationHandler().HasFinishedDrivingEndAnim()) {
-        return true;
-      }
-      if (!robot.GetDrivingAnimationHandler().IsPlayingDrivingEndAnim()) {
-        robot.GetDrivingAnimationHandler().EndDrivingAnim();
-      }
-      return false;
-    }));
+  auto* backupAction = new BackupOntoChargerAction(_chargerID, _useCliffSensorCorrection);
+  if (_dockingAnimTriggersSet) {
+    backupAction->SetDockAnimations(_dockingStartTrigger, _dockingLoopTrigger, _dockingEndTrigger);
   }
+  _mountAction->AddAction(backupAction);
   
   return ActionResult::SUCCESS;
 }
@@ -174,9 +163,11 @@ ActionResult MountChargerAction::ConfigureDriveForRetryAction()
   DEV_ASSERT(_driveForRetryAction == nullptr, "MountChargerAction.ConfigureDriveForRetryAction.AlreadyConfigured");
   const float distanceToDriveForward_mm = 120.f;
   const float driveForwardSpeed_mmps = 100.f;
-  _driveForRetryAction.reset(new DriveStraightAction(distanceToDriveForward_mm,
-                                                     driveForwardSpeed_mmps,
-                                                     false));
+  auto* driveAction = new DriveStraightAction(distanceToDriveForward_mm,
+                                              driveForwardSpeed_mmps,
+                                              false);
+  driveAction->SetCanMoveOnCharger(true);
+  _driveForRetryAction.reset(driveAction);
   _driveForRetryAction->ShouldSuppressTrackLocking(true);
   _driveForRetryAction->SetRobot(&GetRobot());
 
@@ -199,7 +190,7 @@ TurnToAlignWithChargerAction::TurnToAlignWithChargerAction(ObjectID chargerID,
 
 void TurnToAlignWithChargerAction::GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const
 {
-  requests.insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low });
+  requests.insert({ VisionMode::Markers, EVisionUpdateFrequency::Low });
 }
 
 ActionResult TurnToAlignWithChargerAction::Init()
@@ -208,7 +199,7 @@ ActionResult TurnToAlignWithChargerAction::Init()
   _compoundAction->ShouldSuppressTrackLocking(true);
   _compoundAction->SetRobot(&GetRobot());
   
-  const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID, ObjectFamily::Charger);
+  const auto* charger = GetRobot().GetBlockWorld().GetLocatedObjectByID(_chargerID);
   if ((charger == nullptr) ||
       (charger->GetType() != ObjectType::Charger_Basic)) {
     PRINT_NAMED_WARNING("TurnToAlignWithChargerAction.Init.InvalidCharger",
@@ -222,13 +213,21 @@ ActionResult TurnToAlignWithChargerAction::Init()
   // This value is the distance from the origin into the charger of the point that the
   // robot should angle towards. Setting this distance to 0 means the robot will angle
   // itself toward the charger origin.
-  const float distanceIntoChargerToAimFor_mm = 30.f;
+  const float distanceIntoChargerToAimFor_mm = 50.f;
   Pose3d poseToAngleToward(0.f, Z_AXIS_3D(),
-                           {distanceIntoChargerToAimFor_mm, 0.f, 0.f});
-  poseToAngleToward.PreComposeWith(charger->GetPose());
-  poseToAngleToward.SetParent(GetRobot().GetWorldOrigin());
-  
-  const auto targetToRobotVec = ComputeVectorBetween(GetRobot().GetDriveCenterPose(), poseToAngleToward);
+                           {distanceIntoChargerToAimFor_mm, 0.f, 0.f},
+                           charger->GetPose());
+
+  // Get the vector from the target pose to the drive center pose, expressed in the world origin frame
+  Vec3f targetToRobotVec;
+  if (!ComputeVectorBetween(GetRobot().GetDriveCenterPose(),
+                            poseToAngleToward,
+                            GetRobot().GetWorldOrigin(),
+                            targetToRobotVec)) {
+    PRINT_NAMED_WARNING("TurnToAlignWithChargerAction.Init.CouldNotComputeVector",
+                        "Failed to compute vector from target pose to robot pose");
+    return ActionResult::BAD_POSE;
+  }
   const float angleToTurnTo = atan2f(targetToRobotVec.y(), targetToRobotVec.x());
   
   auto* turnAction = new TurnInPlaceAction(angleToTurnTo, true);
@@ -283,7 +282,6 @@ BackupOntoChargerAction::BackupOntoChargerAction(ObjectID chargerID,
   
   // Don't turn toward the object since we're expected to be facing away from it
   SetShouldFirstTurnTowardsObject(false);
-  SetShouldCheckForObjectOnTopOf(false);
 }
 
 
@@ -319,8 +317,8 @@ ActionResult BackupOntoChargerAction::Verify()
 {
   // Verify that robot is on charger
   if (GetRobot().GetBatteryComponent().IsOnChargerContacts()) {
-    PRINT_CH_INFO("Actions", "BackupOntoChargerAction.Verify.MountingChargerComplete",
-                  "Robot has mounted charger.");
+    LOG_INFO("BackupOntoChargerAction.Verify.MountingChargerComplete",
+             "Robot has mounted charger.");
     return ActionResult::SUCCESS;
   }
   
@@ -370,7 +368,9 @@ ActionResult BackupOntoChargerAction::Verify()
 #pragma mark ---- DriveToAndMountChargerAction ----
   
 DriveToAndMountChargerAction::DriveToAndMountChargerAction(const ObjectID& objectID,
-                                                           const bool useCliffSensorCorrection)
+                                                           const bool useCliffSensorCorrection,
+                                                           const bool enableDockingAnims,
+                                                           const bool doPositionCheckOnPathCompletion)
 : CompoundActionSequential()
 {
   // Get DriveToObjectAction
@@ -380,13 +380,20 @@ DriveToAndMountChargerAction::DriveToAndMountChargerAction(const ObjectID& objec
                                                false,
                                                0);
   driveToAction->SetPreActionPoseAngleTolerance(DEG_TO_RAD(15.f));
+  driveToAction->DoPositionCheckOnPathCompletion(doPositionCheckOnPathCompletion);
   AddAction(driveToAction);
   AddAction(new TurnToAlignWithChargerAction(objectID));
-  AddAction(new MountChargerAction(objectID, useCliffSensorCorrection));
+
+  auto mountAction = new MountChargerAction(objectID, useCliffSensorCorrection);
+  if(!enableDockingAnims)
+  {
+    mountAction->SetDockingAnimTriggers(AnimationTrigger::Count,
+                                        AnimationTrigger::Count,
+                                        AnimationTrigger::Count);
+  }
+  AddAction(mountAction);
 }
   
-  
-
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 

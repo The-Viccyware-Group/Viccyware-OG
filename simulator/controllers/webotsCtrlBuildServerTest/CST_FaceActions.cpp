@@ -11,14 +11,13 @@
  */
 
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/robot.h"
 #include "engine/components/visionScheduleMediator/iVisionModeSubscriber.h"
 #include "util/bitFlags/bitFlags.h"
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
     namespace
     {
@@ -45,8 +44,8 @@ namespace Anki {
       
       bool _lastActionSucceeded = false;
       
-      TimeStamp_t _prevFaceSeenTime = 0;
-      TimeStamp_t _faceSeenTime = 0;
+      RobotTimeStamp_t _prevFaceSeenTime = 0;
+      RobotTimeStamp_t _faceSeenTime = 0;
       
       // Message handlers
       virtual void HandleRobotCompletedAction(const ExternalInterface::RobotCompletedAction& msg) override;
@@ -64,14 +63,10 @@ namespace Anki {
       switch (_testState) {
         case TestState::SetupVisionMode:
         {
-          // enable the correct vision modes
-          Util::BitFlags32<VisionMode> visionModeFlags;
-          visionModeFlags.SetBitFlag(VisionMode::DetectingFaces, true);
-          
-          ExternalInterface::DevSubscribeVisionModes msg;
-          msg.bitFlags = visionModeFlags.GetFlags();
-          ExternalInterface::MessageGameToEngine wrap;
-          wrap.Set_DevSubscribeVisionModes(msg);
+          // enable the correct vision modes (using the console var message for this will also ensure
+          // the right schedule is used as well)
+          using namespace ExternalInterface;
+          MessageGameToEngine wrap(SetDebugConsoleVarMessage("Faces", "1"));
           
           if(SendMessage(wrap)==Anki::RESULT_OK) {
             _testState = TestState::TurnToFace;
@@ -188,6 +183,6 @@ namespace Anki {
     
     // ================ End of message handler callbacks ==================
     
-  } // end namespace Cozmo
+  } // end namespace Vector
 } // end namespace Anki
 

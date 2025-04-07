@@ -1,26 +1,54 @@
 {
+
   "behaviorID": "ComeHereVoiceCommand",
-  "behaviorClass": "DispatcherQueue",
+  "behaviorClass" : "DriveToFace",
 
-  "respondToUserIntents" : [
-    { "type": "imperative_come" }
-  ],
+  "associatedActiveFeature": "ComeHere",
 
-  "behaviors": 
-  [
-    "DriveOffCharger",
-    // todo: this needs a behavior to find a face if there is no face already known
-    "ComeHereInternal"
-  ],
+  "wantsToBeActivatedCondition": {
+    "conditionType" : "FeatureGate",
+    "feature" : "PRDemo",
+    "expected" : false
+  },
 
+  "wantsToCancelSelfCondition": {
+    "conditionType": "Compound",
+    "not": {
+      "conditionType": "OffTreadsState",
+      "targetState": "OnTreads"
+    }
+  },
+
+  "animTooClose": "AlreadyAtFace",      
+  "timeUntilCancelFaceTrack_s": 5.0,
+  "minDriveToFaceDistanceKey_mm": 200,
+  "animationAfterDrive": "ComeHereSuccess",
+
+  "motionProfile": {
+    "speed_mmps": 130.0,
+    "accel_mmps2": 200.0,
+    "decel_mmps2": 100.0,
+    "isCustom": true
+  },
+
+  "findFaceBehavior": "FindFaceInternal",
+  
   "anonymousBehaviors": [
     {
-      "behaviorName" : "ComeHereInternal",
-      "behaviorClass" : "DriveToFace",
-      "associatedActiveFeature": "ComeHere",
+      "behaviorName": "FindFaceInternal",
+      "behaviorClass": "FindFaceAndThen",
+      "timeUntilCancelFaceLooking_s": 2.0,
+      "timeUntilCancelFaceSearch_s": 10.0,
+      "searchForFaceBehavior": "ActiveLookForFaces",
+      "shouldLeaveChargerFirst": true,
+      "driveOffChargerBehavior": "DriveOffChargerFace",    
+      "exitOnceFound": true,
 
-      "timeUntilCancelFaceTrack_s": 5.0,
-      "minDriveToFaceDistanceKey_mm": 200
+      "animWhenSeesFace": "FoundFace",
+
+      "useBodyDetector": true,
+      "additionalLookTimeIfSawBody_s": 3.0,
+      "additionalSearchTimeIfSawBody_s": 3.0
     }
   ],
 

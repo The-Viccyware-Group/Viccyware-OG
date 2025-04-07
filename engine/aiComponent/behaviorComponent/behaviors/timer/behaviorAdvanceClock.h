@@ -18,7 +18,7 @@
 #include "anki/cozmo/shared/cozmoConfig.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorAdvanceClock : public BehaviorProceduralClock
 {
@@ -44,7 +44,7 @@ private:
   BehaviorProceduralClock::GetDigitsFunction BuildTimerFunction() const;
 
   int GetTotalNumberOfUpdates() const {
-    const float floatMs = Util::SecToMilliSec(static_cast<float>(GetTimeDisplayClock_sec()));
+    const float floatMs = Util::SecToMilliSec(GetTimeDisplayClock_sec());
     return floatMs/ANIM_TIME_STEP_MS;
   }
   int GetTotalSecToAdvance() const { return std::abs(_endTime_sec - _startTime_sec);}
@@ -52,7 +52,7 @@ private:
 
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorAdvanceClock__

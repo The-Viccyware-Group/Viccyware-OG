@@ -31,8 +31,10 @@ namespace GameParameter {
 enum class ParameterType : uint32_t;
 }
 }
-namespace Cozmo {
-class AnimContext;
+namespace Vector {
+namespace Anim {
+  class AnimContext;
+}
 namespace Audio {
 
 
@@ -40,7 +42,7 @@ class CozmoAudioController : public AudioEngine::AudioEngineController
 {
 public:
 
-  CozmoAudioController(const AnimContext* context);
+  CozmoAudioController(const Anim::AnimContext* context);
 
   virtual ~CozmoAudioController();
   
@@ -80,31 +82,9 @@ public:
   bool WriteProfilerCapture( bool write );
   // Save session audio output to a file
   bool WriteAudioOutputCapture( bool write );
-  
-  // Set a specific volume channel
-  // Valid Volume channels are:
-  // Robot_Vic_Volume_Master, Robot_Vic_Volume_Animation, Robot_Vic_Volume_Behavior & Robot_Vic_Volume_Procedural
-  void SetVolume( AudioMetaData::GameParameter::ParameterType volumeChannel,
-                  AudioEngine::AudioRTPCValue volume,
-                  AudioEngine::AudioTimeMs timeInMilliSeconds = 0,
-                  AudioEngine::AudioCurveType curve = AudioEngine::AudioCurveType::Linear,
-                  bool storeVolume = true );
-
-  // Control Robot's master volume
-  // Valid Volume values are [0.0 - 1.0]
-  void SetRobotMasterVolume( AudioEngine::AudioRTPCValue volume,
-                             AudioEngine::AudioTimeMs timeInMilliSeconds = 0,
-                             AudioEngine::AudioCurveType curve = AudioEngine::AudioCurveType::Linear );
-  
-  // Get Volume channel value [0.0 - 1.0]
-  // Return ture if found
-  bool GetVolume( AudioMetaData::GameParameter::ParameterType volumeChannel,
-                  AudioEngine::AudioRTPCValue& out_value,
-                  bool defaultValue = false );
-  
-  // Reset all volume channels to default value
-  // store default values to persistent storage
-  void SetDefaultVolumes( bool store = true );
+  // Console helpers
+  static void RemoveCaptureFiles( const std::string& dirPath, const std::string& fileExtension, uint8_t maxCount );
+  static std::string CreateFormattedUtcDateTimeString();
   
   // Activate consumable parameters to get updated Audio Engine runtime values
   // See cozmoAudioController.cpp for "consumable parameters" list
@@ -115,10 +95,8 @@ public:
 
 private:
   
-  const AnimContext* _animContext = nullptr;
+  const Anim::AnimContext* _animContext = nullptr;
   std::unique_ptr<AudioEngine::SoundbankLoader> _soundbankLoader;
-  // Volume Settings
-  std::map<AudioMetaData::GameParameter::ParameterType, AudioEngine::AudioRTPCValue> _volumeMap;
   // Parameter Value Update functionality
   AudioEngine::AudioEngineCallbackId _parameterUpdateCallbackId = AudioEngine::kInvalidAudioEngineCallbackId;
   std::map<AudioMetaData::GameParameter::ParameterType,
@@ -127,16 +105,8 @@ private:
   // Register CLAD Game Objects
   void RegisterCladGameObjectsWithAudioController();
   
-  // Set initial volumes at startup
-  void SetInitialVolume();
-  
   // Setup the structures of consumable Audio Engine Parameters
   void SetupConsumableAudioParameters();
-  
-  // Load/Store persistent volume values
-  void LoadVolumeSettings();
-  void StoreVolumeSettings();
-  bool IsValidVolumeChannel( AudioMetaData::GameParameter::ParameterType volumeChannel );
   
   bool ParameterUpdatesIsActive() const
   { return ( _parameterUpdateCallbackId != AudioEngine::kInvalidAudioEngineCallbackId ); }

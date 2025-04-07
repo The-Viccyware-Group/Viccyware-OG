@@ -11,6 +11,7 @@
 #include "anki/cozmo/robot/cozmoBot.h"
 #include "simulator/robot/sim_overlayDisplay.h"
 #include "anki/cozmo/robot/hal.h"
+#include "anki/cozmo/shared/factory/emrHelper.h"
 #include <cstdio>
 #include <sstream>
 
@@ -23,7 +24,7 @@
  */
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     namespace Sim {
       extern webots::Supervisor* CozmoBot;
     }
@@ -34,7 +35,9 @@ namespace Anki {
 int main(int argc, char **argv)
 {
   using namespace Anki;
-  using namespace Anki::Cozmo;
+  using namespace Anki::Vector;
+
+  Factory::CreateFakeEMR();
 
   // Placeholder for SIGTERM flag
   int shutdownSignal = 0;
@@ -47,7 +50,7 @@ int main(int argc, char **argv)
   WebotsCtrlShared::DefaultAutoGlobalLogger autoLogger(dataPlatform, params.filterLog, params.colorizeStderrOutput);
 
   if(Robot::Init(&shutdownSignal) != Anki::RESULT_OK) {
-    fprintf(stdout, "Failed to initialize Cozmo::Robot!\n");
+    fprintf(stdout, "Failed to initialize Vector::Robot!\n");
     return -1;
   }
 

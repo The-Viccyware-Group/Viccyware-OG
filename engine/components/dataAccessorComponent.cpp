@@ -20,7 +20,7 @@
 #include "engine/robot.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 DataAccessorComponent::DataAccessorComponent()
@@ -38,20 +38,24 @@ DataAccessorComponent::~DataAccessorComponent()
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void DataAccessorComponent::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents)
+void DataAccessorComponent::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps)
 {
-  auto* context = dependentComponents.GetValue<ContextWrapper>().context;
+  auto* context = dependentComps.GetComponent<ContextWrapper>().context;
   auto& dataLoader = *context->GetDataLoader();
   _spritePaths = dataLoader.GetSpritePaths();
   _spriteCache = dataLoader.GetSpriteCache();
   _spriteSequenceContainer = dataLoader.GetSpriteSequenceContainer();
-  _compImgMap = dataLoader.GetCompImageMap();
-  _compLayoutMap = dataLoader.GetCompLayoutMap();
   _cannedAnimationContainer = dataLoader.GetCannedAnimationContainer();
-  _textToSpeechConfig = dataLoader.GetTextToSpeechConfig();
   _weatherResponseMap = dataLoader.GetWeatherResponseMap();
+  _weatherRemaps = dataLoader.GetWeatherRemapsPtr();
+  _weatherConditionTTSMap = dataLoader.GetWeatherConditionTTSMap();
+  _variableSnapshotJsonMap = dataLoader.GetVariableSnapshotJsonMap();
+  // Copy, but it's fine
+  _cupeSpinnerConfig = dataLoader.GetCubeSpinnerConfig();
+  _userDefinedConditionToBehaviorsMap = dataLoader.GetUserDefinedConditionToBehaviorsMap();
+  _userDefinedEditCondition = dataLoader.GetUserDefinedEditCondition();
 }
 
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

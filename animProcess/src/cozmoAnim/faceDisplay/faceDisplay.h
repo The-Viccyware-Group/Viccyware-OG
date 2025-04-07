@@ -17,11 +17,9 @@
 #include "util/singleton/dynamicSingleton.h"
 #include "anki/cozmo/shared/factory/faultCodes.h"
 
-#include <array>
-#include <memory>
-#include <mutex>
-#include <thread>
+#include "clad/types/lcdTypes.h"
 
+#include <thread>
 
 namespace Anki {
 
@@ -29,11 +27,11 @@ namespace Vision {
   class ImageRGB565;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class FaceDisplayImpl;
 class FaceInfoScreenManager;
-  
+
 class FaceDisplay : public Util::DynamicSingleton<FaceDisplay>
 {
   ANKIUTIL_FRIEND_SINGLETON(FaceDisplay); // Allows base class singleton access
@@ -44,6 +42,12 @@ public:
   // For drawing to face in various debug modes
   void DrawToFaceDebug(const Vision::ImageRGB565& img);
 
+
+  void SetFaceBrightness(LCDBrightness level);
+
+  // Stops the boot animation process if it is running
+  void StopBootAnim();
+  
 protected:
   FaceDisplay();
   virtual ~FaceDisplay();
@@ -57,23 +61,23 @@ private:
   std::unique_ptr<Vision::ImageRGB565>  _faceDrawImg[2];
   Vision::ImageRGB565*                  _faceDrawNextImg = nullptr;
   Vision::ImageRGB565*                  _faceDrawCurImg = nullptr;
-  Vision::ImageRGB565*                  _faceDrawLastImg = nullptr;
   std::thread                           _faceDrawThread;
   std::mutex                            _faceDrawMutex;
-  bool                                  _stopDrawFace = false;
-    
+  std::atomic<bool>                     _stopDrawFace;
+
+  std::mutex                            _readyMutex;
+  std::condition_variable               _readyCondition;
+  bool                                  _readyFace;
+
+  // Whether or not the boot animation process has been stopped
+  // Atomic because it is checked by the face drawing thread
+  std::atomic<bool> _stopBootAnim;
+  
   void DrawFaceLoop();
   void UpdateNextImgPtr();
-  
-  // Main loop of the fault code thread
-  void FaultCodeLoop();
-  void DrawFaultCode(uint16_t fault);
-  void StopFaultCodeThread();
-
-  std::thread _faultCodeThread;
 }; // class FaceDisplay
-  
-} // namespace Cozmo
+
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMOANIM_FACE_DISPLAY_H

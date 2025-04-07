@@ -17,15 +17,15 @@
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/aiWhiteboard.h"
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/components/carryingComponent.h"
 #include "engine/components/dockingComponent.h"
-#include "engine/components/progressionUnlockComponent.h"
 #include "engine/robot.h"
 
 #include "coretech/common/engine/utils/timer.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 static const float kInvalidObjectCacheUpdateTime_s = -1.0f;
@@ -81,51 +81,59 @@ ObjectInteractionInfoCache::ObjectInteractionInfoCache(const Robot& robot)
   
   // Pickup no axis check
   BlockWorldFilter *pickupAnyFilter = new BlockWorldFilter;
-  pickupAnyFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  pickupAnyFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                           this, std::placeholders::_1));
   pickupAnyFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanPickupNoAxisCheck,
                                            this, std::placeholders::_1));
   
   // Pickup with axis check
   BlockWorldFilter *pickupWithAxisFilter = new BlockWorldFilter;
-  pickupWithAxisFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  pickupWithAxisFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                                this, std::placeholders::_1));
   pickupWithAxisFilter->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanPickupAxisCheck,
                                                this, std::placeholders::_1));
   
   
   // Stack top no axis check
   BlockWorldFilter *stackTopFilter = new BlockWorldFilter;
-  stackTopFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  stackTopFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                          this, std::placeholders::_1));
   stackTopFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanUseAsStackTopNoAxisCheck,
                                           this, std::placeholders::_1));
   
   // Stack top with axis check
   BlockWorldFilter *stackTopWithAxisFilter = new BlockWorldFilter;
-  stackTopWithAxisFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  stackTopWithAxisFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                                  this, std::placeholders::_1));
   stackTopWithAxisFilter->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanUseAsStackTopAxisCheck,
                                                  this, std::placeholders::_1));
   
   // stack bottom no axis check
   BlockWorldFilter *stackBottomFilter = new BlockWorldFilter;
-  stackBottomFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  stackBottomFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                             this, std::placeholders::_1));
   stackBottomFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanUseAsStackBottomNoAxisCheck,
                                              this, std::placeholders::_1));
   
   // stack bottom axis check
   BlockWorldFilter *stackBottomWithAxis = new BlockWorldFilter;
-  stackBottomWithAxis->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  stackBottomWithAxis->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                               this, std::placeholders::_1));
   stackBottomWithAxis->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanUseAsStackBottomAxisCheck,
                                               this, std::placeholders::_1));
   
   
   // Roll object with delegate - no axis check
   BlockWorldFilter *rollNoAxisFilter = new BlockWorldFilter;
-  rollNoAxisFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  rollNoAxisFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                            this, std::placeholders::_1));
   rollNoAxisFilter->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanRollObjectDelegateNoAxisCheck,
                                            this, std::placeholders::_1));
   
   // Roll object with delegate - axis check
   BlockWorldFilter *rollWithAxisFilter = new BlockWorldFilter;
-  rollWithAxisFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  rollWithAxisFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                              this, std::placeholders::_1));
   rollWithAxisFilter->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanRollObjectDelegateAxisCheck,
                                              this, std::placeholders::_1));
   
@@ -135,7 +143,8 @@ ObjectInteractionInfoCache::ObjectInteractionInfoCache(const Robot& robot)
   
   // Pop A Wheelie check
   BlockWorldFilter *popFilter = new BlockWorldFilter;
-  popFilter->SetAllowedFamilies({{ObjectFamily::LightCube, ObjectFamily::Block}});
+  popFilter->AddFilterFcn( std::bind(&ObjectInteractionInfoCache::CanBeInteractedWith,
+                                     this, std::placeholders::_1));
   popFilter->AddFilterFcn(std::bind(&ObjectInteractionInfoCache::CanUseForPopAWheelie,
                                     this, std::placeholders::_1));
   
@@ -296,7 +305,12 @@ const char* ObjectInteractionInfoCache::ObjectUseIntentionToString(ObjectInterac
   return "UNDEFINED_ERROR";
 }
 
-
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool ObjectInteractionInfoCache::CanBeInteractedWith(const ObservableObject* object) const
+{
+  return IsBlockType(object->GetType(), false);
+}
+  
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool ObjectInteractionInfoCache::CanPickupNoAxisCheck(const ObservableObject* object) const
 {
@@ -326,10 +340,7 @@ bool ObjectInteractionInfoCache::CanPickupAxisCheck(const ObservableObject* obje
   }
   
   // check the up axis
-  const bool forFreeplay = true;
-  const bool isRollingUnlocked = _robot.GetProgressionUnlockComponent().IsUnlocked(UnlockId::RollCube,forFreeplay);
-  const bool upAxisOk = ! isRollingUnlocked ||
-  object->GetPose().GetWithRespectToRoot().GetRotationMatrix().GetRotatedParentAxis<'Z'>() == AxisName::Z_POS;
+  const bool upAxisOk = object->GetPose().GetWithRespectToRoot().GetRotationMatrix().GetRotatedParentAxis<'Z'>() == AxisName::Z_POS;
   
   return upAxisOk;
 }
@@ -339,7 +350,7 @@ bool ObjectInteractionInfoCache::CanPickupAxisCheck(const ObservableObject* obje
 bool ObjectInteractionInfoCache::CanUseAsStackTopNoAxisCheck(const ObservableObject* object) const
 {
   if(_robot.GetCarryingComponent().IsCarryingObject()) {
-    return object == _robot.GetBlockWorld().GetLocatedObjectByID(_robot.GetCarryingComponent().GetCarryingObject());
+    return object == _robot.GetBlockWorld().GetLocatedObjectByID(_robot.GetCarryingComponent().GetCarryingObjectID());
   }else{
     return CanPickupNoAxisCheck(object);
   }
@@ -350,7 +361,7 @@ bool ObjectInteractionInfoCache::CanUseAsStackTopNoAxisCheck(const ObservableObj
 bool ObjectInteractionInfoCache::CanUseAsStackTopAxisCheck(const ObservableObject* object) const
 {
   if(_robot.GetCarryingComponent().IsCarryingObject()) {
-    const bool isCarriedObj = (object == _robot.GetBlockWorld().GetLocatedObjectByID(_robot.GetCarryingComponent().GetCarryingObject()));
+    const bool isCarriedObj = (object == _robot.GetBlockWorld().GetLocatedObjectByID(_robot.GetCarryingComponent().GetCarryingObjectID()));
     const bool isCarriedUpright = (object->GetPose().GetRotationMatrix().GetRotatedParentAxis<'Z'>() == AxisName::Z_POS);
     return isCarriedObj && isCarriedUpright;
   }else{
@@ -377,7 +388,7 @@ bool ObjectInteractionInfoCache::CanUseAsStackBottomHelper(const ObservableObjec
   
   
   bool ret = (!hasFailedRecently &&
-              (object->GetFamily() == ObjectFamily::LightCube) &&
+              IsValidLightCube(object->GetType(), false) &&
               _robot.GetDockingComponent().CanStackOnTopOfObject( *object ));
   return ret;
 }
@@ -430,11 +441,7 @@ bool ObjectInteractionInfoCache::CanRollObjectDelegateNoAxisCheck(const Observab
                                             kAngleToleranceAfterFailure_radians);
   
   if(!hasFailedToRoll){
-    // Logic from can interact with - unfortunately those helpers check for on top of
-    // which isn't relevant for roll delegate so we check the relevant properties
-    // directly here
-    if( object->GetFamily() != ObjectFamily::Block &&
-       object->GetFamily() != ObjectFamily::LightCube ) {
+    if( !CanBeInteractedWith(object) ) {
       return false;
     }
     
@@ -643,5 +650,5 @@ void ObjectInteractionCacheEntry::Invalidate()
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

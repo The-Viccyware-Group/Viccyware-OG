@@ -1,5 +1,5 @@
 /**
- * File: logging
+ * File: util/logging/logging.cpp
  *
  * Author: damjan
  * Created: 4/3/2014
@@ -30,7 +30,9 @@
 #include <sstream>
 #include <signal.h>
 
-namespace Anki{
+#include <sys/time.h>
+
+namespace Anki {
 namespace Util {
 
 std::string HexDump(const void *value, const size_t len, char delimiter)
@@ -57,16 +59,23 @@ std::string HexDump(const void *value, const size_t len, char delimiter)
   return cppString;
 }
 
-ITickTimeProvider* gTickTimeProvider = nullptr;
-ILoggerProvider*gLoggerProvider = nullptr;
-ChannelFilter gChannelFilter;
-IEventProvider* gEventProvider = nullptr;
+ITickTimeProvider * gTickTimeProvider = nullptr;
+ILoggerProvider * gLoggerProvider = nullptr;
+IEventProvider * gEventProvider = nullptr;
 
 // Has an error been reported?
 bool _errG = false;
 
 // Do we break on any error?
 bool _errBreakOnError = true;
+
+// If true, access to _errG uses a mutex device
+bool _lockErrG = false;
+
+// Cached _errG during sPushErrG and sPopErrG
+std::vector<bool> sOldErrG;
+
+std::recursive_mutex sErrGMutex;
 
 const size_t kMaxStringBufferSize = 1024;
 
@@ -80,21 +89,22 @@ using KVV = std::vector<std::pair<const char*, const char*>>;
 
 void AddTickCount(std::ostringstream& oss)
 {
-  if ( gTickTimeProvider ) {
+  if (gTickTimeProvider != nullptr) {
     oss << "(tc";
     oss << std::right << std::setw(4) << std::setfill('0') << gTickTimeProvider->GetTickCount();
     oss << ") ";
   }
-  oss << ": ";
 }
 
-std::string PrependTickCount(const char* logString)
+std::string PrependTickCount(const char * logString)
 {
-  std::ostringstream oss;
-  AddTickCount(oss);
-  oss << logString;
-
-  return std::string(oss.str());
+  if (gTickTimeProvider != nullptr) {
+    std::ostringstream oss;
+    AddTickCount(oss);
+    oss << logString;
+    return oss.str();
+  }
+  return logString;
 }
 
 void LogError(const char* name, const KVV& keyvals, const char* logString)
@@ -124,25 +134,14 @@ void LogChanneledInfo(const char* channel, const char* name, const KVV& keyvals,
   }
 
   // set tick count and channel name if available
-  std::ostringstream finalLogStr;
-  AddTickCount(finalLogStr);
-
-  std::string channelNameString(channel);
-  if(gChannelFilter.IsInitialized()) {
-    if(!gChannelFilter.IsChannelRegistered(channelNameString)) {
-      PRINT_NAMED_ERROR("UnregisteredChannel", "Channel @%s not registered!", channel);
-    } else {
-      if (!gChannelFilter.IsChannelEnabled(channelNameString)) {
-        return;
-      }
-    }
-    finalLogStr << "[@";
-    finalLogStr << channel;
-    finalLogStr << "] ";
+  if (gTickTimeProvider != nullptr) {
+    std::ostringstream finalLogStr;
+    AddTickCount(finalLogStr);
+    finalLogStr << logString;
+    gLoggerProvider->PrintChanneledLogI(channel, name, keyvals, finalLogStr.str().c_str());
+  } else {
+    gLoggerProvider->PrintChanneledLogI(channel, name, keyvals, logString);
   }
-  finalLogStr << logString;
-
-  gLoggerProvider->PrintChanneledLogI(channel, name, keyvals, finalLogStr.str().c_str());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -321,7 +320,7 @@ void sInfo(const char* name, const KVV& keyvals, const char* strval)
   }
 
   // log it
-  LogChanneledInfo(DEFAULT_CHANNEL_NAME, name, keyvals, strval);
+  LogChanneledInfo(name, name, keyvals, strval);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -363,6 +362,7 @@ void sChanneledInfo(const char* channel, const char* name, const KVV& keyvals, c
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void sChanneledDebugF(const char* channel, const char* name, const KVV& keyvals, const char* format, ...)
 {
+  #if ALLOW_DEBUG_LOGGING
   if (nullptr == gLoggerProvider) {
     return;
   }
@@ -376,6 +376,7 @@ void sChanneledDebugF(const char* channel, const char* name, const KVV& keyvals,
 
   // log it
   LogChannelDebug(channel, name, keyvals, logString);
+  #endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -405,16 +406,27 @@ void sChanneledDebug(const char* channel, const char* name, const KVV& keyvals, 
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool sVerifyFailedReturnFalse(const char* name, const char* format, ...)
+bool sVerifySucceededReturnTrue(const char* file, int line)
 {
+  Anki::Util::DropBreadcrumb(true, file, line);
+  return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool sVerifyFailedReturnFalse(const char* file, int line, const char* name, const char* format, ...)
+{
+  Anki::Util::DropBreadcrumb(false, file, line);
+
   va_list args;
   va_start(args, format);
   sErrorV(name, {}, format, args);
   va_end(args);
-  _errG=true;
+  sSetErrG();
   sDumpCallstack("VERIFY");
   sLogFlush();
-  sDebugBreak();
+  if (_errBreakOnError) {
+    sDebugBreak();
+  }
   return false;
 }
 
@@ -526,6 +538,155 @@ void sAbort()
   abort();
 
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void sSetErrG()
+{
+  // locking here is to block access during a call to sPushErrG/sPopErrG
+  if (_lockErrG) {
+    sErrGMutex.lock();
+  }
+  _errG = true;
+  if (_lockErrG) {
+    sErrGMutex.unlock();
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void sUnSetErrG()
+{
+  // locking here is to block access during a call to sPushErrG/sPopErrG
+  if (_lockErrG) {
+    sErrGMutex.lock();
+  }
+  _errG = false;
+  if (_lockErrG) {
+    sErrGMutex.unlock();
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+bool sGetErrG()
+{
+  // locking here is to block access during a call to sPushErrG/sPopErrG
+  if (_lockErrG) {
+    sErrGMutex.lock();
+  }
+  const bool errG = _errG;
+  if (_lockErrG) {
+    sErrGMutex.unlock();
+  }
+  return errG;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void sPushErrG(bool value)
+{
+  if (_lockErrG) {
+    sErrGMutex.lock();
+  }
+  sOldErrG.push_back( _errG );
+  _errG = value;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void sPopErrG()
+{
+  DEV_ASSERT( !sOldErrG.empty(), "sPopErrG.PushWasntCalled" );
+  _errG = sOldErrG.back();
+  sOldErrG.pop_back();
+
+  if (_lockErrG) {
+    sErrGMutex.unlock();
+  }
+}
+
+#if ANKI_BREADCRUMBS
+bool DropBreadcrumb(bool result, const char* file, int line)
+{
+  static const int MAX_THREADS = 32; // max threads per process
+  static const int BUFFER_SIZE = 16; // number of entries for file/line
+  static const int LOOP_DEPTH = 3; // amount of history to check for dupe file/line
+
+  // single statically allocated buffer for each process shared between threads
+
+  static const char* files[BUFFER_SIZE * MAX_THREADS] = {0};
+  static int lines[BUFFER_SIZE * MAX_THREADS] = {0};
+  static int counts[BUFFER_SIZE * MAX_THREADS] = {0};
+  static struct timeval time[BUFFER_SIZE * MAX_THREADS];
+
+  // thread local storage, store a baseptr into statically allocated buffers above, plus
+  // running round-robin offset
+
+  // offset - 1 is the last written entry
+  // offset +/- 0 is the oldest
+  // offset + 1 is the next oldest
+
+  static __thread int base = -1;
+  static __thread int offset = 0;
+  static __thread bool crashed = false;
+
+  static std::atomic<int> alloc(0);
+
+  if (base == -1) {
+    // in release, keep wrapping around the internal buffer, corrupts some state but doesn't crash
+    // assert in debug
+    base = alloc++;
+    base %= MAX_THREADS;
+    base *= BUFFER_SIZE;
+  }
+
+  if (line == -1 && !crashed) {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+    pthread_t tid = pthread_self();
+
+    printf("breadcrumbs for thread %p (not a stack trace)...\n", (void*)tid);
+    const int oldestOffset = ((offset + 0) + BUFFER_SIZE) % BUFFER_SIZE;
+    for(int i = 0; i < BUFFER_SIZE; ++i) {
+      const int currentOffset = ((offset + i) + BUFFER_SIZE) % BUFFER_SIZE;
+      if (files[currentOffset]) {
+          const int64_t delta_sec = time[base + currentOffset].tv_sec - time[base + oldestOffset].tv_sec;
+          const int64_t delta_usec = (delta_sec * 1000000) + (int64_t)(time[base + currentOffset].tv_usec - time[base + oldestOffset].tv_usec);
+          printf("%d)  %s:%d cnt %d %lld usec\n", i, files[base + currentOffset], lines[base + currentOffset], counts[base + currentOffset], delta_usec);
+      }
+    }
+
+    crashed = true;
+  }
+
+  if (!crashed) {
+    bool loop = false;
+
+    for(int i = 1; i <= LOOP_DEPTH; ++i) {
+      // offset is one past the last entry
+      const int prevOffset = ((offset - i) + BUFFER_SIZE) % BUFFER_SIZE;
+      if (files[base + prevOffset] == file && lines[base + prevOffset] == line) {
+        ++counts[base + prevOffset];
+        loop = true;
+        break;
+      }
+    }
+
+    if (!loop) {
+      // not in a loop
+      files[base + offset] = file;
+      lines[base + offset] = line;
+      counts[base + offset] = 0;
+      gettimeofday(&time[base + offset], NULL);
+
+      offset = (offset + 1) % BUFFER_SIZE;
+    }
+  }
+
+  return result;
+}
+#endif
 
 } // namespace Util
 } // namespace Anki

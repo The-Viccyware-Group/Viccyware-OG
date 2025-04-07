@@ -21,7 +21,7 @@
 #include <vector>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 class IBEICondition;
 class TriggerAnimationAction;
@@ -120,10 +120,6 @@ private:
   
   // tracking variable -- counting individual press/release pairs per bliss level
   u32 _numPressesAtCurrentBlissLevel;
-  
-  // counter for tracking ticks while pressed for audio purring
-  // TODO: remove this in a future pass when audio system is setup
-  u32 _numTicksPressed;
   
   // press state for the current tick
   bool _isPressed;

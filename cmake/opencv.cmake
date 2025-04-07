@@ -1,26 +1,22 @@
-set(OPENCV_VERSION 3.4.0)
-
-set(OPENCV_DIR opencv-${OPENCV_VERSION})                                                                        
-
 if(VICOS)
-  set(OPENCV_3RDPARTY_LIB_DIR ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/vicos/3rdparty/lib)
-  
-  set(OPENCV_LIB_DIR ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/vicos/lib)
-  
-  set(OPENCV_INCLUDE_PATHS 
-      ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR} 
-      ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/vicos
-      ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/vicos/include)
+  set(OPENCV_3RDPARTY_LIB_DIR ${ANKI_THIRD_PARTY_DIR}/opencv/vicos/3rdparty/lib)
+
+  set(OPENCV_LIB_DIR ${ANKI_THIRD_PARTY_DIR}/opencv/vicos/lib)
+
+  set(OPENCV_INCLUDE_PATHS
+      ${ANKI_THIRD_PARTY_DIR}/opencv
+      ${ANKI_THIRD_PARTY_DIR}/opencv/vicos
+      ${ANKI_THIRD_PARTY_DIR}/opencv/vicos/include)
 
 else()
-  set(OPENCV_3RDPARTY_LIB_DIR ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/mac/3rdparty/lib/Release)
-  
-  set(OPENCV_LIB_DIR ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/mac/lib/Release)
-  
-  set(OPENCV_INCLUDE_PATHS ${CORETECH_EXTERNAL_DIR}/build/${OPENCV_DIR}/mac)
+  set(OPENCV_3RDPARTY_LIB_DIR ${ANKI_THIRD_PARTY_DIR}/opencv/mac/3rdparty/lib/Release)
+
+  set(OPENCV_LIB_DIR ${ANKI_THIRD_PARTY_DIR}/opencv/mac/lib/Release)
+
+  set(OPENCV_INCLUDE_PATHS ${ANKI_THIRD_PARTY_DIR}/opencv/mac)
 
 endif()
-                                                                                                    
+
 set(OPENCV_LIBS
     calib3d
     features2d
@@ -32,7 +28,6 @@ set(OPENCV_LIBS
     flann
     imgcodecs
     ml
-    dnn
     videoio)
 
 # Static libs for mac, shared for android
@@ -48,9 +43,9 @@ endif()
 # Add the include directory for each OpenCV module:
 foreach(OPENCV_MODULE ${OPENCV_LIBS})
   add_library(${OPENCV_MODULE} ${LIB_TYPE} IMPORTED)
-  
-  set(MODULE_INCLUDE_PATH "${CORETECH_EXTERNAL_DIR}/${OPENCV_DIR}/modules/${OPENCV_MODULE}/include")
-  
+
+  set(MODULE_INCLUDE_PATH "${ANKI_THIRD_PARTY_DIR}/opencv/modules/${OPENCV_MODULE}/include")
+
   set(include_paths
       ${MODULE_INCLUDE_PATH}
       ${OPENCV2_INCLUDE_PATH})
@@ -60,6 +55,7 @@ foreach(OPENCV_MODULE ${OPENCV_LIBS})
                         ${OPENCV_LIB_DIR}/libopencv_${OPENCV_MODULE}.${LIB_EXT}${LIB_POSTFIX}
                         INTERFACE_INCLUDE_DIRECTORIES
                         "${include_paths}")
+  anki_build_target_license(${OPENCV_MODULE} "BSD-4,${CMAKE_SOURCE_DIR}/licenses/opencv.license")
 
   list(APPEND OPENCV_INCLUDE_PATHS ${MODULE_INCLUDE_PATH})
 
@@ -72,12 +68,11 @@ set_target_properties(opencv_interface PROPERTIES
 )
 
 if(VICOS)
-  set(OPENCV_EXTERNAL_LIBS     
+  set(OPENCV_EXTERNAL_LIBS
       libpng
       libtiff
       #cpufeatures # missing for vicos build?
-      libjpeg # NOT using turbo jpeg below
-      libprotobuf) 
+      libjpeg) # NOT using turbo jpeg below
 else()
   set(OPENCV_EXTERNAL_LIBS
       IlmImf
@@ -85,11 +80,10 @@ else()
       libpng
       libtiff
       zlib
-      libjpeg 
-      ippicv 
-      ippiw 
-      ittnotify 
-      libprotobuf)
+      libjpeg
+      ippicv
+      ippiw
+      ittnotify)
 endif()
 
 foreach(LIB ${OPENCV_EXTERNAL_LIBS})
@@ -99,7 +93,19 @@ foreach(LIB ${OPENCV_EXTERNAL_LIBS})
         ${OPENCV_3RDPARTY_LIB_DIR}/lib${LIB}.a)
 endforeach()
 
-message(STATUS "including OpenCV-${OPENCV_VERSION}, [Modules: ${OPENCV_LIBS}], [3rdParty: ${OPENCV_EXTERNAL_LIBS}]")
+anki_build_target_license(libpng "libpng,${CMAKE_SOURCE_DIR}/licenses/libpng.license")
+anki_build_target_license(libtiff "ISC,${CMAKE_SOURCE_DIR}/licenses/libtiff.license")
+anki_build_target_license(libjpeg "BSD-3-like,${CMAKE_SOURCE_DIR}/licenses/libjpeg-turbo.license")
+
+if(MACOSX)
+    anki_build_target_license(IlmImf "BSD-3,${CMAKE_SOURCE_DIR}/licenses/openexr.license")
+    anki_build_target_license(libjasper "BSD-2,${CMAKE_SOURCE_DIR}/licenses/libjasper.license")
+    anki_build_target_license(ippicv  "BSD-3,${CMAKE_SOURCE_DIR}/licenses/ipp.license")
+    anki_build_target_license(ippiw  "BSD-3,${CMAKE_SOURCE_DIR}/licenses/ipp.license")
+    anki_build_target_license(ittnotify  "BSD-3,${CMAKE_SOURCE_DIR}/licenses/ittnotify.license")
+endif()
+
+message(STATUS "including OpenCV, [Modules: ${OPENCV_LIBS}], [3rdParty: ${OPENCV_EXTERNAL_LIBS}]")
 
 list(APPEND OPENCV_LIBS ${OPENCV_EXTERNAL_LIBS})
 
@@ -107,7 +113,7 @@ if (MACOSX)
   # Add Frameworks
   find_library(ACCELERATE Accelerate)
   find_library(APPKIT AppKit)
-  find_library(OPENCL OpenCL)                                                               
+  find_library(OPENCL OpenCL)
   list(APPEND OPENCV_LIBS ${ACCELERATE} ${APPKIT} ${OPENCL})
 endif()
 

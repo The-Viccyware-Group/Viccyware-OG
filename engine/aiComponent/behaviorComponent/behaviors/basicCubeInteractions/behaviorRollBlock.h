@@ -17,10 +17,8 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/aiComponent/objectInteractionInfoCache.h"
 
-#include "clad/types/animationTrigger.h"
-
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BlockWorldFilter;
 class ObservableObject;
@@ -34,7 +32,6 @@ public:
   }
   
 protected:
-  using base = ICozmoBehavior;
   // Enforce creation through BehaviorFactory
   friend class BehaviorFactory;
   BehaviorRollBlock(const Json::Value& config);

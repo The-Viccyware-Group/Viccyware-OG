@@ -12,11 +12,12 @@
 #include "localization.h"
 #include "anki/cozmo/robot/logging.h"
 #include "anki/cozmo/shared/cozmoConfig.h"
+#include "anki/cozmo/shared/factory/emrHelper.h"
 
 #include <array>
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     namespace ProxSensors {
 
       namespace {
@@ -47,11 +48,19 @@ namespace Anki {
         // Bits correspond to each of the cliff sensors
         uint8_t _cliffDetectedFlags = 0;
 
-        bool _enableCliffDetect = true;
-        bool _wasAnyCliffDetected = false;
-        bool _wasPickedup      = false;
+        // Bits correspond to each of the cliff sensors 
+        // detecting white
+        uint8_t _whiteDetectedFlags = 0;
 
-        bool _stopOnCliff = true;
+        bool _enableCliffDetect   = true;
+        bool _stopOnCliff         = true;
+        bool _wasAnyCliffDetected = false;
+        bool _stopOnWhite         = false;
+        bool _wasAnyWhiteDetected = false;
+        bool _wasPickedup         = false;
+        bool _putdownOnCliff      = false;
+
+        u16 _whiteDetectThreshold[4] = {MIN_CLIFF_STOP_ON_WHITE_VAL_HIGH, MIN_CLIFF_STOP_ON_WHITE_VAL_HIGH, MIN_CLIFF_STOP_ON_WHITE_VAL_HIGH, MIN_CLIFF_STOP_ON_WHITE_VAL_HIGH};
 
         u16 _cliffDetectThresh[4] = {CLIFF_SENSOR_THRESHOLD_DEFAULT, CLIFF_SENSOR_THRESHOLD_DEFAULT, CLIFF_SENSOR_THRESHOLD_DEFAULT, CLIFF_SENSOR_THRESHOLD_DEFAULT};
 
@@ -85,6 +94,11 @@ namespace Anki {
       {
         return _cliffDetectedFlags;
       }
+      
+      u8 GetWhiteDetectedFlags()
+      {
+        return _whiteDetectedFlags;
+      }
 
       u16 GetCliffValue(u32 ind)
       {
@@ -95,6 +109,13 @@ namespace Anki {
       ProxSensorDataRaw GetProxData()
       {
         auto proxData = HAL::GetRawProxData();
+
+        if(IsWhiskey())
+        {
+          proxData.distance_mm = 0;
+          return proxData;
+        }
+        
 #ifndef SIMULATOR
         // Apply look-up table to convert from raw distance reading
         // to corrected reading. Piecewise linear interpolation.
@@ -137,16 +158,7 @@ namespace Anki {
       {
         // Update all cliff values
         for (int i=0 ; i < _nCliffSensors ; i++) {
-          u16 rawVal = HAL::GetRawCliffData(static_cast<HAL::CliffID>(i));
-          if (rawVal == 0) {
-            // VIC-537: Cliff sensors sometimes return spurious readings
-            //          like 0 (which is too low to be valid) or some crazy high numbers in the 10000s.
-            //          Intercepting only 0s here and leaving previous reading as is
-            //          so that we don't stop in reaction to a false cliff.
-            AnkiWarn("ProxSensors.UpdateCliff.BadZeroCliffValue", "Index %d", i);
-          } else {
-            _cliffVals[i] = rawVal;
-          }
+          _cliffVals[i] = HAL::GetRawCliffData(static_cast<HAL::CliffID>(i));
         }
 
         // Compute bounds on cliff detect/undetect thresholds which may be adjusted according to the
@@ -163,6 +175,14 @@ namespace Anki {
           } else if (alreadyDetected && _cliffVals[i] > cliffUndetectThresh) {
             _cliffDetectedFlags &= ~(1<<i);
           }
+
+          // Update white status
+          const bool whiteAlreadyDetected = (_whiteDetectedFlags & (1<<i)) != 0;
+          if (!whiteAlreadyDetected && _cliffVals[i] > _whiteDetectThreshold[i]) {
+            _whiteDetectedFlags |= (1<<i);
+          } else if (whiteAlreadyDetected && (_cliffVals[i] < _whiteDetectThreshold[i] - CLIFF_STOP_ON_WHITE_HYSTERSIS) ) {
+            _whiteDetectedFlags &= ~(1<<i);
+          }
         }
 
         f32 leftSpeed, rightSpeed;
@@ -177,21 +197,43 @@ namespace Anki {
         // Currently, this only seems to happen during the backup for face plant.
         f32 desiredLeftSpeed, desiredRightSpeed;
         WheelController::GetDesiredWheelSpeeds(desiredLeftSpeed, desiredRightSpeed);
-        bool alreadyStopping = (desiredLeftSpeed == 0.f) && (desiredRightSpeed == 0.f);
+        const bool alreadyStopping = (desiredLeftSpeed == 0.f) && (desiredRightSpeed == 0.f);
+
+        // If side cliffs are detected while driving stop (possibly again)
+        // because this is a precarious situation.
+        const bool sideCliffsDetected = (_cliffDetectedFlags == ((1 << HAL::CLIFF_FL) | (1 << HAL::CLIFF_BL))) ||
+                                        (_cliffDetectedFlags == ((1 << HAL::CLIFF_FR) | (1 << HAL::CLIFF_BR)));
+        
+        const bool frontCliffsDetectingWhite = ProxSensors::IsWhiteDetected(HAL::CLIFF_FL) ||
+                                              ProxSensors::IsWhiteDetected(HAL::CLIFF_FR);
+
+        const bool possibleCliffStop = (IsAnyCliffDetected() && !_wasAnyCliffDetected) || sideCliffsDetected;
+        const bool possibleWhiteStop = frontCliffsDetectingWhite && !_wasAnyWhiteDetected;
+
+        // Don't allow stopping if it was putdown on a cliff.
+        // Need to be able to drive away from it!
+        if (!IMUFilter::IsPickedUp() && _wasPickedup) {
+          _putdownOnCliff = IsAnyCliffDetected();
+        } else if (!IsAnyCliffDetected()) {
+          _putdownOnCliff = false;
+        }
 
         if (_enableCliffDetect &&
-            IsAnyCliffDetected() &&
-            !IMUFilter::IsPickedUp() &&
+            !IMUFilter::IsPickedUp() && !_putdownOnCliff &&
             isDriving && !alreadyStopping &&
-            !_wasAnyCliffDetected) {
+            (possibleCliffStop || possibleWhiteStop)) {
 
-          // TODO (maybe): Check for cases where cliff detect should not stop motors
-          // 1) Turning in place
-          // 2) Driving over something (i.e. pitch is higher than some degrees).
-          AnkiInfo("ProxSensors.UpdateCliff.StoppingDueToCliff", "%d", _stopOnCliff);
+          const bool stoppingBecauseCliff = _stopOnCliff && possibleCliffStop;
+          const bool stoppingBecauseWhite = _stopOnWhite && possibleWhiteStop;
 
-          if(_stopOnCliff)
+          if(stoppingBecauseCliff || stoppingBecauseWhite)
           {
+            // TODO (maybe): Check for cases where cliff detect should not stop motors
+            // 1) Driving over something (i.e. pitch is higher than some degrees).
+            AnkiInfo("ProxSensors.UpdateCliff.StoppingDueToCliff", 
+                    "stopOnCliff: %d, stopOnWhite %d, sideCliffsDetected: %d, possibleCliff: %d, possibleWhite: %d", 
+                    _stopOnCliff, _stopOnWhite, sideCliffsDetected, possibleCliffStop, possibleWhiteStop);
+
             // Stop all motors and animations
             PickAndPlaceController::Reset();
 
@@ -201,9 +243,21 @@ namespace Anki {
             SteeringController::Disable();
 
             // Send stopped message
-            RobotInterface::SendMessage(RobotInterface::RobotStopped());
+            RobotInterface::RobotStopped msg;
+            msg.reason = stoppingBecauseCliff ? StopReason::CLIFF : StopReason::WHITE;
+            msg.cliffDetectedFlags = ProxSensors::GetCliffDetectedFlags();
+            msg.whiteDetectedFlags = ProxSensors::GetWhiteDetectedFlags();
+            RobotInterface::SendMessage(RobotInterface::RobotStopped(msg));
+
+            // Queue cliff detected message
+            if (stoppingBecauseCliff) {
+              QueueCliffEvent();
+              _wasAnyCliffDetected = true;              
+            } else {
+              _wasAnyWhiteDetected = true;
+            }
           }
-          else
+          else if (possibleCliffStop) 
           {
             // If we aren't stopping at this cliff then send a potential cliff message
             // because we might not be able to verify that it is indeed a cliff
@@ -211,15 +265,16 @@ namespace Anki {
             RobotInterface::SendMessage(msg);
           }
 
-          // Queue cliff detected message
-          QueueCliffEvent();
-
-          _wasAnyCliffDetected = true;
-        } else if (!IsAnyCliffDetected() && _wasAnyCliffDetected) {
+        }
+        
+        if (!IsAnyCliffDetected() && _wasAnyCliffDetected) {
           QueueUncliffEvent();
           _wasAnyCliffDetected = false;
         }
-
+        
+        if (!frontCliffsDetectingWhite && _wasAnyWhiteDetected) {
+          _wasAnyWhiteDetected = false;
+        }
 
         // Clear queued cliff events if pickedup
         if (IMUFilter::IsPickedUp() && !_wasPickedup) {
@@ -264,6 +319,16 @@ namespace Anki {
         return _cliffDetectedFlags & (1 << ind);
       }
 
+      bool IsAnyWhiteDetected()
+      {
+        return _whiteDetectedFlags != 0;
+      }
+
+      bool IsWhiteDetected(u32 ind)
+      {
+        return _whiteDetectedFlags & (1 << ind);
+      }
+
       void EnableCliffDetector(bool enable) {
         AnkiInfo("ProxSensors.EnableCliffDetector", "%d", enable);
         _enableCliffDetect = enable;
@@ -274,6 +339,19 @@ namespace Anki {
         _stopOnCliff = enable;
       }
 
+      void EnableStopOnWhite(bool enable)
+      {
+        AnkiInfo("ProxSensors.EnableStopOnWhite", "%d", enable);
+        _stopOnWhite = enable;
+      }
+
+      void SetWhiteDetectThreshold(u32 ind, u16 level)
+      {
+        AnkiConditionalError(ind < HAL::CLIFF_COUNT, "ProxSensors.SetWhiteDetectThreshold.InvalidIndex", "Index %d is not valid", ind);
+        AnkiInfo("ProxSensors.SetWhiteDetectThreshold.NewLevel", "cliff sensor %d, threshold %d", ind, level);
+        _whiteDetectThreshold[ind] = level;
+      }
+
       void SetCliffDetectThreshold(u32 ind, u16 level)
       {
         AnkiConditionalError(ind < HAL::CLIFF_COUNT, "ProxSensors.SetCliffDetectThreshold.InvalidIndex", "Index %d is not valid", ind);
@@ -282,7 +360,7 @@ namespace Anki {
         } else if (level < CLIFF_SENSOR_THRESHOLD_MIN) {
           AnkiWarn("ProxSensors.SetCliffDetectThreshold.TooLow", "cliff sensor %d, threshold %d", ind, level);
         }else {
-          AnkiInfo("ProxSensors.SetCliffDetectThreshold.NewLevel", "cliff sensor %d, threshold %d", ind, level);
+          AnkiDebug("ProxSensors.SetCliffDetectThreshold.NewLevel", "cliff sensor %d, threshold %d", ind, level);
           _cliffDetectThresh[ind] = level;
         }
       }
@@ -298,12 +376,15 @@ namespace Anki {
       // it should only be called when the robot disconnects,
       // otherwise you could desync stopOnCliff state with engine.
       void Reset() {
-        _enableCliffDetect = true;
-        _stopOnCliff       = true;
-        _wasAnyCliffDetected  = false;
-        _wasPickedup       = false;
+        _enableCliffDetect   = true;
+        _stopOnCliff         = true;
+        _wasAnyCliffDetected = false;
+        _stopOnWhite         = false;
+        _wasAnyWhiteDetected = false;
+        _wasPickedup         = false;
 
         _cliffDetectedFlags = 0;
+        _whiteDetectedFlags = 0;
 
         SetAllCliffDetectThresholds(CLIFF_SENSOR_THRESHOLD_DEFAULT);
 
@@ -312,5 +393,5 @@ namespace Anki {
       }
 
     } // namespace ProxSensors
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

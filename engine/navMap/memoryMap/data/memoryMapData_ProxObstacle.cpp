@@ -11,18 +11,18 @@
  
 #include "memoryMapData_ProxObstacle.h"
 #include "clad/types/memoryMap.h"
-#include "coretech/common/engine/math/point_impl.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-MemoryMapData_ProxObstacle::MemoryMapData_ProxObstacle(ExploredType explored, const Pose2d& pose, TimeStamp_t t)
+MemoryMapData_ProxObstacle::MemoryMapData_ProxObstacle(ExploredType explored, const Pose2d& pose, RobotTimeStamp_t t)
 : MemoryMapData( MemoryMapTypes::EContentType::ObstacleProx,  t, true)
 , _pose(pose)
 , _explored(explored)
 , _belief(40)
+, _collidable(true)
 {
 
 }
@@ -52,5 +52,5 @@ ExternalInterface::ENodeContentTypeEnum MemoryMapData_ProxObstacle::GetExternalC
   return _explored ? ExternalInterface::ENodeContentTypeEnum::ObstacleProxExplored : ExternalInterface::ENodeContentTypeEnum::ObstacleProx;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

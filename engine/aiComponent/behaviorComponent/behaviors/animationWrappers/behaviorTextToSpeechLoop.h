@@ -13,22 +13,42 @@
 #ifndef __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorTextToSpeechLoop__
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorTextToSpeechLoop__
 
+#include "clad/audio/audioSwitchTypes.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/animationWrappers/behaviorAnimGetInLoop.h"
 
+#include <functional>
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Fwd Declarations
 enum class UtteranceState;
 
 class BehaviorTextToSpeechLoop : public ICozmoBehavior
 {
-public: 
+public:
+  using AudioTtsProcessingStyle = AudioMetaData::SwitchState::Robot_Vic_External_Processing;
+  
   virtual ~BehaviorTextToSpeechLoop();
 
   virtual bool WantsToBeActivatedBehavior() const override final;
 
-  void SetTextToSay(const std::string& textToSay, const SayTextIntent& intent = SayTextIntent::Text);
+  // callback passes in true if generation was completed successfully, false if it failed to generate
+  using UtteranceReadyCallback = std::function<void(bool)>;
+  void SetTextToSay(const std::string& textToSay,
+                    const UtteranceReadyCallback readyCallback = {},
+                    const AudioTtsProcessingStyle style = AudioTtsProcessingStyle::Default_Processed);
+  
+  void ClearTextToSay();
+  
+  // true when the utterance has been generated
+  // note: can also pass a callback into SetTextToSay(...)
+  bool IsUtteranceReady() const;
+
+  // allow the TTS to be interrupted
+  // immediate true means it will cancel now and play emergency get out anim
+  // immediate false means it will finish the next loop animation and then exit with the normal get out anim
+  void Interrupt( bool immediate );
 
 protected:
   // Enforce creation through BehaviorFactory
@@ -77,6 +97,8 @@ private:
     uint8_t         utteranceID;
     UtteranceState  utteranceState;
     bool            hasSentPlayCommand;
+    bool            cancelOnNextUpdate;
+    bool            cancelOnNextLoop;
   };
 
   InstanceConfig   _iConfig;
@@ -92,7 +114,7 @@ private:
   void OnUtteranceUpdated(const UtteranceState& state);
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_BehaviorTextToSpeechLoop__

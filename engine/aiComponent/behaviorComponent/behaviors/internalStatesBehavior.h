@@ -14,7 +14,7 @@
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_InternalStateBehavior_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
-#include "engine/components/bodyLightComponent.h"
+#include "engine/components/backpackLights/engineBackpackLightComponent.h"
 #include "engine/components/visionScheduleMediator/visionScheduleMediator_fwd.h"
 
 #include <set>
@@ -25,7 +25,7 @@ namespace Util {
 class IConsoleFunction;
 }
   
-namespace Cozmo {
+namespace Vector {
 
 class UnitTestKey;
   
@@ -51,12 +51,17 @@ protected:
   virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override;
   virtual void InitBehavior() override;
   virtual void BehaviorUpdate() override;
-  virtual void OnBehaviorActivated() override;
-  virtual void OnBehaviorDeactivated() override;
+  virtual void OnBehaviorActivated() final override;
+  virtual void OnBehaviorDeactivated() final override;
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override { }
   virtual bool WantsToBeActivatedBehavior() const override { return true; }
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
-  virtual void OverrideResumeState( StateID& resumeState ) const {}
+  virtual void OverrideResumeState( StateID& resumeState ) {}
+  virtual void OnBehaviorActivatedInternal() {}
+  virtual void OnBehaviorDeactivatedInternal() {}
+  
+  // for debug/DAS
+  virtual void OnStateNameChange( const std::string& oldStateName, const std::string& newStateName ) const {}
   
   // helpers
   
@@ -64,14 +69,26 @@ protected:
   StateID GetStateID(const std::string& stateName) const;
   // get current state
   StateID GetCurrentStateID() const { return _currState; }
+  // return the associated state name (assert if invalid)
+  const std::string& GetStateName(const StateID state);
   // the the time the state started (in seconds)
   float GetLastTimeStarted(StateID state) const;
   // the the time the state started (in seconds)
   float GetLastTimeEnded(StateID state) const;
-  // returns true if state was exited at least timeout seconds ago. if valueIfNeverRun, this will
-  // return true if state was never exited. if !trueIfNeverRun, then the cooldown timer counts up
-  // from the engine start time
-  bool StateExitCooldownExpired(StateID state, float timeout, bool valueIfNeverRun = true) const;
+
+
+  // returns true if state was exited at least timeout seconds ago.
+
+  enum class StateCooldownDefault {
+    True, // always return "true" if the given state has never run
+    False, // always return "false" if the given state has never run
+    UseBehaviorActivationTime, // if the state has never run, use this behaviors start time instead
+    UseFirstBehaviorActivationTime, // use the first time this behavior ever activated instead
+  };
+
+  bool StateExitCooldownExpired(StateID state,
+                                float timeout,
+                                StateCooldownDefault neverRunDefault = StateCooldownDefault::True) const;
   
   // Set up a console var under uniqueVarName that transitions to each state type by name
   void AddConsoleVarTransitions(const char* uniqueVarName, const char* category );
@@ -106,6 +123,17 @@ private:
   
   void TransitionToState(StateID targetState);
 
+  // Checks if the robot is carrying an object, then if the behavior for the state WantsToBeActivatedWhenCarryingObject,
+  // if the cube needs to be put down, delegates to PutDownBlock behavior and returns true. The completion callback
+  // will resolve the state and delegate to the GetIn or state behavior as necessary. Cannot be interrupted.
+  bool PutDownBlockIfNecessary(State& state);
+
+  // returns true if delegating to a valid GetIn behavior as defined for the state. The completion callback will
+  // resolve the state and delegate to the state behavior as necessary.
+  bool RunStateGetInIfAble(State& state);
+
+  void RunMainStateBehavior(State& state);
+
   // return the "adjusted" time of the current state (time it's been active - time it's been paused because
   // this behavior was interrupted)
   float GetCurrentStateActiveTime_s() const;
@@ -122,13 +150,17 @@ private:
 
   StateID _defaultState = InvalidStateID;
 
+  bool _isRunningPutDownBlock = false;
+
+  ICozmoBehaviorPtr _putDownBlockBehavior;
+
   bool _isRunningGetIn = false;
   
   size_t _lastTransitionTick = 0;
   
   std::vector<std::pair<StateID,StateID>> _resumeReplacements;
 
-  BackpackLights _currDebugLights;
+  BackpackLightAnimation::BackpackAnimation _currDebugLights;
   bool _debugLightsDirty = false;
   bool _useDebugLights = false;
   float _lastHearbeatLightTime = -1.0f;
@@ -137,6 +169,10 @@ private:
   StateID _consoleFuncState = InvalidStateID;
   
   bool _firstRun = true;
+  
+  bool _ignoreMissingTransitions = false;
+
+  float _firstTimeActivated_s = -1.0f;
   
 public:
   // for unit tests: grab a list of all conditions for each state name

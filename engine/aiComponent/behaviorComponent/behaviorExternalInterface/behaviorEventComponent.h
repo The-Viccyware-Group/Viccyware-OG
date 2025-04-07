@@ -14,9 +14,7 @@
 #ifndef __Cozmo_Basestation_BehaviorComponent_BehaviorEventComponent_H__
 #define __Cozmo_Basestation_BehaviorComponent_BehaviorEventComponent_H__
 
-#include "clad/externalInterface/messageEngineToGameTag.h"
-#include "clad/externalInterface/messageGameToEngineTag.h"
-#include "clad/robotInterface/messageRobotToEngineTag.h"
+#include "clad/types/robotCompletedAction.h"
 #include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior_fwd.h"
 #include "util/entityComponent/entity.h"
@@ -24,7 +22,7 @@
 #include <set>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward Declaration
 class BehaviorSystemManager;
@@ -40,7 +38,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComponents) override;
+  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComps) override;
   virtual void GetInitDependencies(BCCompIDSet& dependencies) const override {}
   virtual void GetUpdateDependencies(BCCompIDSet& dependencies) const override {};
   //////
@@ -51,13 +49,15 @@ public:
   void Init(IBehaviorMessageSubscriber& messageSubscriber);
 
   
-  virtual void SubscribeToTags(IBehavior* subscriber, std::set<ExternalInterface::MessageGameToEngineTag>&& tags) const override;
-  virtual void SubscribeToTags(IBehavior* subscriber, std::set<ExternalInterface::MessageEngineToGameTag>&& tags) const override;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<GameToEngineTag>&& tags) const override;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<EngineToGameTag>&& tags) const override;
   virtual void SubscribeToTags(IBehavior* subscriber, std::set<RobotInterface::RobotToEngineTag>&& tags) const override;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<AppToEngineTag>&& tags) const override;
 
   const std::vector<const GameToEngineEvent>& GetGameToEngineEvents() const   { return _gameToEngineEvents;}
   const std::vector<const EngineToGameEvent>& GetEngineToGameEvents() const   { return _engineToGameEvents;}
   const std::vector<const RobotToEngineEvent>& GetRobotToEngineEvents() const { return _robotToEngineEvents;}
+  const std::vector<const AppToEngineEvent>& GetAppToEngineEvents() const { return _appToEngineEvents;}
 
   const std::vector<ExternalInterface::RobotCompletedAction>& GetActionsCompletedThisTick() const { return _actionsCompletedThisTick;}
   
@@ -68,6 +68,7 @@ protected:
   std::vector<const GameToEngineEvent>  _gameToEngineEvents;
   std::vector<const EngineToGameEvent>  _engineToGameEvents;
   std::vector<const RobotToEngineEvent> _robotToEngineEvents;
+  std::vector<const AppToEngineEvent>   _appToEngineEvents;
   
   std::vector<ExternalInterface::RobotCompletedAction> _actionsCompletedThisTick;
   
@@ -86,7 +87,7 @@ private:
   
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorComponent_BehaviorEventComponent_H__

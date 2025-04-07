@@ -4,7 +4,7 @@
 * Author: Kevin M. Karol
 * Created: 1/23/18
 *
-* Description: Condition which is true when motion is detected
+* Description: Condition which is true when motion is detected with the vision system
 *
 * Copyright: Anki, Inc. 2018
 *
@@ -18,7 +18,11 @@
 #include "engine/aiComponent/beiConditions/iBEIConditionEventHandler.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+  
+namespace ExternalInterface {
+struct RobotObservedMotion;
+}
 
 class BEIConditionMessageHelper;
 
@@ -37,7 +41,7 @@ protected:
   virtual void HandleEvent(const EngineToGameEvent& event, BehaviorExternalInterface& behaviorExternalInterface) override;
   virtual void GetRequiredVisionModes(std::set<VisionModeRequest>& requiredVisionModes) const override
   {
-    requiredVisionModes.insert( {VisionMode::DetectingMotion, EVisionUpdateFrequency::High} );
+    requiredVisionModes.insert( {VisionMode::Motion, EVisionUpdateFrequency::High} );
   }
 
   virtual void BuildDebugFactorsInternal( BEIConditionDebugFactors& factors ) const override;

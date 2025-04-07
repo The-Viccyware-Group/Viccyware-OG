@@ -12,14 +12,14 @@
 
 #include "engine/components/cubes/cubeAccelListeners/lowPassFilterListener.h"
 
-#include "coretech/common/engine/math/point_impl.h"
-
 #include "clad/types/activeObjectAccel.h"
+
+#include "coretech/common/shared/math/point.h"
 
 #include "util/logging/logging.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace CubeAccelListeners {
   
 LowPassFilterListener::LowPassFilterListener(const Vec3f& coeffs, std::weak_ptr<ActiveAccel> output)

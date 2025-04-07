@@ -12,8 +12,8 @@
 
 
 #include "coretech/common/engine/jsonTools.h"
-#include "coretech/common/engine/math/rect_impl.h"
-#include "coretech/common/engine/math/rotation.h"
+#include "coretech/common/shared/array2d.h"
+#include "coretech/common/shared/math/rotation.h"
 
 #include "coretech/vision/engine/petTracker.h"
 
@@ -247,8 +247,8 @@ Result PetTracker::Update(const Vision::Image&       frameOrig,
   RAWIMAGE* dataPtr = const_cast<UINT8*>(frameOrig.GetDataPointer());
   omcvResult = OMCV_PD_Detect(_handles->omcvPetDetector, dataPtr, nWidth, nHeight, _handles->omcvDetectionResult);
   if(OMCV_NORMAL != omcvResult) {
-    PRINT_NAMED_WARNING("PetTracker.Update.OmcvDetectFail", "OMCV Result Code=%d",
-                        omcvResult);
+    PRINT_NAMED_WARNING("PetTracker.Update.OmcvDetectFail", "OMCV Result Code=%d, dataPtr=%p, nWidth=%d, nHeight=%d",
+                        omcvResult, dataPtr, nWidth, nHeight);
     return RESULT_FAIL;
   }
   

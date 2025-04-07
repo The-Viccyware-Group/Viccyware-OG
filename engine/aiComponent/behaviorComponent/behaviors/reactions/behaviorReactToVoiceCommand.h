@@ -14,15 +14,18 @@
 #define __Cozmo_Basestation_Behaviors_BehaviorReactToVoiceCommand_H__
 
 #include "clad/audio/audioEventTypes.h"
+#include "coretech/common/engine/utils/recentOccurrenceTracker.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
-#include "engine/components/bodyLightComponentTypes.h"
+#include "engine/components/backpackLights/engineBackpackLightComponentTypes.h"
 #include "engine/components/mics/micDirectionTypes.h"
-
+#include "engine/engineTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorReactToMicDirection;
+class ConditionUserIntentPending;
+enum class AnimationTrigger : int32_t;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class BehaviorReactToVoiceCommand : public ICozmoBehavior
@@ -32,6 +35,9 @@ class BehaviorReactToVoiceCommand : public ICozmoBehavior
 
 
 public:
+
+  // Public destructor must be explicitly defined to allow std::unique_ptr<FwdDeclaredType> (ConditionUserIntentPending)
+  ~BehaviorReactToVoiceCommand();
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -44,14 +50,25 @@ public:
   // since they are generic PlayAnim behaviors (reactToVoiceCommand_Wakeup)
   virtual void AddListener(ISubtaskListener* listener) override {};
 
+  // Allow other behaviors to specify a timestamp (generally the current timestamp)
+  // on which the turn on trigger/intent is disabled
+  void DisableTurnForTimestamp(EngineTimeStamp_t timestampToDisableFor){
+    _dVars.timestampToDisableTurnFor = timestampToDisableFor;
+  }
+  
+  void SetListeningAnims(const AnimationTrigger& listeningLoop,
+                         const AnimationTrigger& listeningGetOut);
+  
+  void ResetListeningAnimsToConfig();
 
 protected:
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   enum class EState : uint8_t
   {
-    Positioning,
-    Listening,
+    GetIn,
+    ListeningGetIn,
+    ListeningLoop,
     Thinking,
     IntentReceived,
   };
@@ -60,7 +77,9 @@ protected:
   {
     IntentHeard,
     IntentUnknown,
+    SilenceTimeout,
     NoIntentHeard,
+    Error
   };
 
 
@@ -70,23 +89,16 @@ protected:
   virtual void GetAllDelegates( std::set<IBehavior*>& delegates ) const override;
 
   virtual void AlwaysHandleInScope( const RobotToEngineEvent& event ) override;
-  virtual void HandleWhileActivated( const RobotToEngineEvent& event ) override;
 
+  virtual void OnBehaviorEnteredActivatableScope() override;
   virtual void OnBehaviorActivated() override;
   virtual void OnBehaviorDeactivated() override;
+  virtual void OnBehaviorLeftActivatableScope() override;
+
   virtual void BehaviorUpdate() override;
 
-  // reaction direction functions ...
-
-  // cache the direction we want to react to
-  void ComputeReactionDirection();
-  // get the direction we want to react to
-  MicDirectionIndex GetReactionDirection() const;
-  // get the "selected direction" from the mic history
-  // this should be the "locked direction" upon trigger word detected
-  MicDirectionIndex GetSelectedDirectionFromMicHistory() const;
   
-  void SetUserIntentStatus();
+  void UpdateUserIntentStatus();
 
   // state / transition functions
   void StartListening();
@@ -95,7 +107,7 @@ protected:
   void TransitionToThinking();
   void TransitionToIntentReceived();
 
-  // coincide with the begin/end of the anim process recording the intent audio
+  // coincide with the beginning of the stream being opened
   void OnStreamingBegin();
   void OnStreamingEnd();
 
@@ -104,11 +116,29 @@ protected:
   void OnVictorListeningBegin();
   void OnVictorListeningEnd();
 
+  void HandleStreamFailure();
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // Direction Helpers
+
+  // cache the direction we want to react to
+  void ComputeReactionDirectionFromStream();
+
+  // get the direction we want to react to
+  MicDirectionIndex GetReactionDirection() const;
+  // get the "best recent" direction from the mic history
+  MicDirectionIndex GetDirectionFromMicHistory() const;
+  
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // Time Helpers
+
+  double GetStreamingDuration() const;
+  double GetListeningTimeout() const;
+
 
 private:
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
   struct InstanceConfig
   {
     InstanceConfig();
@@ -117,17 +147,43 @@ private:
     AudioMetaData::GameEvent::GenericEvent earConBegin;
     AudioMetaData::GameEvent::GenericEvent earConSuccess;
     AudioMetaData::GameEvent::GenericEvent earConFail;
-
-    bool turnOnTrigger; // do we turn to the user when we hear the trigger word
-    bool turnOnIntent; // do we turn to the user when we hear the intent
-    bool playListeningGetInAnim; // do we want to play the get-in to listening loop
-    bool exitOnIntents; // do we bail as soon as we have an intent from the cloud
+    
+    bool pushResponse;
+    
+    AnimationTrigger animListeningGetIn;
+    AnimationTrigger animListeningLoop;
+    AnimationTrigger animListeningGetOut;
 
     bool backpackLights;
+    
+    bool exitAfterGetIn;
+    
+    // If we are not streaming audio to the cloud, then this causes the behavior to exit after playing the "unheard"
+    // animation. This is to prevent the accumulation of "errors" due to unreceived intents (we would not expect any
+    // intents to come down if we are not streaming)
+    bool exitAfterListeningIfNotStreaming;
 
     // response behavior to hearing the trigger word (or intent)
     std::string reactionBehaviorString;
     std::shared_ptr<BehaviorReactToMicDirection> reactionBehavior;
+
+    // behaviors to handle specific failure cases
+    ICozmoBehaviorPtr unmatchedIntentBehavior;
+    ICozmoBehaviorPtr silenceIntentBehavior;
+    ICozmoBehaviorPtr noCloudBehavior;
+    ICozmoBehaviorPtr noWifiBehavior;
+
+    // tracking for when to trigger failure behaviors
+    float _errorTrackingWindow_s = 0.0f;
+    int _numErrorsToTriggerAnim = 0;
+    RecentOccurrenceTracker cloudErrorTracker;
+    RecentOccurrenceTracker wifiErrorTracker;
+    // when this handle's conditions are met, we animate to show the user there was a failure (and possibly
+    // trigger an attention transfer)
+    RecentOccurrenceTracker::Handle wifiErrorHandle;
+    RecentOccurrenceTracker::Handle cloudErrorHandle;
+
+    std::unique_ptr<ConditionUserIntentPending> intentWhitelistCondition;
 
   } _iVars;
 
@@ -141,18 +197,35 @@ private:
     EState                    state;
     MicDirectionIndex         reactionDirection;
     BackpackLightDataLocator  lightsHandle;
-    float                     streamingBeginTime;
-    EIntentStatus             intentStatus;
-    bool                      isListening;
 
+    double                    streamingBeginTime;
+    double                    streamingEndTime;
+
+    EIntentStatus             intentStatus;
+    EngineTimeStamp_t         timestampToDisableTurnFor;
+
+    bool                      expectingStream;
+    
+    struct Persistent {
+
+      Persistent();
+
+      AnimationTrigger          forcedAnimListeningLoop;
+      AnimationTrigger          forcedAnimListeningGetOut;
+      
+      bool                      listeningAnimsResetQueued;
+    };
+    Persistent persistent;
   } _dVars;
 
   // these are dynamic vars that live beyond the activation scope ...
   MicDirectionIndex         _triggerDirection;
 
+  bool IsTurnEnabled() const;
+
 }; // class BehaviorReactToVoiceCommand
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_Behaviors_BehaviorReactToVoiceCommand_H__

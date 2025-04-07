@@ -19,39 +19,61 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 ActiveBehaviorIterator::ActiveBehaviorIterator()
   : IDependencyManagedComponent( this, BCComponentID::ActiveBehaviorIterator )
 {
 }
 
-void ActiveBehaviorIterator::InitDependent( Robot* robot, const BCCompMap& dependentComponents )
+void ActiveBehaviorIterator::InitDependent( Robot* robot, const BCCompMap& dependentComps )
 {
-  _bsm = dependentComponents.GetBasePtr<BehaviorSystemManager>();
+  _bsm = dependentComps.GetComponentPtr<BehaviorSystemManager>();
 }
 
 void ActiveBehaviorIterator::IterateActiveCozmoBehaviorsForward(CozmoBehaviorCallback operand,
-                                                                IBehavior* startingBehavior) const
+                                                                const IBehavior* startingBehavior) const
 {
   const IBehavior* curr = startingBehavior;
 
   if( nullptr == curr ) {
     // start at the base behavior by default
-    curr = _bsm->GetBaseBeahvior();
+    curr = _bsm->GetBaseBehavior();
   }
 
-  BOUNDED_WHILE(1000, curr != nullptr) {
+  bool continueIterating = true;
+  BOUNDED_WHILE(1000, (curr != nullptr) && (continueIterating) ) {
     const ICozmoBehavior* cozmoBehaviorPtr = dynamic_cast<const ICozmoBehavior*>( curr );
     if( ANKI_VERIFY(cozmoBehaviorPtr != nullptr, "ActiveBehaviorIterator.NonCozmoBehaviorOnStack",
                     "Behavior cannot be dynamic casted to a cozmo behavior")) {
-      operand(*cozmoBehaviorPtr);
+      continueIterating = operand(*cozmoBehaviorPtr);
     }
     
     curr = _bsm->GetBehaviorDelegatedTo(curr);
   }
 }
 
+void ActiveBehaviorIterator::IterateActiveCozmoBehaviorsBackward(CozmoBehaviorCallback operand,
+                                                                 const IBehavior* startingBehavior) const
+{
+  const IBehavior* curr = startingBehavior;
+
+  if( nullptr == curr ) {
+    // start at the top behavior by default
+    curr = _bsm->GetTopBehavior();
+  }
+
+  bool continueIterating = true;
+  BOUNDED_WHILE(1000, (curr != nullptr) && (continueIterating) ) {
+    const ICozmoBehavior* cozmoBehaviorPtr = dynamic_cast<const ICozmoBehavior*>( curr );
+    if( ANKI_VERIFY(cozmoBehaviorPtr != nullptr, "ActiveBehaviorIterator.NonCozmoBehaviorOnStack",
+                    "Behavior cannot be dynamic casted to a cozmo behavior")) {
+      continueIterating = operand(*cozmoBehaviorPtr);
+    }
+    
+    curr = _bsm->GetBehaviorDelegatedFrom(curr);
+  }
+}
 
 size_t ActiveBehaviorIterator::GetLastTickBehaviorStackChanged() const
 {

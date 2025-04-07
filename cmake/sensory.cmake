@@ -1,4 +1,4 @@
-set(SENSORY_HOME "${ANKI_EXTERNAL_DIR}/anki-thirdparty/sensory")
+set(SENSORY_HOME "${ANKI_THIRD_PARTY_DIR}/sensory")
 set(SENSORY_INCLUDE_PATH "${SENSORY_HOME}/TrulyHandsfreeSDK/4.4.23/android/include")
 
 if (VICOS)
@@ -18,4 +18,5 @@ foreach(LIB ${SENSORY_LIBS})
     "${SENSORY_LIB_PATH}/lib${LIB}.a"
     INTERFACE_INCLUDE_DIRECTORIES
     "${SENSORY_INCLUDE_PATH}")
+  anki_build_target_license(${LIB} "Commercial")
 endforeach()

@@ -4,7 +4,7 @@
 * Author: Kevin M. Karol
 * Created: 1/23/18
 *
-* Description: Condition which is true when motion is detected
+* Description: Condition which is true when motion is detected with the vision system
 *
 * Copyright: Anki, Inc. 2018
 *
@@ -12,6 +12,7 @@
 
 
 #include "engine/aiComponent/beiConditions/conditions/conditionMotionDetected.h"
+#include "clad/externalInterface/messageEngineToGame.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/aiComponent/beiConditions/beiConditionMessageHelper.h"
@@ -19,7 +20,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
 const char* kMotionAreaKey = "motionArea";

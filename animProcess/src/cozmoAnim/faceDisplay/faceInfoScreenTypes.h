@@ -14,10 +14,10 @@
 #define __AnimProcess_CozmoAnim_FaceDisplay_FaceInfoScreenTypes_H_
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 // The names of all the screens that are supported
-enum class ScreenName {
+enum class ScreenName : uint8_t {
   None = 0,
   FAC  = 1, // Needs to be after None
 
@@ -30,22 +30,33 @@ enum class ScreenName {
   ClearUserDataFail,
   Rebooting,
   SelfTest,
+  SelfTestRunning,
   Network,
   SensorInfo,
   IMUInfo,
   MotorInfo,
+  BuildInfo,
   Camera,
   CameraMotorTest,
   MicInfo,
   MicDirectionClock,
   CustomText,
+  MirrorMode, // Like Camera but without links to other screens
+  AlexaNotification,   // quick face screen that alexa has a notification (todo: remove)
+  AlexaPairing,        // pairing in progress (no timeout)
+  AlexaPairingSuccess, // completed pairing (has timeout)
+  AlexaPairingExpired, // code expires (has timeout)
+  AlexaPairingFailed,  // server error (has timeout)
+  ToggleMute, // Quick animation to show change in microphone mute state
+  ToF,
+  Kercre123,
   
   Count
 };
 
 constexpr f32 kDefaultScreenTimeoutDuration_s = 180.f;
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AnimProcess_CozmoAnim_FaceDisplay_FaceInfoScreenTypes_H_

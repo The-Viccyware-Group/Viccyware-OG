@@ -1,8 +1,0 @@
-{
-  "behaviorClass": "AnimSequence",
-  "behaviorID": "ExamplePetInitialDetection",
-  "animTriggers": ["DEPRECATED_AcknowledgeObject"],
-  "wantsToBeActivatedCondition": {
-    "conditionType" : "PetInitialDetection"
-  }  
-}

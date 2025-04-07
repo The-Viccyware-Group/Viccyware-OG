@@ -20,9 +20,16 @@
 #include "coretech/common/engine/objectIDs.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BEIConditionMessageHelper;
+
+namespace ExternalInterface {
+struct ObjectMoved;
+struct ObjectStoppedMoving;
+struct ObjectUpAxisChanged;
+struct RobotObservedObject;
+}
 
 
 //Forward declarations
@@ -58,7 +65,7 @@ private:
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_WantsToRunStrategies_ConditionObjectMoved_H__

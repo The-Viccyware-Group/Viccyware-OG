@@ -22,13 +22,16 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+namespace Anim {
 
 class AudioLayerManager : public ITrackLayerManager<RobotAudioKeyFrame>
 {
 public:
   
   AudioLayerManager(const Util::RandomGenerator& rng);
+  
+  void EnableProceduralAudio(bool enabled) { _enabled = enabled; };
   
   // Add Audio Keyframes for Eye Blink
   Result AddEyeBlinkToAudioTrack(const std::string& layerName,
@@ -51,8 +54,11 @@ public:
   void GenerateGlitchAudio(u32 numFramesToGen,
                            Animations::Track<RobotAudioKeyFrame>& outTrack) const;
 
+private:
+  bool _enabled = true;
 };
 
+}
 }
 }
 

@@ -24,20 +24,21 @@
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/objectInteractionInfoCache.h"
 #include "engine/blockWorld/blockWorld.h"
-#include "engine/externalInterface/externalInterface.h"
-#include "clad/externalInterface/messageEngineToGame.h"
 
+#define LOG_CHANNEL "Behaviors"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
 const char* kPickupRetryCountKey = "retryCount";
+const char* kSkipInitialReactionAnimKey = "skipInitialReactionAnim";
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorPickUpCube::InstanceConfig::InstanceConfig()
+: skipInitialReactionAnim(false)
 {
   pickupRetryCount = 1;
 }
@@ -63,6 +64,8 @@ BehaviorPickUpCube::BehaviorPickUpCube(const Json::Value& config)
     const std::string debug = "BehaviorPickupCube.Constructor.RetryParseIssue";
     _iConfig.pickupRetryCount = JsonTools::ParseUint8(config, kPickupRetryCountKey, debug);
   }
+
+  JsonTools::GetValueOptional(config, kSkipInitialReactionAnimKey, _iConfig.skipInitialReactionAnim);
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -70,7 +73,7 @@ void BehaviorPickUpCube::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys
 {
   const char* list[] = {
     kPickupRetryCountKey,
-    kPickupRetryCountKey,
+    kSkipInitialReactionAnimKey
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
 }
@@ -78,11 +81,15 @@ void BehaviorPickUpCube::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool BehaviorPickUpCube::WantsToBeActivatedBehavior() const
 {
-  // check even if we haven't seen a block so that we can pickup blocks we know of
-  // that are outside FOV
-  ObjectID targetID;
-  CalculateTargetID(targetID);
-  return targetID.IsSet();
+  if( _dVars.idSetExternally ) {
+    return _dVars.targetBlockID.IsSet();
+  } else {
+    // check even if we haven't seen a block so that we can pickup blocks we know of
+    // that are outside FOV
+    ObjectID targetID;
+    CalculateTargetID(targetID);
+    return targetID.IsSet();
+  }
 }
 
 
@@ -101,10 +108,10 @@ void BehaviorPickUpCube::OnBehaviorActivated()
     CalculateTargetID(_dVars.targetBlockID);
   }
   
-  if(!ShouldStreamline()){
-    TransitionToDoingInitialReaction();
-  }else{
+  if(_iConfig.skipInitialReactionAnim || ShouldStreamline()){
     TransitionToPickingUpCube();
+  }else{
+    TransitionToDoingInitialReaction();
   }
   
 }
@@ -152,7 +159,12 @@ void BehaviorPickUpCube::TransitionToPickingUpCube()
     }else if((IActionRunner::GetActionResultCategory(result) == ActionResultCategory::RETRY) &&
              (_dVars.pickupRetryCount < _iConfig.pickupRetryCount)){
       _dVars.pickupRetryCount++;
-      TransitionToPickingUpCube();
+      if(!ShouldStreamline()){
+        TransitionToRetryReaction();
+      }
+      else{
+        TransitionToPickingUpCube();
+      }
     }else{
       auto& blockWorld = GetBEI().GetBlockWorld();
       const ObservableObject* pickupObj = blockWorld.GetLocatedObjectByID(_dVars.targetBlockID);
@@ -165,17 +177,25 @@ void BehaviorPickUpCube::TransitionToPickingUpCube()
   });
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorPickUpCube::TransitionToRetryReaction()
+{
+  DEBUG_SET_STATE(DoingRetryReaction);
+  DelegateIfInControl(new TriggerLiftSafeAnimationAction(AnimationTrigger::PickupCubeRetry),
+                      &BehaviorPickUpCube::TransitionToPickingUpCube);
+
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorPickUpCube::TransitionToSuccessReaction()
 {
   if(!ShouldStreamline()){
     DEBUG_SET_STATE(DoingFinalReaction);
-    DelegateIfInControl(new TriggerLiftSafeAnimationAction(AnimationTrigger::ReactToBlockPickupSuccess));
+    DelegateIfInControl(new TriggerLiftSafeAnimationAction(AnimationTrigger::PickupCubeSuccess));
   }
 }
 
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 

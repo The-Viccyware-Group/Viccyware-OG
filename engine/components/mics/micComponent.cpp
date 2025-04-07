@@ -13,6 +13,7 @@
 #include "engine/components/mics/micComponent.h"
 #include "engine/components/mics/micDirectionHistory.h"
 #include "engine/components/mics/voiceMessageSystem.h"
+#include "engine/cozmoContext.h"
 #include "engine/robot.h"
 
 #include "clad/robotInterface/messageEngineToRobot.h"
@@ -23,7 +24,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MicComponent::MicComponent() :
@@ -46,27 +47,29 @@ void MicComponent::GetInitDependencies( RobotCompIDSet& dependencies ) const
 {
   // we could allow our sub-systems to add to this, but it's simple enough at this point
   dependencies.insert( RobotComponentID::CozmoContextWrapper );
+  dependencies.insert( RobotComponentID::Vision );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void MicComponent::InitDependent( Cozmo::Robot* robot, const RobotCompMap& dependentComponents )
+void MicComponent::InitDependent( Vector::Robot* robot, const RobotCompMap& dependentComps )
 {
+  _micHistory->Initialize( robot->GetContext() );
   _messageSystem->Initialize( robot );
   _robot = robot;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void MicComponent::StartWakeWordlessStreaming()
+void MicComponent::SetBufferFullness(float val)
 {
-  _robot->SendMessage(RobotInterface::EngineToRobot(RobotInterface::StartWakeWordlessStreaming()));
+  if( !Util::InRange( val, 0.0f, 1.0f ) ) {
+    PRINT_NAMED_WARNING("MicComponent.SetBufferFullness.InvalidValue", "Fullness value %f invalid, must be [0, 1]",
+                        val);
+    _fullness = 0.0f;
+  }
+  else {
+    _fullness = val;
+  }
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void MicComponent::SetShouldStreamAfterWakeWord(bool shouldStream)
-{
-  RobotInterface::SetShouldStreamAfterWakeWord msg{shouldStream};
-  _robot->SendMessage(RobotInterface::EngineToRobot(std::move(msg)));
-}
-
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

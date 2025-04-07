@@ -31,29 +31,32 @@
 #include "coretech/common/engine/jsonTools.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "coretech/common/engine/utils/data/dataPlatform.h"
+#include "engine/actions/basicActions.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/behaviorExternalInterface.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/devBehaviors/behaviorDevEventSequenceCapture.h"
 #include "engine/audio/engineRobotAudioClient.h"
-#include "engine/components/bodyLightComponent.h"
+#include "engine/components/backpackLights/engineBackpackLightComponent.h"
 #include "engine/components/movementComponent.h"
 #include "engine/components/visionComponent.h"
 #include "engine/components/sensors/touchSensorComponent.h"
 #include "engine/cozmoContext.h"
 #include "engine/externalInterface/externalInterface.h"
+#include "engine/vision/imageSaver.h"
 #include "util/fileUtils/fileUtils.h"
+#include "util/random/randomGenerator.h"
 
 #include <chrono>
 #include <fstream>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 
 // constexpr const float kLightBlinkPeriod_s = 0.5f;
 
-static const BackpackLights kLightsWaiting = {
+static const BackpackLightAnimation::BackpackAnimation kLightsWaiting = {
   .onColors               = {{NamedColors::GREEN,NamedColors::GREEN,NamedColors::GREEN}},
   .offColors              = {{NamedColors::GREEN,NamedColors::GREEN,NamedColors::GREEN}},
   .onPeriod_ms            = {{0,0,0}},
@@ -63,7 +66,7 @@ static const BackpackLights kLightsWaiting = {
   .offset                 = {{0,0,0}}
 };
 
-static const BackpackLights kLightsSetup = {
+static const BackpackLightAnimation::BackpackAnimation kLightsSetup = {
   .onColors               = {{NamedColors::BLUE,NamedColors::BLUE,NamedColors::BLUE}},
   .offColors              = {{NamedColors::BLUE,NamedColors::BLUE,NamedColors::BLUE}},
   .onPeriod_ms            = {{0,0,0}},
@@ -73,7 +76,7 @@ static const BackpackLights kLightsSetup = {
   .offset                 = {{0,0,0}}
 };
 
-static const BackpackLights kLightsPreCap = {
+static const BackpackLightAnimation::BackpackAnimation kLightsPreCap = {
   .onColors               = {{NamedColors::RED,NamedColors::RED,NamedColors::RED}},
   .offColors              = {{NamedColors::RED,NamedColors::RED,NamedColors::RED}},
   .onPeriod_ms            = {{0,0,0}},
@@ -83,7 +86,7 @@ static const BackpackLights kLightsPreCap = {
   .offset                 = {{0,0,0}}
 };
   
-static const BackpackLights kLightsPostCap = {
+static const BackpackLightAnimation::BackpackAnimation kLightsPostCap = {
   .onColors               = {{NamedColors::RED,NamedColors::RED,NamedColors::RED}},
   .offColors              = {{NamedColors::RED,NamedColors::RED,NamedColors::RED}},
   .onPeriod_ms            = {{0,0,0}},
@@ -96,12 +99,14 @@ static const BackpackLights kLightsPostCap = {
 const char* const kSavePathKey = "save_path";
 const char* const kImageSaveQualityKey = "quality";
 const char* const kImageScaleKey = "image_scale";
-const char* const kImageResizeMethodKey = "resize_method";
 const char* const kUseCapacitiveTouchKey = "use_capacitive_touch";
 const char* const kClassNamesKey = "class_names";
 const char* const kSequenceSetupTimeKey = "sequence_setup_time";
 const char* const kPreEventCaptureTimeKey = "pre_event_capture_time";
 const char* const kPostEventCaptureTimeKey = "post_event_capture_time";
+const char* const kEnableRandomHeadTiltKey = "enable_random_head_tilt";
+const char* const kMinHeadTiltKey = "min_head_tilt";
+const char* const kMaxHeadTiltKey = "max_head_tilt";
 }
 
 
@@ -109,7 +114,7 @@ const char* const kPostEventCaptureTimeKey = "post_event_capture_time";
 BehaviorDevEventSequenceCapture::InstanceConfig::InstanceConfig()
 {
   useCapTouch = false;
-  imageSaveSize = Vision::ImageCache::Size::Full;
+  imageSaveSize = Vision::ImageCacheSize::Half;
 }
 
 BehaviorDevEventSequenceCapture::DynamicVariables::DynamicVariables()
@@ -130,12 +135,26 @@ BehaviorDevEventSequenceCapture::BehaviorDevEventSequenceCapture(const Json::Val
   _iConfig.useCapTouch = JsonTools::ParseBool(config, kUseCapacitiveTouchKey, "BehaviorDevEventSequenceCapture");
 
   std::string scaleStr = JsonTools::ParseString(config, kImageScaleKey, "BehaviorDevEventSequenceCapture");
-  std::string methodStr = JsonTools::ParseString(config, kImageResizeMethodKey, "BehaviorDevEventSequenceCapture");
-  _iConfig.imageSaveSize = Vision::ImageCache::StringToSize(scaleStr, methodStr);
+  _iConfig.imageSaveSize = Vision::ImageCache::StringToSize(scaleStr);
 
-  _iConfig.sequenceSetupTime = JsonTools::ParseFloat(config, kSequenceSetupTimeKey, "BehaviorDevEventSequenceCapture");  
+  _iConfig.sequenceSetupTime = JsonTools::ParseFloat(config, kSequenceSetupTimeKey, "BehaviorDevEventSequenceCapture");
   _iConfig.preEventCaptureTime = JsonTools::ParseFloat(config, kPreEventCaptureTimeKey, "BehaviorDevEventSequenceCapture");
-  _iConfig.postEventCaptureTime = JsonTools::ParseFloat(config, kPostEventCaptureTimeKey, "BehaviorDevEventSequenceCapture");  
+  _iConfig.postEventCaptureTime = JsonTools::ParseFloat(config, kPostEventCaptureTimeKey, "BehaviorDevEventSequenceCapture");
+
+  _iConfig.enableRandomHeadTilt = JsonTools::ParseBool(config, kEnableRandomHeadTiltKey, "BehaviorDevEventSequenceCapture");
+  if( _iConfig.enableRandomHeadTilt )
+  {
+    _iConfig.minHeadTilt = MIN_HEAD_ANGLE;
+    _iConfig.maxHeadTilt = MAX_HEAD_ANGLE;
+    if( JsonTools::GetValueOptional(config, kMinHeadTiltKey, _iConfig.minHeadTilt) )
+    {
+      _iConfig.minHeadTilt = DEG_TO_RAD( _iConfig.minHeadTilt );
+    }
+    if( JsonTools::GetValueOptional(config, kMaxHeadTiltKey, _iConfig.maxHeadTilt) )
+    {
+      _iConfig.maxHeadTilt = DEG_TO_RAD( _iConfig.maxHeadTilt );
+    }
+  }
 
   if(config.isMember(kClassNamesKey))
   {
@@ -171,12 +190,14 @@ void BehaviorDevEventSequenceCapture::GetBehaviorJsonKeys(std::set<const char*>&
     kSavePathKey,
     kImageSaveQualityKey,
     kImageScaleKey,
-    kImageResizeMethodKey,
     kUseCapacitiveTouchKey,
     kClassNamesKey,
     kSequenceSetupTimeKey,
     kPreEventCaptureTimeKey,
-    kPostEventCaptureTimeKey
+    kPostEventCaptureTimeKey,
+    kEnableRandomHeadTiltKey,
+    kMinHeadTiltKey,
+    kMaxHeadTiltKey
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
 }
@@ -188,14 +209,11 @@ void BehaviorDevEventSequenceCapture::OnBehaviorActivated()
   _dVars.waitStartTime_s = -1.0f;
   _dVars.wasTouched = false;
 
-  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetValue<VisionComponent>();
-  visionComponent.EnableDrawImagesToScreen(true);
-  
   auto& robotInfo = GetBEI().GetRobotInfo();
   // wait for the lift to relax 
   robotInfo.GetMoveComponent().EnableLiftPower(false);
 
-  GetBEI().GetBodyLightComponent().SetBackpackLights( kLightsWaiting );
+  GetBEI().GetBackpackLightComponent().SetBackpackAnimation( kLightsWaiting );
 }
 
 
@@ -205,9 +223,6 @@ void BehaviorDevEventSequenceCapture::OnBehaviorDeactivated()
   auto& robotInfo = GetBEI().GetRobotInfo();
   // wait for the lift to relax 
   robotInfo.GetMoveComponent().EnableLiftPower(true);
-
-  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetValue<VisionComponent>();
-  visionComponent.EnableDrawImagesToScreen(false);
 }
 
 
@@ -243,9 +258,15 @@ std::string BehaviorDevEventSequenceCapture::GetRelSequenceSavePath() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+std::string BehaviorDevEventSequenceCapture::GetAbsSequenceSavePath() const
+{
+  return Util::FileUtils::FullFilePath({GetAbsBaseSavePath(), GetRelSequenceSavePath()});
+}
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::string BehaviorDevEventSequenceCapture::GetAbsInfoSavePath() const
 {
-  return Util::FileUtils::FullFilePath({GetAbsBaseSavePath(), GetRelSequenceSavePath(), "sequenceInfo.json"});
+  return Util::FileUtils::FullFilePath({GetAbsSequenceSavePath(), "sequenceInfo.json"});
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -264,7 +285,7 @@ int32_t BehaviorDevEventSequenceCapture::GetNumCurrentSequences() const
   return (int32_t) currentSequences.size();
 }
 
-TimeStamp_t BehaviorDevEventSequenceCapture::GetTimestamp() const
+RobotTimeStamp_t BehaviorDevEventSequenceCapture::GetTimestamp() const
 {
   // NOTE We're clocking ourselves using the image timestamps to make sure sequence info is on the same clock
   // This should be fixed when a proper wall time implementation is added
@@ -291,16 +312,13 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
 
   const float currTime_s = GetTimestampSec();
   float waitTime_s = currTime_s - _dVars.waitStartTime_s;
-  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetValue<VisionComponent>();
+  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetComponent<VisionComponent>();
   int32_t numCurrentSeqs = GetNumCurrentSequences();
 
   // Display the class name and sequence number
   // TODO Continue sequences from before so we don't overwrite upon restart?
-  std::function<void(Vision::ImageRGB&)> drawClassName = [this, numCurrentSeqs](Vision::ImageRGB& img)
-  {
-    img.DrawText({1,14}, *_dVars.currentClassIter + ":" + std::to_string(numCurrentSeqs), NamedColors::RED, 0.6f, true);
-  };
-  visionComponent.AddDrawScreenModifier(drawClassName);
+  const std::string str(*_dVars.currentClassIter + ":" + std::to_string(numCurrentSeqs));
+  visionComponent.SetMirrorModeDisplayString(str, NamedColors::RED);
 
   // For audio files
   using GE = AudioMetaData::GameEvent::GenericEvent;
@@ -322,9 +340,19 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
         _dVars.seqState = SequenceState::Setup;
         _dVars.currentSeqNumber = numCurrentSeqs;
         _dVars.waitStartTime_s = currTime_s;
-        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Beep,
+
+        if( _iConfig.enableRandomHeadTilt )
+        {
+          double headAngle = GetBEI().GetRobotInfo().GetRNG().RandDblInRange( _iConfig.minHeadTilt, _iConfig.maxHeadTilt );
+          IActionRunner* tiltAction = new MoveHeadToAngleAction( headAngle );
+          PRINT_CH_DEBUG( "Behavior", "BehaviorDevEventSequenceCapture.TiltHead",
+                          "Tilting head to %f", RAD_TO_DEG(headAngle) );
+          DelegateIfInControl( tiltAction );
+        }
+
+        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Lift_High_Down_Long_Effort,
                                                  GO::Behavior);
-        GetBEI().GetBodyLightComponent().SetBackpackLights( kLightsSetup );
+        GetBEI().GetBackpackLightComponent().SetBackpackAnimation( kLightsSetup );
         PRINT_CH_DEBUG("Behaviors", "BehaviorDevEventSequenceCapture.startSequence", 
                        "starting sequence %d", _dVars.currentSeqNumber);
       }
@@ -338,13 +366,15 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
         _dVars.seqState = SequenceState::PreEventCapture;
         _dVars.waitStartTime_s = currTime_s;
         _dVars.seqStartTimeStamp = GetTimestamp();
-        visionComponent.SetSaveImageParameters(ImageSendMode::Stream,
-                                               GetRelSequenceSavePath(),
-                                               _iConfig.imageSaveQuality,
-                                               _iConfig.imageSaveSize);
-        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Beep,
+        ImageSaverParams params(GetAbsSequenceSavePath(),
+                                ImageSendMode::Stream,
+                                _iConfig.imageSaveQuality,
+                                "",
+                                _iConfig.imageSaveSize);
+        visionComponent.SetSaveImageParameters(params);
+        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Countdown,
                                                  GO::Behavior);
-        GetBEI().GetBodyLightComponent().SetBackpackLights( kLightsPreCap );
+        GetBEI().GetBackpackLightComponent().SetBackpackAnimation( kLightsPreCap );
         PRINT_CH_DEBUG("Behaviors", "BehaviorDevEventSequenceCapture.setupSequence", 
                        "set up sequence %d", _dVars.currentSeqNumber);
       }
@@ -360,7 +390,7 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
         _dVars.seqEventTimeStamp = GetTimestamp();
         GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Beep,
                                                  GO::Behavior);
-        GetBEI().GetBodyLightComponent().SetBackpackLights( kLightsPostCap );
+        GetBEI().GetBackpackLightComponent().SetBackpackAnimation( kLightsPostCap );
         PRINT_CH_DEBUG("Behaviors", "BehaviorDevEventSequenceCapture.preCapSequence", 
                        "pre captured sequence %d", _dVars.currentSeqNumber);
       }
@@ -373,21 +403,23 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
       {
         _dVars.seqState = SequenceState::Waiting;
         _dVars.seqEndTimeStamp = GetTimestamp();
-        visionComponent.SetSaveImageParameters(ImageSendMode::Off,
-                                               GetRelSequenceSavePath(),
-                                               _iConfig.imageSaveQuality,
-                                               _iConfig.imageSaveSize);
-        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Beep,
+        ImageSaverParams params(GetAbsSequenceSavePath(),
+                                ImageSendMode::Off,
+                                _iConfig.imageSaveQuality,
+                                "", // No basename: use auto-numbering
+                                _iConfig.imageSaveSize);
+        visionComponent.SetSaveImageParameters(params);
+        GetBEI().GetRobotAudioClient().PostEvent(GE::Play__Robot_Vic_Sfx__Timer_Cancel,
                                                  GO::Behavior);
-        GetBEI().GetBodyLightComponent().SetBackpackLights( kLightsWaiting );
+        GetBEI().GetBackpackLightComponent().SetBackpackAnimation( kLightsWaiting );
         PRINT_CH_DEBUG("Behaviors", "BehaviorDevEventSequenceCapture.endSequence", 
                        "finished sequence %d", _dVars.currentSeqNumber);
         
         // Save JSON file in directory listing sequence timings
         Json::Value seqInfo;
-        seqInfo["startTime"] = _dVars.seqStartTimeStamp;
-        seqInfo["eventTime"] = _dVars.seqEventTimeStamp;
-        seqInfo["endTime"] = _dVars.seqEndTimeStamp;
+        seqInfo["startTime"] = (TimeStamp_t)_dVars.seqStartTimeStamp;
+        seqInfo["eventTime"] = (TimeStamp_t)_dVars.seqEventTimeStamp;
+        seqInfo["endTime"] = (TimeStamp_t)_dVars.seqEndTimeStamp;
         std::ofstream seqFile(GetAbsInfoSavePath());
         Json::StyledWriter writer;
         seqFile << writer.write(seqInfo);
@@ -407,4 +439,4 @@ void BehaviorDevEventSequenceCapture::BehaviorUpdate()
 }
 
 } // namespace Anki
-} // namespace Cozmo
+} // namespace Vector

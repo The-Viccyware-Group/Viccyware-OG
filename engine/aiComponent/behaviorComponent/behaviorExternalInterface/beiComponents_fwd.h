@@ -2,36 +2,46 @@
 #define __Cozmo_Basestation_BehaviorSystem_BEI_Components_fwd_H__
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class BEIComponentID{
   AIComponent,
   Animation,
+  BackpackLightComponent,
   BeatDetector,
   BehaviorContainer,
   BehaviorEvent,
   BehaviorTimerManager,
   BlockWorld,
-  BodyLightComponent,
+  CliffSensor,
   CubeAccel,
+  CubeComms,
+  CubeConnectionCoordinator,
+  CubeInteractionTracker,
   CubeLight,
   DataAccessor,
   Delegation,
   FaceWorld,
+  HabitatDetector,
+  HeldInPalmTracker,
   Map,
   MicComponent,
   MoodManager,
   MovementComponent,
-  ObjectPoseConfirmer,
   PetWorld,
-  ProgressionUnlock,
+  PhotographyManager,
+  PowerStateManager,
   ProxSensor,
   PublicStateBroadcaster,
-  SDK,
   RobotAudioClient,
   RobotInfo,
+  SDK,
+  SettingsCommManager,
+  SettingsManager,
+  SleepTracker,
   TextToSpeechCoordinator,
   TouchSensor,
+  VariableSnapshotComponent,
   Vision,
   VisionScheduleMediator,
 
@@ -39,7 +49,7 @@ enum class BEIComponentID{
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_BEI_Components_fwd_H__

@@ -12,14 +12,6 @@
 {
   "handledByHighLevelAI": {
 
-    "system_sleep": {
-      "type": "system_sleep"
-    },
-
-    "system_charger": {
-      "type": "system_charger"
-    },
-
     "explore_start": {
       "type": "explore_start"
     }
@@ -27,29 +19,50 @@
   },
 
   "handledElsewhere": {
+    "system_charger": {
+      "type": "system_charger"
+    },
+  
+    "system_sleep": {
+      "type": "system_sleep"
+    },
+
     "set_timer": {
       "type": "set_timer"
     },
 
     "roll_cube": {
-      "type": "play_specific",
-      "entity_behavior": "roll_cube"
+      "type": "play_rollcube"
     },
 
     "fist_bump": {
-      "type": "play_specific",
-      "entity_behavior": "fist_bump"
+      "type": "play_fistbump"
     },
 
-    "keep_away": {
-      "type": "play_specific",
-      "entity_behavior": "keep_away"
+    // keep_away was removed from entity_behavior_entries_en.json in April
+    // (see https://github.com/anki/voice-intent-resolution-config/pull/33/files)
+    //
+    //"keep_away": {
+    //  "type": "play_specific",
+    //  "entity_behavior": "keep_away"
+    //},
+
+    "imperative_come": {
+      "type": "imperative_come"
     },
-    
-    // todo: come here doesn't look for a face or turn to mic direction if it doesnt know of one
-    // "imperative_come": {
-    //   "type": "imperative_come"
-    // },
+
+    "imperative_lookatme": {
+      "type": "imperative_lookatme"
+    },
+
+    // commented out until the 'GazeDirection' feature is enabled in resources/config/features.json
+    //"imperative_lookoverthere": {
+    //  "type": "imperative_lookoverthere"
+    //},
+
+    "names_ask": {
+      "type": "names_ask"
+    },
 
     "meet_victor": {
       "type": "meet_victor"
@@ -62,6 +75,20 @@
     "shut_up": {
       "type": "imperative_shutup"
     }
+
+    // commented out until we enable the corresponding tests in test/engine/behaviorComponent/testUserIntentTransitions.cpp
+  //   "imperative_volumelevel": {
+  //     "type": "imperative_volumelevel"
+  //     // how do I specify one of several values for a parameter?
+  //   },
+
+  //   "imperative_volumeup": {
+  //     "type": "imperative_volumeup"
+  //   },
+
+  //   "imperative_volumedown": {
+  //     "type": "imperative_volumedown"
+  //   }
   }
 
 }

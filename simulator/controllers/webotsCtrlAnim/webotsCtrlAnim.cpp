@@ -1,7 +1,7 @@
 /*
  * File:          webotsCtrlAnim.cpp
  * Date:
- * Description:   Cozmo 2.0 animation process for Webots simulation
+ * Description:   Vector animation process for Webots simulation
  * Author:
  * Modifications:
  */
@@ -10,35 +10,27 @@
 
 #include "../shared/ctrlCommonInitialization.h"
 #include "anki/cozmo/shared/cozmoConfig.h"
-#include "coretech/common/engine/utils/data/dataPlatform.h"
-#include "coretech/common/engine/jsonTools.h"
 
 #include "osState/osState.h"
 
-#include "json/json.h"
-
-#include "util/console/consoleInterface.h"
-#include "util/console/consoleSystem.h"
-#include "util/global/globalDefinitions.h"
 #include "util/logging/channelFilter.h"
 #include "util/logging/printfLoggerProvider.h"
 #include "util/logging/logging.h"
 #include "util/logging/multiFormattedLoggerProvider.h"
-
-#include <fstream>
+#include "util/time/stopWatch.h"
 
 #include <webots/Supervisor.hpp>
 
 #define LOG_CHANNEL    "webotsCtrlAnim"
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     CONSOLE_VAR_EXTERN(bool, kEnableCladLogger);
   }
 }
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 
 // Instantiate supervisor and pass to AndroidHAL
@@ -47,6 +39,9 @@ webots::Supervisor animSupervisor;
 
 int main(int argc, char **argv)
 {
+  // Start with a step so that we can attach to the process here for debugging
+  animSupervisor.step(ANIM_TIME_STEP_MS);
+
   // parse commands
   WebotsCtrlShared::ParsedCommandLine params = WebotsCtrlShared::ParseCommandLine(argc, argv);
 
@@ -55,9 +50,6 @@ int main(int argc, char **argv)
   // is too big of a change, since it involves changing down to the context, so create a non-const platform
   //const Anki::Util::Data::DataPlatform& dataPlatform = WebotsCtrlShared::CreateDataPlatformBS(argv[0]);
   Util::Data::DataPlatform dataPlatform = WebotsCtrlShared::CreateDataPlatformBS(argv[0], "webotsCtrlAnim");
-
-  // Set Webots supervisor
-  OSState::SetSupervisor(&animSupervisor);
 
   // - create and set logger
   Util::IFormattedLoggerProvider* printfLoggerProvider = new Util::PrintfLoggerProvider(Anki::Util::LOG_LEVEL_WARN,
@@ -70,7 +62,7 @@ int main(int argc, char **argv)
   Util::sSetGlobal(DPHYS, "0xdeadffff00000001");
 
   // - console filter for logs
-  if ( params.filterLog )
+  if (params.filterLog)
   {
     using namespace Anki::Util;
     ChannelFilter* consoleFilter = new ChannelFilter();
@@ -101,30 +93,47 @@ int main(int argc, char **argv)
     LOG_INFO("webotsCtrlAnim.main.noFilter", "Console will not be filtered due to program args");
   }
 
-  // Start with a step so that we can attach to the process here for debugging
-  animSupervisor.step(ANIM_TIME_STEP_MS);
-
   // Set up the console vars to load from file, if it exists
   ANKI_CONSOLE_SYSTEM_INIT("consoleVarsAnim.ini");
 
-  // Initialize the API
-  AnimEngine animEngine(&dataPlatform);
-  animEngine.Init();
+  // Initialize the anim engine
+  Anim::AnimEngine animEngine(&dataPlatform);
+  const auto result = animEngine.Init();
+  if (result != RESULT_OK) {
+    LOG_ERROR("webotsCtrlAnim.main", "Failed in creation/initialization of AnimEngine");
+  }
+  else {
+    LOG_INFO("webotsCtrlAnim.main", "AnimEngine created and initialized.");
 
-  LOG_INFO("webotsCtrlAnim.main", "AnimEngine created and initialized.");
+    OSState::getInstance()->SetRobotID(animSupervisor.getSelf()->getField("robotID")->getSFInt32());
 
-  //
-  // Main Execution loop: step the world forward forever
-  //
-  auto tick_start = std::chrono::system_clock::now();
-  while (animSupervisor.step(ANIM_TIME_STEP_MS) != -1)
-  {
-    double currTimeNanoseconds = Util::SecToNanoSec(animSupervisor.getTime());
-    animEngine.Update(Util::numeric_cast<BaseStationTime_t>(currTimeNanoseconds));
+    Anki::Util::Time::StopWatch stopWatch("tick");
 
-    tick_start = std::chrono::system_clock::now();
+    //
+    // Main Execution loop: step the world forward
+    //
+    while (animSupervisor.step(ANIM_TIME_STEP_MS) != -1)
+    {
+      stopWatch.Start();
 
-  } // while still stepping
+      const double currTimeNanoseconds = Util::SecToNanoSec(animSupervisor.getTime());
+      animEngine.Update(Util::numeric_cast<BaseStationTime_t>(currTimeNanoseconds));
+
+      const float time_ms = Util::numeric_cast<float>(stopWatch.Stop());
+
+      // Record tick performance; this includes a call to PerfMetric.
+      // For webots, we 'fake' the sleep time here.  Unlike in Cozmo webots,
+      // we don't actually sleep in this loop
+      static const float kTargetDuration_ms = Util::numeric_cast<float>(ANIM_TIME_STEP_MS);
+      const float animFreq_ms  = std::max(time_ms, kTargetDuration_ms);
+      const float sleepTime_ms = std::max(0.0f, kTargetDuration_ms - time_ms);
+      const float sleepTimeActual_ms = sleepTime_ms;
+      animEngine.RegisterTickPerformance(time_ms,
+                                         animFreq_ms,
+                                         sleepTime_ms,
+                                         sleepTimeActual_ms);
+    } // End tick loop
+  }
 
   Util::gLoggerProvider = nullptr;
   return 0;

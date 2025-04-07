@@ -12,6 +12,8 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/dispatch/helpers/behaviorScoringWrapper.h"
 
+#include "clad/externalInterface/messageEngineToGame.h"
+
 #include "coretech/common/engine/jsonTools.h"
 #include "coretech/common/engine/utils/timer.h"
 
@@ -21,14 +23,13 @@
 #include "util/random/randomGenerator.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 static const char* kEmotionScorersKey            = "emotionScorers";
 static const char* kFlatScoreKey                 = "flatScore";
 static const char* kRepetitionPenaltyKey         = "repetitionPenalty";
 static const char* kActivatedPenaltyKey          = "activatedPenalty";
-static const char* kCooldownOnObjectiveKey       = "considerThisHasRunForBehaviorObjective";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,17 +49,6 @@ BehaviorScoringWrapper::~BehaviorScoringWrapper()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorScoringWrapper::Init(BehaviorExternalInterface& bei)
 {
-  auto& robotInfo = bei.GetRobotInfo();
-  if(robotInfo.HasExternalInterface()){
-    using namespace ExternalInterface;
-    _eventHandlers.push_back(robotInfo.GetExternalInterface()->Subscribe(
-                EngineToGameTag::BehaviorObjectiveAchieved,
-                [this](const EngineToGameEvent& event) {
-                  DEV_ASSERT(event.GetData().GetTag() == EngineToGameTag::BehaviorObjectiveAchieved,
-                             "BehaviorScoringWrapper.Init.WrongEventTypeFromCallback");
-                  HandleBehaviorObjective(event.GetData().Get_BehaviorObjectiveAchieved());
-                }));
-  }
 }
 
 
@@ -137,22 +127,6 @@ float BehaviorScoringWrapper::EvaluateActivatedPenalty() const
 }
 
 
-
-
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorScoringWrapper::HandleBehaviorObjective(const ExternalInterface::BehaviorObjectiveAchieved& msg)
-{
-  if( _cooldownOnObjective != BehaviorObjective::Count && msg.behaviorObjective == _cooldownOnObjective ) {
-    // set last run time now (even though this behavior may not have run) so that it will incur repetition
-    // penalty as if it had run. This is useful as a way to sort of "share" cooldowns between multiple
-    // behaviors which are trying to do the same thing (but only if they succeed)
-    _lastTimeDeactivated = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  }
-}
-
-
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool BehaviorScoringWrapper::ReadFromJson(const Json::Value& config)
 {
@@ -204,21 +178,6 @@ bool BehaviorScoringWrapper::ReadFromJson(const Json::Value& config)
     _repetitionPenalty.AddNode(0.0f, 1.0f); // no penalty for any value
   }
   
-  // - - - - - - - - - -
-  // cooldown on other objective
-  // - - - - - - - - - -
-  
-  const Json::Value& cooldownOnObjectiveJson = config[kCooldownOnObjectiveKey];
-  if (!cooldownOnObjectiveJson.isNull()) {
-    const char* objectiveStr = cooldownOnObjectiveJson.asCString();
-    _cooldownOnObjective = BehaviorObjectiveFromString(objectiveStr);
-    if( _cooldownOnObjective == BehaviorObjective::Count ) {
-      PRINT_NAMED_WARNING("IScoredBehavior.BadBehaviorObjective",
-                          "could not convert '%s' to valid behavior objective",
-                          objectiveStr);
-    }
-  }
-  
   
   // - - - - - - - - - -
   // Activated penalty
@@ -247,5 +206,5 @@ bool BehaviorScoringWrapper::ReadFromJson(const Json::Value& config)
 
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

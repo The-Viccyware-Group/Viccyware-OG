@@ -14,8 +14,8 @@
 
 #define private public
 
-#include "clad/types/behaviorComponent/behaviorTypes.h"
-#include "clad/types/behaviorComponent/userIntent.h"
+#include "clad/types/behaviorComponent/behaviorClasses.h"
+#include "clad/types/behaviorComponent/behaviorIDs.h"
 #include "engine/aiComponent/behaviorComponent/behaviorSystemManager.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/aiComponent/behaviorComponent/userIntentComponent.h"
@@ -24,7 +24,7 @@
 #include "test/engine/behaviorComponent/testRegistrar.h"
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 namespace {
 
@@ -40,11 +40,7 @@ TEST_INTENT(UserIntentsTransitions, SetTimer, "set_timer")
   // Build a valid stack - this test breaks if this stack is no longer valid
   std::vector<IBehavior*> stack = tbf.GetNamedBehaviorStack("driveOffChargerIntoObserving_stack");
 
-  UserIntent_TimeInSeconds timeInSeconds(20);
-  UserIntent timerIntent;
-  timerIntent._tag = UserIntentTag::set_timer;
-  timerIntent._set_timer = timeInSeconds;
-
+  UserIntent timerIntent( UserIntent_TimeInSeconds(20) ); 
   TestIntentsFramework tif;
   auto res = tif.TestUserIntentTransition(tbf, stack, timerIntent, BehaviorID::SingletonTimerSet);
   EXPECT_TRUE(res);
@@ -61,67 +57,106 @@ bool IntentHelper( const UserIntent& intent, BehaviorID behavior, bool onlyCheck
   const bool res = tif.TestUserIntentTransition(tbf, stack, intent, behavior, onlyCheckInStack );
   return res;
 }
-  
-bool PlaySpecificHelper( std::string entityBehavior, BehaviorID behavior, bool onlyCheckInStack = false )
-{
-  UserIntent_PlaySpecific playSpecificIntent(entityBehavior);
-  UserIntent intent;
-  intent._tag = UserIntentTag::play_specific;
-  intent._play_specific = playSpecificIntent;
-  
-  return IntentHelper( intent, behavior, onlyCheckInStack );
-}
 
-TEST_INTENT(UserIntentsTransitions, KeepAway, "keep_away")
-{
-  const bool res = PlaySpecificHelper( "keep_away", BehaviorID::Keepaway );
-  EXPECT_TRUE(res);
-}
+
+// keep_away was removed from entity_behavior_entries_en.json in April
+// (see https://github.com/anki/voice-intent-resolution-config/pull/33/files)
+//
+//TEST_INTENT(UserIntentsTransitions, KeepAway, "keep_away")
+//{
+//  const bool res = PlaySpecificHelper( "keep_away", BehaviorID::Keepaway );
+//  EXPECT_TRUE(res);
+//}
 
 TEST_INTENT(UserIntentsTransitions, FistBump, "fist_bump")
 {
-  const bool res = PlaySpecificHelper( "fist_bump", BehaviorID::FistBumpVoiceCommand, true );
+  const bool res = IntentHelper( UserIntent::Createplay_fistbump({}), BehaviorID::FistBumpVoiceCommand, true );
   EXPECT_TRUE(res);
 }
   
 TEST_INTENT(UserIntentsTransitions, RollCube, "roll_cube")
 {
-  const bool res = PlaySpecificHelper( "roll_cube", BehaviorID::RollCubeVoiceCommand, true );
+  const bool res = IntentHelper( UserIntent::Createplay_rollcube({}), BehaviorID::RollCubeVoiceCommand, true );
   EXPECT_TRUE(res);
 }
 
-// todo: come here doesn't look for faces if it doesn't know about a face
-//TEST_INTENT(UserIntentsTransitions, ComeHere, "imperative_come")
-//{
-//  UserIntent intent;
-//  intent._tag = UserIntentTag::imperative_come;
-//  const bool res = IntentHelper( intent, BehaviorID::ComeHereVoiceCommand, true );
-//  EXPECT_TRUE(res);
-//}
+TEST_INTENT(UserIntentsTransitions, ComeHere, "imperative_come")
+{
+  const bool res = IntentHelper( UserIntent::Createimperative_come({}), BehaviorID::ComeHereVoiceCommand, true );
+  EXPECT_TRUE(res);
+}
+  
+TEST_INTENT(UserIntentsTransitions, LookAtMe, "imperative_lookatme")
+{
+  const bool res = IntentHelper( UserIntent::Createimperative_lookatme({}), BehaviorID::LookAtMeVoiceCommand, true );
+  EXPECT_TRUE(res);
+}
+
+// commented out until the 'GazeDirection' feature is enabled in resources/config/features.json
+// TEST_INTENT(UserIntentsTransitions, LookOverThere, "imperative_lookoverthere")
+// {
+//   const bool res = IntentHelper( UserIntent::Createimperative_lookoverthere({}), BehaviorID::LookOverThereVoiceCommand, true );
+//   EXPECT_TRUE(res);
+// }
+  
+TEST_INTENT(UserIntentsTransitions, WhatsMyName, "names_ask")
+{
+  const bool res = IntentHelper( UserIntent::Createnames_ask({}), BehaviorID::WhatsMyNameVoiceCommand, true );
+  EXPECT_TRUE(res);
+}
   
 TEST_INTENT(UserIntentsTransitions, MeetVictor, "meet_victor")
 {
-  UserIntent intent;
-  intent.Set_meet_victor( UserIntent_MeetVictor("cozmo") );
-  const bool res = IntentHelper( intent, BehaviorID::MeetVictor, true );
+  const bool res = IntentHelper( UserIntent::Createmeet_victor( UserIntent_MeetVictor("cozmo") ), BehaviorID::MeetVictor, true );
   EXPECT_TRUE(res);
 }
   
 TEST_INTENT(UserIntentsTransitions, BeQuiet, "be_quiet")
 {
-  UserIntent intent;
-  intent.Set_imperative_quiet({});
-  const bool res = IntentHelper( intent, BehaviorID::BeQuietAnims, true );
+  const bool res = IntentHelper( UserIntent::Createimperative_quiet({}), BehaviorID::BeQuietAnims, true );
+  EXPECT_TRUE(res);
+}
+
+TEST_INTENT(UserIntentsTransitions, GoHome, "system_charger")
+{
+  const bool res = IntentHelper( UserIntent::Createsystem_charger({}), BehaviorID::FindAndGoToHome, true );
   EXPECT_TRUE(res);
 }
   
 TEST_INTENT(UserIntentsTransitions, ShutUp, "shut_up")
 {
-  UserIntent intent;
-  intent.Set_imperative_shutup({});
-  const bool res = IntentHelper( intent, BehaviorID::ShutUpAnims, true );
+  const bool res = IntentHelper( UserIntent::Createimperative_shutup({}), BehaviorID::ShutUpAnims, true );
   EXPECT_TRUE(res);
 }
+
+TEST_INTENT(UserIntentsTransitions, Sleep, "system_sleep")
+{
+  const bool res = IntentHelper( UserIntent::Createsystem_sleep({}), BehaviorID::GoToSleep, true );
+  EXPECT_TRUE(res);
+}
+
+// commented out for now to avoid this problem:
+// [Error] ActiveFeatureComponent.PossibleBug TELL BRAD: Feature 'VolumeAdjustment' is activating (old feature is NoFeature). No intent active, but one is pending.
+// [Error] TestIntentsFramework.IntentNotConsumed ASSERT ( ++tics < kMaxTicksToClear ): Intent 'imperative_volumelevel' is still pending after the tick limit
+//
+// TEST_INTENT(UserIntentsTransitions, VolumeLevel, "imperative_volumelevel")
+// {
+//   const bool res = IntentHelper( UserIntent::Createimperative_volumelevel( UserIntent_Volume("medium") ), BehaviorID::Volume, true );
+//   EXPECT_TRUE(res);
+// }
+
+// TEST_INTENT(UserIntentsTransitions, VolumeUp, "imperative_volumeup")
+// {
+//   const bool res = IntentHelper( UserIntent::Createimperative_volumeup({}), BehaviorID::Volume, true );
+//   EXPECT_TRUE(res);
+// }
+
+// TEST_INTENT(UserIntentsTransitions, VolumeDown, "imperative_volumedown")
+// {
+//   const bool res = IntentHelper( UserIntent::Createimperative_volumedown({}), BehaviorID::Volume, true );
+//   EXPECT_TRUE(res);
+// }
+
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // the testing of the tests

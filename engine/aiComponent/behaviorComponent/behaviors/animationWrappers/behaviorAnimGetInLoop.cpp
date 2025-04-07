@@ -21,7 +21,7 @@
 #include "coretech/common/engine/utils/timer.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 const char* kGetInAnimationKey           = "getIn";
@@ -31,6 +31,7 @@ const char* kEmergencyGetOutAnimationKey = "emergencyGetOut";
 const char* kLoopEndConditionKey         = "loopEndCondition";
 const char* kLoopIntervalKey             = "loopInterval_s"; // If less than length of animation, will not interrupt
 const char* kCheckEndCondKey             = "shouldCheckEndCondDuringAnim";
+const char* kForceLoopGetOutAnimKey      = "shouldForceLoopGetOutAnim";
 const char* kLockTreadsKey               = "lockTreads";
 }
 
@@ -73,7 +74,7 @@ BehaviorAnimGetInLoop::BehaviorAnimGetInLoop(const Json::Value& config)
   loadTrigger(_iConfig.getInTrigger,  kGetInAnimationKey);
   loadTrigger(_iConfig.loopTrigger,   kLoopAnimationKey);
   loadTrigger(_iConfig.getOutTrigger, kGetOutAnimationKey);
-
+  
   if(config.isMember(kEmergencyGetOutAnimationKey)){
     loadTrigger(_iConfig.emergencyGetOutTrigger, kEmergencyGetOutAnimationKey);
   }
@@ -116,6 +117,7 @@ void BehaviorAnimGetInLoop::GetBehaviorJsonKeys(std::set<const char*>& expectedK
     kLoopEndConditionKey,
     kCheckEndCondKey,
     kLoopIntervalKey,
+    kForceLoopGetOutAnimKey,
     kLockTreadsKey,
   };
   expectedKeys.insert( std::begin(list), std::end(list) );
@@ -192,7 +194,8 @@ void BehaviorAnimGetInLoop::OnBehaviorDeactivated()
     _iConfig.endLoopCondition->SetActive(GetBEI(), false);
   }
 
-  if((_dVars.stage == BehaviorStage::Loop) &&
+  if((_dVars.stage == BehaviorStage::Loop || 
+      _dVars.stage == BehaviorStage::GetIn) &&
      (_iConfig.emergencyGetOutTrigger != AnimationTrigger::Count)){
     PlayEmergencyGetOut(_iConfig.emergencyGetOutTrigger);
   }
@@ -219,9 +222,11 @@ void BehaviorAnimGetInLoop::TransitionToLoop()
 void BehaviorAnimGetInLoop::TransitionToGetOut()
 {
   _dVars.stage = BehaviorStage::GetOut;
-  DelegateIfInControl(new TriggerAnimationAction(_iConfig.getOutTrigger, 1, true, _iConfig.tracksToLock));
+  DelegateIfInControl(new TriggerAnimationAction(_iConfig.getOutTrigger, 1, true, _iConfig.tracksToLock), [this](){
+    CancelSelf();
+  });
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

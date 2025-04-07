@@ -15,9 +15,10 @@
 
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
 #include "coretech/common/engine/objectIDs.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 enum class ObjectType : int32_t;
 class ObservableObject;
@@ -38,7 +39,7 @@ protected:
   virtual bool AreConditionsMetInternal(BehaviorExternalInterface& behaviorExternalInterface) const override;
   virtual void SetActiveInternal(BehaviorExternalInterface& behaviorExternalInterface, bool setActive) override;
   virtual void GetRequiredVisionModes(std::set<VisionModeRequest>& requiredVisionModes) const override {
-    requiredVisionModes.insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::Low });
+    requiredVisionModes.insert({ VisionMode::Markers, EVisionUpdateFrequency::Low });
   }
   
 private:
@@ -50,8 +51,8 @@ private:
   bool _setMaxAge = false; // for asserting multiple ctors
   
   struct ObjectInfo {
-    ObjectInfo( TimeStamp_t t, ObjectID o ) : observedTime(t), objectID(o), matchedThisTickOnly(false) {}
-    TimeStamp_t observedTime;
+    ObjectInfo( RobotTimeStamp_t t, ObjectID o ) : observedTime(t), objectID(o), matchedThisTickOnly(false) {}
+    RobotTimeStamp_t observedTime;
     ObjectID objectID;
     bool matchedThisTickOnly;
   };
@@ -59,7 +60,7 @@ private:
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_BeiConditions_ConditionObjectKnown_H__

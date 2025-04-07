@@ -21,7 +21,7 @@
 # build_tag = optional tag specifier for build
 
 # read base version from VERSION file
-file(READ ${CMAKE_SOURCE_DIR}/VERSION BASE_VERSION)
+file(READ ${CMAKE_SOURCE_DIR}/ANKI_VERSION BASE_VERSION)
 string(STRIP ${BASE_VERSION} BASE_VERSION)
 
 # ANKI_BUILD_VERSION  contains the build counter
@@ -32,7 +32,7 @@ endif()
 
 # default to "dev" build flavor
 set(ANKI_BUILD_TYPE "d")
-if (NOT ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     set(ANKI_BUILD_TYPE "")
 endif()
 
@@ -66,4 +66,12 @@ endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/templates/cmake/revision.in
                ${CMAKE_BINARY_DIR}/etc/revision
+               @ONLY)
+
+# Set the VICTOR_COMPAT_VERSION from the file
+file(READ ${CMAKE_SOURCE_DIR}/VICTOR_COMPAT_VERSION VICTOR_COMPAT_VERSION)
+string(STRIP ${VICTOR_COMPAT_VERSION} VICTOR_COMPAT_VERSION)
+
+configure_file(${CMAKE_SOURCE_DIR}/templates/cmake/victor-compat-version.in
+               ${CMAKE_BINARY_DIR}/etc/victor-compat-version
                @ONLY)

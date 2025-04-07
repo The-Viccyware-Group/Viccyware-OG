@@ -17,16 +17,17 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#include "platform/anki-trace/tracing.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace FaultCode {
 
-static const char* kFaultCodeFifoName = "/run/error_code";
+static const char* kFaultCodeFifoName = "/run/fault_code";
 
 // Enum of fault codes, range 800 - 999
 // Higher numbers take precedence when displaying
@@ -35,25 +36,37 @@ enum : uint16_t {
 
   //Use higher numbers for head self-tests
   //display precedence over (external) body tests
-  DISPLAY_FAILURE       = 990, //nobody will ever see this :(
-  
+  DISPLAY_FAILURE       = 990,
+
+  CAMERA_STOPPED        = 981,
   CAMERA_FAILURE        = 980,
-  
+
   //WIFI                  = 970,
   WIFI_HW_FAILURE       = 970, //local wifi hw checks only
-  
+
   IMU_FAILURE           = 960,
-  
+
+  TOF_FAILURE           = 950,
+
   //critical processes
+  NO_CLOUD_PROCESS      = 923,
+  NO_GATEWAY            = 921,
+  NO_GATEWAY_CERT       = 920,
   SYSTEMD               = 919,
-  NO_ROBOT_PROCESS      = 917,
-  NO_ENGINE_PROCESS     = 915,
+  NO_ROBOT_COMMS        = 917,
+  NO_ROBOT_PROCESS      = 916,
+  NO_ENGINE_COMMS       = 915,
+  NO_ENGINE_PROCESS     = 914,
   NO_SWITCHBOARD        = 913,
   AUDIO_FAILURE         = 911,
-  
+  STOP_BOOT_ANIM_FAILED = 909,
+
   //Body and external errors
   NO_BODY               = 899, //no response from syscon
+  SPINE_SELECT_TIMEOUT  = 898,
 
+  RAMPOST_ERROR         = 897,
+  
   //Sensor Errors
   TOUCH_SENSOR          = 895,
   TOF                   = 894,
@@ -61,17 +74,42 @@ enum : uint16_t {
   CLIFF_BR              = 892,
   CLIFF_FL              = 891,
   CLIFF_FR              = 890,
-  
+
   //Mic Errors
   MIC_BL                = 873,
   MIC_BR                = 872,
   MIC_FL                = 871,
   MIC_FR                = 870,
-  
-  // Should always be 800 as the fault code
-  // display image for this fault is hardcoded into
-  // the animfail program
+
+  //Cloud Errors
+  CLOUD_READ_ESN        = 852,
+  CLOUD_TOKEN_STORE     = 851,
+  CLOUD_CERT            = 850,
+
+  //Camera config errors
+  NO_CAMERA_CALIB       = 840,
+
+  // DO NOT CHANGE any of the codes in this section
+  // They are hardcoded into various system level programs
+  BODY_COMMS_FAILURE    = 802,
+  DFU_FAILED            = 801,
   NO_ANIM_PROCESS       = 800,
+
+
+  // --------- Shutdown codes ----------
+  // These codes result in only vic-dasmgr being stopped so that
+  // a DAS message for the shutdown can be backed up to file 
+  // (and in some cases a graphic displayed) as quickly as possible.
+  
+  // An appropriate graphic is displayed by faultCodeDisplay.cpp
+  // when it receives these codes.
+  SHUTDOWN_BATTERY_CRITICAL_TEMP  = 705,
+  SHUTDOWN_BATTERY_CRITICAL_VOLT  = 702,
+
+  // No fault code is displayed when it receives these codes.
+  SHUTDOWN_GYRO_NOT_CALIBRATING   = 701,
+  SHUTDOWN_BUTTON                 = 700,
+  // ------ End of Shutdown codes ------
 
   COUNT = 1000
 };
@@ -81,46 +119,31 @@ enum : uint16_t {
 // from the fifo
 static int DisplayFaultCode(uint16_t code)
 {
-  // If the fifo doesn't exist create it
-  if(access(FaultCode::kFaultCodeFifoName, F_OK) == -1)
-  {
-    int res = mkfifo(FaultCode::kFaultCodeFifoName, S_IRUSR | S_IWUSR);
-    if(res < 0)
-    {
-      printf("DisplayFaultCode: mkfifo failed %d", errno);
-      return errno;
-    }
-  }
- 
+  printf("DisplayFaultCode: %u\n", code);
+  tracepoint(anki_ust, anki_fault_code, code);
   int fifo = open(FaultCode::kFaultCodeFifoName, O_WRONLY);
-  if(fifo < 0)
-  {
-    printf("DisplayFaultCode: Failed to open fifo %d\n", errno);
-    return errno;
+  if (fifo == -1) {
+    printf("DisplayFaultCode: Failed to open fifo (errno %d)\n", errno);
+    return -1;
   }
-  
-  // Write the fault code to the socket
-  ssize_t numBytes = write(fifo, &code, sizeof(code));
-  if(numBytes != sizeof(code))
-  {
-    printf("DisplayFaultCode: Expected to write %zu bytes but only wrote %zd\n",
-	   sizeof(code),
-	   numBytes);
 
-    if(numBytes == 0)
-    {
-      printf("DisplayFaultCode: Write failed %d\n", errno);
-      return errno;
-    }
+  char faultCode[7] = {0};
+  const int numToWrite = snprintf(faultCode, sizeof(faultCode)-1, "%u\n", code);
+  const ssize_t numWritten = write(fifo, faultCode, numToWrite);
+
+  if (close(fifo) != 0) {
+    printf("DisplayFaultCode: Failed to close fifo (errno %d)\n", errno);
   }
-  
-  int rc = close(fifo);
-  if(rc < 0)
+
+  if (numWritten != numToWrite)
   {
-    printf("DisplayFaultCode: Failed to close fifo %d\n", errno);
-    return errno;
+    printf("DisplayFaultCode: Expected to write %d bytes but only wrote %zd (errno = %d)\n",
+           numToWrite,
+           numWritten,
+           errno);
+    return -1;
   }
-  
+
   return 0;
 }
 
@@ -129,4 +152,3 @@ static int DisplayFaultCode(uint16_t code)
 }
 
 #endif
-

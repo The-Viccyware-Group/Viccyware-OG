@@ -14,21 +14,16 @@
 #define __Engine_Behaviors_BehaviorProceduralClock_H__
 
 #include "clad/types/compositeImageTypes.h"
-#include "clad/types/spriteNames.h"
-#include "coretech/vision/shared/compositeImage/compositeImage.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/smartFaceId.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorProceduralClock : public ICozmoBehavior
 {
 public:
-  // List of digit display boxes for external systems to specify
-  // the time to put in each box
-  static const std::vector<Vision::SpriteBoxName> DigitDisplayList;
 
   // Determine the digit to put in a given sprite box
   // offset specifies a time offset so that values can be pre-computed 
@@ -42,24 +37,30 @@ public:
     _instanceParams.showClockCallback = callback;
   }
 
-  int GetTimeDisplayClock_sec() const { return _instanceParams.totalTimeDisplayClock_sec;}
+  float GetTimeDisplayClock_sec() const { return _instanceParams.totalTimeDisplayClock_sec;}
 
 
 protected:
   // Enforce creation through BehaviorFactory
   friend class BehaviorFactory;  
   BehaviorProceduralClock(const Json::Value& config);
-  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override{
+  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override final {
     modifiers.behaviorAlwaysDelegates = false;
     modifiers.wantsToBeActivatedWhenOffTreads = true;
+    GetBehaviorOperationModifiersProceduralClock(modifiers);
   }
+
+  virtual void GetBehaviorOperationModifiersProceduralClock(BehaviorOperationModifiers& modifiers) const {}
+
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override final;
   virtual void GetBehaviorJsonKeysInternal(std::set<const char*>& expectedKeys) const {};
 
-  virtual void OnBehaviorActivated() override;
+  virtual void OnBehaviorActivated() override final;
   virtual void InitBehavior() override;
-  virtual void BehaviorUpdate() override;
+  virtual void BehaviorUpdate() override final;
   virtual bool WantsToBeActivatedBehavior() const override { return true;}
+
+  virtual bool ShouldDimLeadingZeros() const { return true; }
 
   void TransitionToTurnToFace();
   void TransitionToGetIn();
@@ -70,11 +71,15 @@ protected:
   // Default behavior is to update the clock once per second for the length of display clock
   virtual void TransitionToShowClockInternal();
 
-  void SetTimeDisplayClock_sec(int displayTime_sec) { _instanceParams.totalTimeDisplayClock_sec = displayTime_sec;}
+  void SetTimeDisplayClock_sec(float displayTime_sec) { _instanceParams.totalTimeDisplayClock_sec = displayTime_sec;}
 
   // Function which builds and displays the proceduralClock - adds the 4 core digits on top
   // of any quadrant images passed into the function
   void BuildAndDisplayProceduralClock(const int clockOffset_s = 0, const int displayOffset_ms = 0);
+  
+  void AddKeyFramesForOffset(const int clockOffset_s = 0, const int displayTime_ms = 0);
+
+  void DisplayClock();
 
 private:
   enum class BehaviorState{
@@ -84,21 +89,14 @@ private:
     GetOut,
   };
 
-
   struct InstanceParams{
-    std::unique_ptr<Vision::CompositeImage> compImg;
-    
     // User facing properties
     AnimationTrigger getInAnim;
     AnimationTrigger getOutAnim;
     bool shouldTurnToFace = false;
     Json::Value layout;
-    int totalTimeDisplayClock_sec;
-
-    // Asset properties
-    Vision::CompositeImageLayer::ImageMap staticImageMap;
-    std::map<Vision::SpriteBoxName, Vision::SpriteName> staticElements;
-    std::map<int, Vision::SpriteName> intsToImages;
+    float totalTimeDisplayClock_sec;
+    bool shouldPlayAudioOnClockUpdates = true;
 
     // Playback properties
     GetDigitsFunction getDigitFunction;
@@ -106,26 +104,22 @@ private:
   };
 
   struct LifetimeParams{
-    int timeShowClockStarted = 0;
     BehaviorState currentState = BehaviorState::TurnToFace;
     SmartFaceID targetFaceID;
     bool hasBaseImageBeenSent = false;
+    std::vector<Vision::SpriteBoxKeyFrame> keyFrames;
+    std::vector<int> audioTickTimes;
   };
 
-  
   InstanceParams _instanceParams;
   LifetimeParams _lifetimeParams;
-
 
   // Updates the target face within lifetime params - returns the member face for checking success inline
   SmartFaceID UpdateTargetFace();
 
-
-
-
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

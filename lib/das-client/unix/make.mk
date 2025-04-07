@@ -1,11 +1,13 @@
 SUFFIXES += .d
 DAS_PROJECT_PATH = ..
 DAS_SRC_DIR = $(DAS_PROJECT_PATH)/src
+JSONCPP_SRC_DIR = $(DAS_PROJECT_PATH)/../util/source/3rd/jsoncpp
 DAS_INC_DIR = $(DAS_PROJECT_PATH)/include
 DAS_TESTING_DIR = $(DAS_PROJECT_PATH)/testing
 GTEST_DIR = $(DAS_TESTING_DIR)/gtest
 
 DAS_SRC_FILES := \
+	$(JSONCPP_SRC_DIR)/jsoncpp.cpp \
 	$(DAS_SRC_DIR)/DAS.cpp \
 	$(DAS_SRC_DIR)/dasAppender.cpp \
 	$(DAS_SRC_DIR)/dasLogFileAppender.cpp \
@@ -16,14 +18,17 @@ DAS_SRC_FILES := \
 	dasPostToServer.cpp \
 	$(DAS_SRC_DIR)/stringUtils.cpp \
 	$(DAS_SRC_DIR)/fileUtils.cpp \
-	$(DAS_SRC_DIR)/taskExecutor.cpp \
-	$(DAS_SRC_DIR)/jsoncpp.cpp
+	$(DAS_SRC_DIR)/taskExecutor.cpp
 
 vpath %.cpp $(DAS_SRC_DIR) $(DAS_TESTING_DIR)
+
+CXX := clang++
+AR := /usr/bin/ar
 
 CXXFLAGS += -g
 CXXFLAGS += -I$(DAS_INC_DIR)
 CXXFLAGS += -I$(DAS_INC_DIR)/DAS
+CXXFLAGS += -I$(JSONCPP_SRC_DIR)
 CXXFLAGS += -I$(DAS_SRC_DIR)
 CXXFLAGS += -I.
 CXXFLAGS += -fdiagnostics-show-category=name
@@ -39,6 +44,7 @@ CXXFLAGS += -Wno-parentheses-equality
 CXXFLAGS += -Wno-static-in-inline
 CXXFLAGS += -std=c++14
 CXXFLAGS += -pthread
+CXXFLAGS += -stdlib=libc++
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -51,11 +57,11 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
                 $(GTEST_DIR)/include/gtest/internal/*.h
 
 
-DAS_OBJ_FILES := $(patsubst %.cpp, %.o, $(notdir $(DAS_SRC_FILES)))
-DAS_DEP_FILES := $(patsubst %.cpp, %.d, $(notdir $(DAS_SRC_FILES)))
+DAS_OBJ_FILES := $(patsubst %.cpp, %.o, $(DAS_SRC_FILES))
+DAS_DEP_FILES := $(patsubst %.cpp, %.d, $(DAS_SRC_FILES))
 
 dasDemoApp: dasDemoApp.cpp dasLib.a $(DAS_INC_DIR)/DAS/DAS.h
-	$(CXX) $(CXXFLAGS) -o dasDemoApp dasDemoApp.cpp dasLib.a $(CXXLIBS)
+	$(CXX) $(CXXFLAGS) -o dasDemoApp dasDemoApp.cpp dasLib.a $(CXXLIBS) $(LDFLAGS)
 
 dasLib.a: $(DAS_OBJ_FILES)
 	$(AR) $(ARFLAGS) $@ $^
@@ -84,8 +90,8 @@ gtest.a : gtest-all.o
 gtest_main.a : gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-das_unittest : dasLib.a $(DAS_TEST_OBJ_FILES) gtest_main.a
-	$(CXX) -g  $^ -o $@ $(CXXLIBS)
+das_unittest : $(DAS_TEST_OBJ_FILES) dasLib.a gtest_main.a
+	$(CXX) -g $^ -o $@ $(CXXLIBS) $(LDFLAGS)
 
 %.d : %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MT '$(patsubst %.cpp,%.o, $(notdir $<))' $< -MF $@
@@ -93,9 +99,9 @@ das_unittest : dasLib.a $(DAS_TEST_OBJ_FILES) gtest_main.a
 %.o : %.cpp %.d make.mk Makefile Makefile_sqs
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-
 clean:
-	rm -rf dasDemoApp dasLib.a *.o *.d dasDemoApp.dSYM dasLogs gameLogs das_unittest gtest.a gtest_main.a
+	rm -rf dasDemoApp dasLib.a *.o *.d $(JSONCPP_SRC_DIR)/*.o $(JSONCPP_SRC_DIR)/*.d \
+	../src/*.o ../src/*.d dasDemoApp.dSYM dasLogs gameLogs das_unittest gtest.a gtest_main.a
 
 NODEPS:=clean
 ifeq (0, $(words $(findstring $(MAKECMDGOALS), $(NODEPS))))

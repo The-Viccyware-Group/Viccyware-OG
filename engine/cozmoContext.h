@@ -23,9 +23,7 @@
 // ---------- BEGIN FORWARD DECLARATIONS ----------
 namespace Anki {
 namespace Util {
-  //class GameLogTransferTask;
   class RandomGenerator;
-  //class TransferQueueMgr;
   class Locale;
   namespace AnkiLab {
     class AnkiLab;
@@ -39,17 +37,18 @@ namespace Comms {
   class AdvertisementService;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class CozmoAudienceTags;
 class CozmoExperiments;
 class CozmoFeatureGate;
 class IExternalInterface;
+class IGatewayInterface;
 class RobotDataLoader;
 class RobotManager;
 class VizManager;
-class PerfMetric;
-class AppToEngineHandler;
+class PerfMetricEngine;
+class RobotTest;
 
 namespace WebService {
   class WebService;
@@ -63,7 +62,7 @@ namespace RobotInterface {
   class MessageHandler;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 // ---------- END FORWARD DECLARATIONS ----------
@@ -72,17 +71,18 @@ namespace RobotInterface {
 
 // Here begins the actual namespace and interface for CozmoContext
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class CozmoContext : private Util::noncopyable
 {
 
 public:
-  CozmoContext(Util::Data::DataPlatform* dataPlatform, IExternalInterface* externalInterface);
+  CozmoContext(Util::Data::DataPlatform* dataPlatform, IExternalInterface* externalInterface, IGatewayInterface* gatewayInterface);
   CozmoContext();
   virtual ~CozmoContext();
 
   IExternalInterface*                   GetExternalInterface() const { return _externalInterface; }
+  IGatewayInterface*                    GetGatewayInterface() const { return _gatewayInterface; }
   Util::Data::DataPlatform*             GetDataPlatform() const { return _dataPlatform; }
 
   CozmoFeatureGate*                     GetFeatureGate() const { return _featureGate.get(); }
@@ -91,13 +91,12 @@ public:
   RobotDataLoader*                      GetDataLoader() const { return _dataLoader.get(); }
   RobotManager*                         GetRobotManager() const { return _robotMgr.get(); }
   VizManager*                           GetVizManager() const { return _vizManager.get(); }
-  //Util::TransferQueueMgr*               GetTransferQueue() const { return _transferQueueMgr.get(); }
   CozmoExperiments*                     GetExperiments() const { return _cozmoExperiments.get(); }
-  PerfMetric*                           GetPerfMetric() const { return _perfMetric.get(); }
+  PerfMetricEngine*                     GetPerfMetric() const { return _perfMetric.get(); }
   WebService::WebService*               GetWebService() const { return _webService.get(); }
+  RobotTest*                            GetRobotTest() const { return _robotTest.get(); }
 
-  bool  IsInSdkMode() const;
-  void  SetSdkStatus(SdkStatusType statusType, std::string&& statusText) const;
+  void SetSdkStatus(SdkStatusType statusType, std::string&& statusText) const;
 
   void SetRandomSeed(uint32_t seed);
 
@@ -116,8 +115,12 @@ public:
 private:
   // This is passed in and held onto, but not owned by the context (yet.
   // It really should be, and that refactoring will have to happen soon).
-  IExternalInterface*                                     _externalInterface = nullptr;
-  Util::Data::DataPlatform*                               _dataPlatform = nullptr;
+  IExternalInterface*                                   _externalInterface = nullptr;
+  IGatewayInterface*                                    _gatewayInterface = nullptr;
+  Util::Data::DataPlatform*                             _dataPlatform = nullptr;
+
+  // for holding the thread id (and avoiding need to include cpuThreadId.h here)
+  std::unique_ptr<ThreadIDInternal> _threadIdHolder;
 
   // Context holds onto these things for everybody:
   std::unique_ptr<CozmoFeatureGate>                     _featureGate;
@@ -126,19 +129,14 @@ private:
   std::unique_ptr<RobotDataLoader>                      _dataLoader;
   std::unique_ptr<RobotManager>                         _robotMgr;
   std::unique_ptr<VizManager>                           _vizManager;
-  //std::unique_ptr<Util::TransferQueueMgr>               _transferQueueMgr;
-  //std::unique_ptr<Util::GameLogTransferTask>            _gameLogTransferTask;
   std::unique_ptr<CozmoExperiments>                     _cozmoExperiments;
-  std::unique_ptr<PerfMetric>                           _perfMetric;
+  std::unique_ptr<PerfMetricEngine>                     _perfMetric;
   std::unique_ptr<WebService::WebService>               _webService;
-  std::unique_ptr<AppToEngineHandler>                   _appToEngineHandler;
-
-  // for holding the thread id (and avoiding needed to include the .h here)
-  std::unique_ptr<ThreadIDInternal> _threadIdHolder;
+  std::unique_ptr<RobotTest>                            _robotTest;
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_CozmoContext_H__

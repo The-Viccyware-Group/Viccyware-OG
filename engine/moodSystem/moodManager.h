@@ -16,19 +16,19 @@
 
 #include "coretech/common/shared/types.h"
 #include "engine/moodSystem/emotion.h"
-#include "engine/moodSystem/moodDebug.h"
 
 #include "clad/types/actionResults.h"
 #include "clad/types/actionTypes.h"
 #include "clad/types/emotionTypes.h"
 #include "clad/types/simpleMoodTypes.h"
 
-#include "util/entityComponent/iDependencyManagedComponent.h"
+#include "engine/aiComponent/behaviorComponent/behaviorComponents_fwd.h"
 #include "engine/moodSystem/emotion.h"
-#include "engine/moodSystem/moodDebug.h"
 #include "engine/robotComponents_fwd.h"
 #include "engine/robotDataLoader.h"
 
+#include "util/entityComponent/dependencyManagedEntity.h"
+#include "util/entityComponent/iDependencyManagedComponent.h"
 #include "util/graphEvaluator/graphEvaluator2d.h"
 #include "util/helpers/noncopyable.h"
 #include "util/signals/simpleSignal_fwd.h"
@@ -48,7 +48,7 @@ enum class ParameterType : u32;
 }
 }
 
-namespace Cozmo {
+namespace Vector {
 
 constexpr float kEmotionChangeVerySmall = 0.06f;
 constexpr float kEmotionChangeSmall     = 0.12f;
@@ -73,7 +73,9 @@ class CozmoContext;
 class Robot;
 class StaticMoodData;
   
-class MoodManager : public IDependencyManagedComponent<RobotComponentID>, private Util::noncopyable
+class MoodManager : public IDependencyManagedComponent<RobotComponentID>,
+                    public UnreliableComponent<BCComponentID>,
+                    private Util::noncopyable
 {
 public:
   using MoodEventTimes = std::map<std::string, float>;
@@ -84,7 +86,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
   virtual void AdditionalInitAccessibleComponents(RobotCompIDSet& components) const override {
     components.insert(RobotComponentID::CozmoContextWrapper);
   };
@@ -92,7 +94,19 @@ public:
     dependencies.insert(RobotComponentID::CozmoContextWrapper);
     dependencies.insert(RobotComponentID::EngineAudioClient);
   }
+  virtual void AdditionalUpdateAccessibleComponents(RobotCompIDSet& components) const override {
+    components.insert(RobotComponentID::RobotStatsTracker);
+  }
+
   virtual void UpdateDependent(const RobotCompMap& dependentComps) override;
+
+  // Prevent hiding function warnings by exposing the (valid) unreliable component methods
+  using UnreliableComponent<BCComponentID>::InitDependent;
+  using UnreliableComponent<BCComponentID>::AdditionalInitAccessibleComponents;
+  using UnreliableComponent<BCComponentID>::GetInitDependencies;
+  using UnreliableComponent<BCComponentID>::UpdateDependent;
+  using UnreliableComponent<BCComponentID>::GetUpdateDependencies;
+  using UnreliableComponent<BCComponentID>::AdditionalUpdateAccessibleComponents;
   //////
   // end IDependencyManagedComponent functions
   //////
@@ -117,8 +131,9 @@ public:
                      EmotionType emotionType2, float baseValue2,
                      EmotionType emotionType3, float baseValue3,
                      const char* uniqueIdString, float currentTimeInSeconds);
-  
-  void SetEmotion(EmotionType emotionType, float value); // directly set the value e.g. for debugging
+
+  // directly set the value e.g. for debugging
+  void SetEmotion(EmotionType emotionType, float value, const char* debugLabel = "SetEmotion");
 
   // This manager internally listens for ActionCompleted events from the robot, and can use those to trigger
   // emotion events. By default, it listens for any actions that complete, but this function can be used to
@@ -210,8 +225,8 @@ private:
   void PrintActionCompletedEventMap() const;
 
   void SendEmotionsToAudio(Audio::EngineRobotAudioClient& audioClient);
-
-  SEND_MOOD_TO_VIZ_DEBUG_ONLY( void AddEvent(const char* eventName) );
+  
+  void SendStimToApp(float velocity, float accel);
 
   void SendMoodToWebViz(const CozmoContext* context, const std::string& emotionEvent = "");
   void SubscribeToWebViz();
@@ -220,7 +235,6 @@ private:
   
   Emotion         _emotions[(size_t)EmotionType::Count];
   MoodEventTimes  _moodEventTimes;
-  SEND_MOOD_TO_VIZ_DEBUG_ONLY( std::vector<std::string> _eventNames; )
   Robot*          _robot = nullptr;
   float           _lastUpdateTime;
   
@@ -246,10 +260,19 @@ private:
 
   float _lastAudioSendTime_s = 0.0f;
   float _lastWebVizSendTime_s = 0.0f;
+  
+  float _lastAppSentStimTime_s = 0.0f;
+  float _lastStimValue = 0.0f;
+  std::vector<std::string> _pendingAppEvents;
+
+  double _cumlPosStimDeltaToAdd = 0.0;
+
+  float _lastSimpleMoodStartTime_s = 0.0f;
+  SimpleMoodType _lastSimpleMood = SimpleMoodType::Count;
 };
   
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

@@ -15,7 +15,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 class IBEICondition;
   
@@ -41,6 +41,7 @@ protected:
   BehaviorDevBatteryLogging(const Json::Value& config);
   
   void InitBehavior() override;
+  virtual void GetAllDelegates( std::set<IBehavior*>& delegates ) const override;
   
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override; 
 
@@ -65,6 +66,9 @@ private:
     bool stressSpeaker;
 
     bool driveOffChargerWhenFull;
+    bool doExploring;
+
+    ICozmoBehaviorPtr testBehavior;
   };
 
   InstanceConfig   _iConfig;
@@ -75,7 +79,7 @@ private:
   void EnqueueMotorActions();
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_Behaviors_BehaviorDevBatteryLogging_H__

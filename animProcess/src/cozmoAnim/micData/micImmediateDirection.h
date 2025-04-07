@@ -20,7 +20,7 @@
 #include <mutex>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace MicData {
 
 class MicImmediateDirection
@@ -33,7 +33,7 @@ public:
 
 private:
   static constexpr uint32_t kMicDirectionBuffer_ms = 700 + kTriggerOverlapSize_ms;
-  static constexpr uint32_t kMicDirectionBufferLen = kMicDirectionBuffer_ms / kTimePerSEBlock_ms;
+  static constexpr uint32_t kMicDirectionBufferLen = kMicDirectionBuffer_ms / kTimePerChunk_ms;
 
   std::array<MicDirectionData, kMicDirectionBufferLen> _micDirectionBuffer{};
   uint32_t _micDirectionBufferIndex = 0;
@@ -42,7 +42,7 @@ private:
 };
 
 } // namespace MicData
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __AnimProcess_CozmoAnim_MicImmediateDirection_H_

@@ -16,12 +16,15 @@
 
 
 #include "engine/aiComponent/behaviorComponent/behaviors/dispatch/behaviorDispatcherPassThrough.h"
+#include "engine/aiComponent/behaviorComponent/behaviorTreeStateHelpers.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // forward declarations
+class BehaviorDriveToFace;
 class BehaviorHighLevelAI;
+class BehaviorReactToVoiceCommand;
 class BehaviorTimerUtilityCoordinator;
 
 
@@ -48,15 +51,32 @@ private:
     InstanceConfig();
     IBEIConditionPtr  triggerWordPendingCond;
     ICozmoBehaviorPtr wakeWordBehavior;
-    std::vector<ICozmoBehaviorPtr> toSuppressWhenSleeping;
     std::shared_ptr<BehaviorTimerUtilityCoordinator> timerCoordBehavior;
+    AreBehaviorsActivatedHelper behaviorsThatShouldSuppressTimerAntics;
+
+    std::shared_ptr<BehaviorReactToVoiceCommand> reactToVoiceCommandBehavior;
     ICozmoBehaviorPtr reactToObstacleBehavior;
-    
+
     ICozmoBehaviorPtr meetVictorBehavior;
     std::vector<ICozmoBehaviorPtr> toSuppressWhenMeetVictor;
     
     ICozmoBehaviorPtr danceToTheBeatBehavior;
     std::vector<ICozmoBehaviorPtr> toSuppressWhenDancingToTheBeat;
+    
+    AreBehaviorsActivatedHelper behaviorsThatShouldntReactToUnexpectedMovement;
+    ICozmoBehaviorPtr reactToUnexpectedMovementBehavior;
+
+    AreBehaviorsActivatedHelper behaviorsThatShouldntReactToSoundAwake;
+    ICozmoBehaviorPtr reactToSoundAwakeBehavior;
+
+    AreBehaviorsActivatedHelper behaviorsThatShouldntReactToTouch;
+    ICozmoBehaviorPtr reactToTouchPettingBehavior;
+
+    AreBehaviorsActivatedHelper behaviorsThatShouldntReactToCliff;
+    ICozmoBehaviorPtr reactToCliffBehavior;
+    std::vector<std::shared_ptr<BehaviorDriveToFace>> driveToFaceBehaviors;
+
+    std::vector<ICozmoBehaviorPtr> toSuppressWhenGoingHome;
     
     std::unordered_map<ICozmoBehaviorPtr, bool> devActivatableOverrides;
   };
@@ -65,8 +85,6 @@ private:
     DynamicVariables();
 
     bool suppressProx;
-    
-    bool isSuppressingStreaming;
   };
 
   InstanceConfig   _iConfig;
@@ -76,7 +94,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

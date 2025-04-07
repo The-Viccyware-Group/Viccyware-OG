@@ -11,12 +11,10 @@ import sys
 import textwrap
 
 def _modify_path():
-    currentpath = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    searchpath = os.path.normpath(os.path.abspath(os.path.join(currentpath, '..', '..')))
-    searchpath = os.path.normpath(os.path.abspath(os.path.realpath(searchpath)))
-    if searchpath not in sys.path:
-        sys.path.insert(0, searchpath)
-    sys.path.insert(0, os.path.join('..', '..', 'tools', 'message-buffers'))
+    message_buffers_path = os.path.join(os.path.dirname(__file__), '..', '..', 'victor-clad', 'tools', 'message-buffers')
+    if message_buffers_path not in sys.path:
+        sys.path.insert(0, message_buffers_path)
+
 _modify_path()
 
 from clad import ast
@@ -36,7 +34,7 @@ class SendHelperHeaderEmitter(ast.NodeVisitor):
 
     def visit_UnionDecl(self, node):
         for member in node.members():
-            self.output.write('inline bool SendAnimToEngine(const {member_type}& msg) {{ return Anki::Cozmo::AnimProcessMessages::SendAnimToEngine(msg); }}\n'.format(
+            self.output.write('inline bool SendAnimToEngine(const {member_type}& msg) {{ return Anki::Vector::AnimProcessMessages::SendAnimToEngine(msg); }}\n'.format(
                 member_tag=member.tag, member_name=member.name, member_type=CPP_emitter.cpp_value_type(member.type)))
 
 

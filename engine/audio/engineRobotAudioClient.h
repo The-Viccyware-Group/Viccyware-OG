@@ -22,12 +22,13 @@
 #include "util/entityComponent/iDependencyManagedComponent.h"
 #include "engine/robotComponents_fwd.h"
 #include "engine/events/ankiEvent.h"
+#include "proto/external_interface/settings.pb.h"
 #include <memory>
 #include <vector>
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace RobotInterface {
 class RobotToEngine;
 }
@@ -47,7 +48,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) override;
   virtual void GetInitDependencies(RobotCompIDSet& dependencies) const override {
     dependencies.insert(RobotComponentID::CozmoContextWrapper);
   };
@@ -59,9 +60,7 @@ public:
 
   // Engine Robot Audio Client Helper Methods
   //--------------------------------------------------------------------------------------------------------------------
-  // Control Robot's master volume
-  // Volume is [0.0 - 1.0]
-  void SetRobotMasterVolume( float volume, int32_t timeInMilliSeconds = 0, CurveType curve = CurveType::Linear );
+  void SetRobotMasterVolume( external_interface::Volume volume );
 
 
   // Basic Audio Client Methods

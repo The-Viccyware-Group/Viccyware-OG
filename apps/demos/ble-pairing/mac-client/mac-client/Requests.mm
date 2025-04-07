@@ -24,7 +24,7 @@
   return dispatch_time(DISPATCH_TIME_NOW, (int64_t)(30 * NSEC_PER_SEC));
 }
 
--(void) handleResponse:(RequestId)requestId message:(Anki::Victor::ExternalComms::RtsConnection_2)msg {  
+-(void) handleResponse:(RequestId)requestId message:(Anki::Vector::ExternalComms::RtsConnection_2)msg {
   if(requestId != kUnknown && _currentRequest == requestId) {
     _currentMessage = msg;
     
@@ -47,11 +47,40 @@
   }
 }
 
--(Anki::Victor::ExternalComms::RtsStatusResponse_2) getStatus {
+-(void) handleResponse_3:(RequestId)requestId message:(Anki::Vector::ExternalComms::RtsConnection_3)msg {
+  /*if(requestId != kUnknown && _currentRequest == requestId) {
+    _currentMessage = msg;
+    
+    // handle incoming message
+    // note: this is a switch in case different
+    // request need to do something before signaling
+    
+    switch(requestId) {
+      case kStatus:
+      case kWifiScan:
+      case kWifiConnect:
+      case kWifiIp:
+      case kWifiAp:
+      case kOta:
+        dispatch_semaphore_signal(_responseSemaphore);
+        break;
+      default:
+        break;
+    }
+  }*/
+}
+
+-(void) handleResponse_4:(RequestId)requestId message:(Anki::Vector::ExternalComms::RtsConnection_4)msg {
+}
+
+-(void) handleResponse_5:(RequestId)requestId message:(Anki::Vector::ExternalComms::RtsConnection_5)msg {
+}
+
+-(Anki::Vector::ExternalComms::RtsStatusResponse_2) getStatus {
   _currentRequest = kStatus;
   [_central async_StatusRequest];
   
-  Anki::Victor::ExternalComms::RtsStatusResponse_2 res;
+  Anki::Vector::ExternalComms::RtsStatusResponse_2 res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsStatusResponse_2();
     _success = kSuccess;
@@ -62,11 +91,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsWifiScanResponse_2) getWifiScan {
+-(Anki::Vector::ExternalComms::RtsWifiScanResponse_2) getWifiScan {
   _currentRequest = kWifiScan;
   [_central async_WifiScanRequest];
   
-  Anki::Victor::ExternalComms::RtsWifiScanResponse_2 res;
+  Anki::Vector::ExternalComms::RtsWifiScanResponse_2 res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsWifiScanResponse_2();
     _success = res.statusCode == 0? kSuccess : kFailure;
@@ -77,11 +106,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsWifiConnectResponse) doWifiConnect:(std::string)ssid password:(std::string)pw hidden:(bool)hidden auth:(uint8_t)auth {
+-(Anki::Vector::ExternalComms::RtsWifiConnectResponse) doWifiConnect:(std::string)ssid password:(std::string)pw hidden:(bool)hidden auth:(uint8_t)auth {
   _currentRequest = kWifiConnect;
   [_central async_WifiConnectRequest:ssid password:pw hidden:hidden auth:auth];
   
-  Anki::Victor::ExternalComms::RtsWifiConnectResponse res;
+  Anki::Vector::ExternalComms::RtsWifiConnectResponse res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsWifiConnectResponse();
     _success = (res.wifiState == 1 || res.wifiState == 2)? kSuccess : kFailure;
@@ -92,11 +121,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsWifiIpResponse) getWifiIp {
+-(Anki::Vector::ExternalComms::RtsWifiIpResponse) getWifiIp {
   _currentRequest = kWifiIp;
   [_central async_WifiIpRequest];
   
-  Anki::Victor::ExternalComms::RtsWifiIpResponse res;
+  Anki::Vector::ExternalComms::RtsWifiIpResponse res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsWifiIpResponse();
     _success = res.hasIpV4 || res.hasIpV6? kSuccess : kFailure;
@@ -107,11 +136,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse) doWifiAp:(bool)enabled {
+-(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse) doWifiAp:(bool)enabled {
   _currentRequest = kWifiAp;
   [_central async_WifiApRequest:enabled];
   
-  Anki::Victor::ExternalComms::RtsWifiAccessPointResponse res;
+  Anki::Vector::ExternalComms::RtsWifiAccessPointResponse res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsWifiAccessPointResponse();
     _success = res.enabled == enabled? kSuccess : kFailure;
@@ -122,11 +151,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsOtaUpdateResponse) otaStart:(std::string)url {
+-(Anki::Vector::ExternalComms::RtsOtaUpdateResponse) otaStart:(std::string)url {
   _currentRequest = kOta;
   [_central async_otaStart:url];
   
-  Anki::Victor::ExternalComms::RtsOtaUpdateResponse res;
+  Anki::Vector::ExternalComms::RtsOtaUpdateResponse res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsOtaUpdateResponse();
     _success = res.status == 3? kSuccess : kFailure;
@@ -137,11 +166,11 @@
   return res;
 }
 
--(Anki::Victor::ExternalComms::RtsOtaUpdateResponse) otaCancel {
+-(Anki::Vector::ExternalComms::RtsOtaUpdateResponse) otaCancel {
   _currentRequest = kOta;
   [_central async_otaCancel];
   
-  Anki::Victor::ExternalComms::RtsOtaUpdateResponse res;
+  Anki::Vector::ExternalComms::RtsOtaUpdateResponse res;
   if(dispatch_semaphore_wait(_responseSemaphore, [self getTimeout]) == 0) {
     res = _currentMessage.Get_RtsOtaUpdateResponse();
     _success = res.status == 5? kSuccess : kFailure;
@@ -166,11 +195,11 @@
   fflush(stdout);
 }
 
--(Anki::Victor::ExternalComms::RtsOtaUpdateResponse) otaProgress {
+-(Anki::Vector::ExternalComms::RtsOtaUpdateResponse) otaProgress {
   _currentRequest = kOta;
   [_central async_otaProgress];
   
-  Anki::Victor::ExternalComms::RtsOtaUpdateResponse res;
+  Anki::Vector::ExternalComms::RtsOtaUpdateResponse res;
   
   long status = 0;
   bool earlyExit = false;

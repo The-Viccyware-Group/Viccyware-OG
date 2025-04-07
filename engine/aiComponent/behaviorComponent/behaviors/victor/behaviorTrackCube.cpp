@@ -20,7 +20,7 @@
 #include "coretech/common/engine/utils/timer.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
   static constexpr float kMaxNormalAngle = DEG_TO_RAD(60.0f); // how steep of an angle we can see
@@ -64,8 +64,8 @@ bool BehaviorTrackCube::WantsToBeActivatedBehavior() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorTrackCube::GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const
 {
-  modifiers.visionModesForActivatableScope->insert( {VisionMode::DetectingMarkers, EVisionUpdateFrequency::High} );
-  modifiers.visionModesForActiveScope->insert( {VisionMode::DetectingMarkers, EVisionUpdateFrequency::High} );
+  modifiers.visionModesForActivatableScope->insert( {VisionMode::Markers, EVisionUpdateFrequency::High} );
+  modifiers.visionModesForActiveScope->insert( {VisionMode::Markers, EVisionUpdateFrequency::High} );
   modifiers.behaviorAlwaysDelegates = false;
 }
   
@@ -94,8 +94,7 @@ void BehaviorTrackCube::OnBehaviorActivated()
 ObjectID BehaviorTrackCube::GetVisibleCube() const
 {
   BlockWorldFilter filter;
-  filter.AddAllowedFamily(ObjectFamily::LightCube);
-  filter.SetFilterFcn(nullptr);
+  filter.AddFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
   
   // list of visible cubes, sorted by how close they are in asc order
   std::map<float, const ObservableObject*> objectsByDist;
@@ -110,7 +109,7 @@ ObjectID BehaviorTrackCube::GetVisibleCube() const
   ObjectID movingObject;
   float movingObjectDist_mm = std::numeric_limits<float>::max();
   
-  const float currentTime_ms = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  const RobotTimeStamp_t currentTime_ms = GetBEI().GetRobotInfo().GetLastImageTimeStamp();
   
   for( const auto* object : objects ) {
     
@@ -121,14 +120,18 @@ ObjectID BehaviorTrackCube::GetVisibleCube() const
                                                                 kMinImageSizePix,
                                                                 false);
       
-      // ignore the occluded reason because it seems broken (VIC-2699). that reason is only returned if
-      // the object is otherwise visible, so treat it as visible for all intensive porpoises
-      const bool isVisible = (reason == NotVisibleReason::IS_VISIBLE) || (reason == NotVisibleReason::OCCLUDED);
+
+      const bool isVisible = (reason == NotVisibleReason::IS_VISIBLE);
       // currently, cubes arent removed if they are not seen in their original location, so check the last time they were seen
       const bool recent = (_iConfig.maxTimeSinceObserved_ms < 0)
                           || (object->GetLastObservedTime() + _iConfig.maxTimeSinceObserved_ms >= currentTime_ms);
       if( isVisible && recent ) {
-        const float dist = ComputeDistanceBetween( object->GetPose(), robotPose );
+        float dist = 0.f;
+        if (!ComputeDistanceBetween( object->GetPose(), robotPose , dist )) {
+          LOG_ERROR("BehaviorTrackCube.GetVisibleCube.ComputeDistanceFailed",
+                    "Failed to compute distance between object and robot");
+          return ObjectID();
+        }
         if( dist <= _iConfig.maxDistance_mm ) {
           objectsByDist.emplace( dist, object );
           const bool isMoving = object->IsMoving();

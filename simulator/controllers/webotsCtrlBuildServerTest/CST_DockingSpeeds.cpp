@@ -11,13 +11,12 @@
  */
 
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/robot.h"
 
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
     enum class TestState {
       Init,
@@ -102,7 +101,7 @@ namespace Anki {
             m.idTag = 1;
             m.numRetries = 3;
             // Pickup object 0
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -130,7 +129,7 @@ namespace Anki {
             m.idTag = 2;
             m.numRetries = 3;
             // Pickup object 0
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -156,7 +155,7 @@ namespace Anki {
             m.idTag = 3;
             m.numRetries = 3;
             // Pickup object 0
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -183,7 +182,7 @@ namespace Anki {
             m.idTag = 4;
             m.numRetries = 3;
             // Pickup object 0
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -210,7 +209,7 @@ namespace Anki {
             m.idTag = 5;
             m.numRetries = 3;
             // Pickup object 0
-            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true, true));
+            m.action.Set_pickupObject(ExternalInterface::PickupObject(0, mp, 0, false, true));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -265,7 +264,7 @@ namespace Anki {
             ExternalInterface::QueueSingleAction m;
             m.position = QueueActionPosition::NOW_AND_CLEAR_REMAINING;
             m.idTag = 10;
-            m.action.Set_waitForImages(ExternalInterface::WaitForImages(5,0,VisionMode::DetectingMarkers));
+            m.action.Set_waitForImages(ExternalInterface::WaitForImages(5,0,VisionMode::Markers));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -282,7 +281,7 @@ namespace Anki {
             ExternalInterface::QueueSingleAction m2;
             m2.position = QueueActionPosition::NEXT;
             m2.idTag = 30;
-            m2.action.Set_waitForImages(ExternalInterface::WaitForImages(5,0,VisionMode::DetectingMarkers));
+            m2.action.Set_waitForImages(ExternalInterface::WaitForImages(5,0,VisionMode::Markers));
             ExternalInterface::MessageGameToEngine message2;
             message2.Set_QueueSingleAction(m2);
             SendMessage(message2);
@@ -325,6 +324,6 @@ namespace Anki {
       };
     }
     
-  } // end namespace Cozmo
+  } // end namespace Vector
 } // end namespace Anki
 

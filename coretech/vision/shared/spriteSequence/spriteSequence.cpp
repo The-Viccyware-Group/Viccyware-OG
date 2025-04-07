@@ -10,12 +10,31 @@
  **/
 
 #include "coretech/vision/shared/spriteSequence/spriteSequence.h"
-#include "coretech/common/engine/array2d_impl.h"
+#include "coretech/common/shared/array2d.h"
 #include "coretech/common/shared/types.h"
 #include "coretech/vision/engine/image.h"
 
 namespace Anki {
 namespace Vision {
+
+SpriteSequence::LoopConfig SpriteSequence::LoopConfigFromString(const std::string& config)
+{
+  if(config == "loop"){
+    return LoopConfig::Loop;
+  }else if(config == "hold"){
+    return LoopConfig::Hold;
+  }else if(config == "error"){
+    return LoopConfig::Error;
+  }else if(config == "doNothing"){
+    return LoopConfig::DoNothing;
+  }else{
+    PRINT_NAMED_ERROR("SpriteSequence.LoopConfigFromString.ImproperString",
+                      "No config for %s",
+                      config.c_str());
+    return LoopConfig::Error;
+  }
+}
+
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SpriteSequence::SpriteSequence(LoopConfig config)
@@ -66,6 +85,11 @@ bool SpriteSequence::GetFrame(const u32 index, Vision::SpriteHandle& handle) con
   if(_frames.empty()){
     return false;
   }
+
+  if((_loopConfig == LoopConfig::DoNothing) &&
+     (index >= _frames.size())){
+    return false;
+  }
   
   u32 modIndex = 0;
   const bool success = GetModdedIndex(index, modIndex);
@@ -90,6 +114,11 @@ bool SpriteSequence::GetModdedIndex(const u32 index, u32& moddedIndex) const
     case LoopConfig::Hold:
       moddedIndex = (index < _frames.size()) ? index : static_cast<u32>(_frames.size() - 1);
       break;
+    case LoopConfig::DoNothing:
+      if(index >= _frames.size()){
+        return false;
+      }
+      moddedIndex = index;
     case LoopConfig::Error:
       if(index >= _frames.size()){
         PRINT_NAMED_ERROR("SpriteSequence.GetFrame.FrameBeyondIndex",
@@ -102,5 +131,5 @@ bool SpriteSequence::GetModdedIndex(const u32 index, u32& moddedIndex) const
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

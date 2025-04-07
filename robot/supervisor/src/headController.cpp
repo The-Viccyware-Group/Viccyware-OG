@@ -1,6 +1,8 @@
 #include "headController.h"
 #include "anki/cozmo/robot/hal.h"
-#include "coretech/common/shared/radians.h"
+#include "anki/cozmo/robot/DAS.h"
+#include "clad/types/motorTypes.h"
+#include "coretech/common/shared/math/radians.h"
 #include "velocityProfileGenerator.h"
 #include "anki/cozmo/robot/logging.h"
 #include "messages.h"
@@ -15,7 +17,7 @@
 //#define CALIB_WHILE_APPLYING_POWER
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace HeadController {
 
     namespace {
@@ -71,7 +73,6 @@ namespace HeadController {
       // Calibration parameters
       typedef enum {
         HCS_IDLE,
-        HCS_RAISE_HEAD, // Only used if not packed out
         HCS_LOWER_HEAD,
         HCS_WAIT_FOR_STOP,
         HCS_SET_CURR_ANGLE,
@@ -86,6 +87,9 @@ namespace HeadController {
       // If this is the first time calibrating, repeat until it's done.
       // Shouldn't proceed until calibration is complete.
       bool firstCalibration_ = true;
+      
+      // Keep track of why we started a calibration, so that we can report this to DAS once the calibration completes
+      MotorCalibrationReason calibrationReason_ = MotorCalibrationReason::Startup;
 
       // Last time head movement was detected
       u32 lastHeadMovedTime_ms = 0;
@@ -114,6 +118,10 @@ namespace HeadController {
       // Bracing for impact
       // Lowers head quickly during which time it ignores any new commands
       bool bracing_ = false;
+      const f32 BRACING_POWER = -0.65;
+
+      // True if encoder was reported as invalid by HAL and has not been calibrated since
+      u32 encoderInvalidStartTime_ms_ = 0;
 
     } // "private" members
 
@@ -153,15 +161,13 @@ namespace HeadController {
     }
 
 
-    void StartCalibrationRoutine(bool autoStarted)
+    void StartCalibrationRoutine(const bool autoStarted, const MotorCalibrationReason& reason)
     {
+      calibrationReason_ = reason;
       potentialBurnoutStartTime_ms_ = 0;
-      calState_ = (Factory::GetEMR()->fields.PACKED_OUT_FLAG ? HCS_LOWER_HEAD : HCS_RAISE_HEAD);
+      calState_ = HCS_LOWER_HEAD;
       isCalibrated_ = false;
-
-      // After we're done with calibration it shouldn't continue trying to reach 
-      // the head position it was trying to get to before
-      inPosition_ = true;  
+      inPosition_ = false;
     
       Messages::SendMotorCalibrationMsg(MotorID::MOTOR_HEAD, true, autoStarted);
     }
@@ -199,6 +205,32 @@ namespace HeadController {
       SetAngularVelocity(0);
     }
 
+    void OnMotorCalibrated()
+    {
+      const auto prevAngle = currentAngle_;
+      ResetLowAnglePosition();
+      
+      // How badly out of calibration was the motor?
+      const float angleError_deg = (prevAngle - currentAngle_).getDegrees();
+
+      AnkiInfo("HeadController.Calibrated",
+               "Head calibrated for reason %s. Calibration error was %.3f deg.",
+               EnumToString(calibrationReason_),
+               angleError_deg);
+      
+      // Log DAS, but not if this is a calibration due to normal startup
+      const u32 timeUncalibrated_ms = encoderInvalidStartTime_ms_ > 0 ? HAL::GetTimeStamp() - encoderInvalidStartTime_ms_ : 0;
+      if (calibrationReason_ != MotorCalibrationReason::Startup) {
+        DASMSG(head_motor_calibrated,
+               "head_motor_calibrated",
+               "The robot's head motor has just completed a calibration");
+        DASMSG_SET(s1, EnumToString(calibrationReason_), "Reason for triggering calibration");
+        DASMSG_SET(i1, 1000.f * angleError_deg, "Angular error (millidegrees). This represents how far out of calibration the motor was.");
+        DASMSG_SET(i2, timeUncalibrated_ms, "Amount of time motor was uncalibrated according to syscon (ms). If syscon didn't know then 0.")
+        DASMSG_SEND();
+      }
+    }
+  
     void CalibrationUpdate()
     {
       if (!isCalibrated_) {
@@ -207,31 +239,13 @@ namespace HeadController {
 
           case HCS_IDLE:
             break;
-
-          case HCS_RAISE_HEAD:
-            power_ = 0.4f;
+  
+          case HCS_LOWER_HEAD:
+            power_ = HAL::MotorGetCalibPower(MotorID::MOTOR_HEAD);
             HAL::MotorSetPower(MotorID::MOTOR_HEAD, power_);
             lastHeadMovedTime_ms = HAL::GetTimeStamp();
             lowHeadAngleDuringCalib_rad_ = currentAngle_.ToFloat();
-            calState_ = HCS_LOWER_HEAD;
-            break;
-            
-          case HCS_LOWER_HEAD:
-            if(!IsMoving())
-            {
-              if( HAL::GetTimeStamp() - lastHeadMovedTime_ms > HEAD_STOP_TIME)
-              {
-                power_ = HAL::MotorGetCalibPower(MotorID::MOTOR_HEAD);
-                HAL::MotorSetPower(MotorID::MOTOR_HEAD, power_);
-                lastHeadMovedTime_ms = HAL::GetTimeStamp();
-                lowHeadAngleDuringCalib_rad_ = currentAngle_.ToFloat();
-                calState_ = HCS_WAIT_FOR_STOP;
-              }            
-            }
-            else
-            {
-              lastHeadMovedTime_ms = HAL::GetTimeStamp();
-            }
+            calState_ = HCS_WAIT_FOR_STOP;    
             break;
 
           case HCS_WAIT_FOR_STOP:
@@ -241,7 +255,6 @@ namespace HeadController {
               if (HAL::GetTimeStamp() - lastHeadMovedTime_ms > HEAD_STOP_TIME) {
 #ifdef          CALIB_WHILE_APPLYING_POWER
                 AnkiInfo( "HeadController.CalibratedWhileApplyingPower", "");
-                ResetLowAnglePosition();
                 calState_ = HCS_COMPLETE;
                 break;
 #else
@@ -263,8 +276,6 @@ namespace HeadController {
           case HCS_SET_CURR_ANGLE:
             // Wait for motor to relax and then set angle
             if (HAL::GetTimeStamp() - lastHeadMovedTime_ms > HEAD_STOP_TIME) {
-              AnkiInfo( "HeadController.Calibrated", "");
-              ResetLowAnglePosition();
               calState_ = HCS_COMPLETE;
               // Intentional fall-through
             } else {
@@ -272,6 +283,8 @@ namespace HeadController {
             }
           case HCS_COMPLETE:
           {
+            OnMotorCalibrated();
+            
             // Turn off motor
             power_ = 0.0;
             HAL::MotorSetPower(MotorID::MOTOR_HEAD, power_);
@@ -279,7 +292,10 @@ namespace HeadController {
             Messages::SendMotorCalibrationMsg(MotorID::MOTOR_HEAD, false);
 
             firstCalibration_ = false;
-            calState_ = HCS_IDLE;
+            isCalibrated_     = true;
+            calState_         = HCS_IDLE;
+            inPosition_       = true;
+            encoderInvalidStartTime_ms_   = 0;
             break;
           }
         } // end switch(calState_)
@@ -297,15 +313,13 @@ namespace HeadController {
               AnkiWarn("HeadController.CalibrationUpdate.RestartingCalib",
                         "Someone is probably messing with head (low: %fdeg, curr: %fdeg)",
                         RAD_TO_DEG(lowHeadAngleDuringCalib_rad_), RAD_TO_DEG(currAngle));
-              calState_ = (Factory::GetEMR()->fields.PACKED_OUT_FLAG ? HCS_LOWER_HEAD : HCS_RAISE_HEAD);
+              calState_ = HCS_LOWER_HEAD;
             } else {
               AnkiInfo("HeadController.CalibrationUpdate.Abort",
                         "Someone is probably messing with head (low: %fdeg, curr: %fdeg)",
                         RAD_TO_DEG(lowHeadAngleDuringCalib_rad_), RAD_TO_DEG(currAngle));
 
-
               // Pretend calibration is fine
-              isCalibrated_ = true;
               calState_ = HCS_COMPLETE;
             }
           }
@@ -344,7 +358,7 @@ namespace HeadController {
     void PoseAndSpeedFilterUpdate()
     {
       // Get encoder speed measurements
-      f32 measuredSpeed = Cozmo::HAL::MotorGetSpeed(MotorID::MOTOR_HEAD);
+      f32 measuredSpeed = Vector::HAL::MotorGetSpeed(MotorID::MOTOR_HEAD);
 
       radSpeed_ = (measuredSpeed *
                    (1.0f - SPEED_FILTERING_COEFF) +
@@ -522,7 +536,7 @@ namespace HeadController {
     // Returns true if a protection action was triggered.
     bool MotorBurnoutProtection() {
 
-      if (ABS(power_) < BURNOUT_POWER_THRESH || bracing_) {
+      if (ABS(power_) < BURNOUT_POWER_THRESH) {
         potentialBurnoutStartTime_ms_ = 0;
         return false;
       }
@@ -530,14 +544,15 @@ namespace HeadController {
       if (potentialBurnoutStartTime_ms_ == 0) {
         potentialBurnoutStartTime_ms_ = HAL::GetTimeStamp();
       } else if (HAL::GetTimeStamp() - potentialBurnoutStartTime_ms_ > BURNOUT_TIME_THRESH_MS) {
-        if (IsInPosition() || IMUFilter::IsPickedUp() || ProxSensors::IsAnyCliffDetected()) {
+        if (IsInPosition() || IMUFilter::IsBeingHeld() || ProxSensors::IsAnyCliffDetected()) {
           // Stop messing with the head! Going limp until you do!
           Messages::SendMotorAutoEnabledMsg(MotorID::MOTOR_HEAD, false);
           Disable(true);
         } else {
           // Burnout protection triggered. Recalibrating.
           AnkiWarn( "HeadController.MotorBurnoutProtection", "Recalibrating (power = %f)", power_);
-          StartCalibrationRoutine(true);
+          const bool autoStarted = true;
+          StartCalibrationRoutine(autoStarted, MotorCalibrationReason::HeadMotorBurnoutProtection);
         }
         return true;
       }
@@ -545,12 +560,19 @@ namespace HeadController {
     }
 
     void Brace() {
-      SetDesiredAngle(MIN_HEAD_ANGLE, MAX_HEAD_SPEED_RAD_PER_S, MAX_HEAD_ACCEL_RAD_PER_S2);
+      AnkiInfo("HeadController.Brace", "");
+      HAL::MotorSetPower(MotorID::MOTOR_HEAD, BRACING_POWER);
       bracing_ = true;
     }
 
     void Unbrace() {
+      AnkiInfo("HeadController.Unbrace", "");
+      HAL::MotorSetPower(MotorID::MOTOR_HEAD, 0.f);
       bracing_ = false;
+    }
+
+    bool IsBracing() {
+      return bracing_;
     }
 
     Result Update()
@@ -558,6 +580,11 @@ namespace HeadController {
       CalibrationUpdate();
 
       PoseAndSpeedFilterUpdate();
+
+      // Check encoder validity
+      if (HAL::IsHeadEncoderInvalid() && encoderInvalidStartTime_ms_ == 0) {
+        encoderInvalidStartTime_ms_ = HAL::GetTimeStamp();
+      }
 
       // If disabled, do not activate motors
       if(!enable_) {
@@ -578,7 +605,7 @@ namespace HeadController {
       }
 
 
-      if (!IsCalibrated() || MotorBurnoutProtection()) {
+      if (!IsCalibrated() || bracing_ || MotorBurnoutProtection()) {
         return RESULT_OK;
       }
 
@@ -655,6 +682,12 @@ namespace HeadController {
             Kp_, Ki_, Kd_, MAX_ERROR_SUM);
     }
 
+
+    bool IsEncoderInvalid()
+    {
+      return encoderInvalidStartTime_ms_ > 0;
+    }
+
   } // namespace HeadController
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

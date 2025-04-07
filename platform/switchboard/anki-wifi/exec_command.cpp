@@ -11,7 +11,7 @@
  **/
 
 #include "exec_command.h"
-#include "fork_and_exec.h"
+#include "util/threading/fork_and_exec.h"
 #include "taskExecutor.h"
 
 #include <sstream>
@@ -21,16 +21,11 @@ namespace Anki {
 static TaskExecutor* sBackgroundTaskExecutor;
 static bool sBackgroundCommandsCancelled = false;
 
-int ExecCommand(const std::vector<std::string>& args, std::string& output)
+int ExecCommand(const std::vector<std::string>& args)
 {
-  std::ostringstream oss;
-
-  int rc = ForkAndExec(args, oss);
-
-  output = oss.str();
+  int rc = ForkAndExec(args);
 
   return rc;
-
 }
 
 void ExecCommandInBackground(const std::vector<std::string>& args,
@@ -40,9 +35,9 @@ void ExecCommandInBackground(const std::vector<std::string>& args,
   sBackgroundCommandsCancelled = false;
   auto f = [args, callback]() {
     std::string output;
-    int rc = sBackgroundCommandsCancelled ? -1 : ExecCommand(args, output);
+    int rc = sBackgroundCommandsCancelled ? -1 : ExecCommand(args);
     if (callback) {
-      callback(rc, output);
+      callback(rc);
     }
   };
   if (!sBackgroundTaskExecutor) {

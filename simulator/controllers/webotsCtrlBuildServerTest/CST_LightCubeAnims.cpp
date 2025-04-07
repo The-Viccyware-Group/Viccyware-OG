@@ -18,7 +18,7 @@
 #include "util/graphEvaluator/graphEvaluator2d.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class TestState {
   Init,
@@ -105,6 +105,9 @@ s32 CST_LightCubeAnims::UpdateSimInternal()
       SendMessage(message);
       
       SendMoveHeadToAngle(0.f, 100, 100);
+      
+      // Request a cube connection
+      SendConnectToCube();
 
       SET_TEST_STATE(WaitForHeadUp);
       break;
@@ -112,7 +115,7 @@ s32 CST_LightCubeAnims::UpdateSimInternal()
 
     case TestState::WaitForHeadUp:
     {
-      IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(5,
+      IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(15,
                                             _id >= 0,
                                             NEAR(GetRobotHeadAngle_rad(), 0.f, HEAD_ANGLE_TOL)) {
         SendCubeAnimation(_id, _testAllLedsTrigger);
@@ -291,5 +294,5 @@ void CST_LightCubeAnims::HandleActiveObjectConnectionState(const ExternalInterfa
   }
 }
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki

@@ -20,7 +20,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
   const static std::set<BEIConditionType> kSupportedTypes = {
@@ -29,6 +29,7 @@ namespace{
     BEIConditionType::FacePositionUpdated,
     BEIConditionType::RobotTouched,
     BEIConditionType::RobotShaken,
+    BEIConditionType::RobotPoked,
   };
 }
 
@@ -88,6 +89,11 @@ void ConditionAnyStimuli::AddCondition( BEIConditionType type )
     case BEIConditionType::FaceKnown:
     {
       config["maxFaceDist_mm"] = 2000;
+    }
+      break;
+    case BEIConditionType::RobotPoked:
+    {
+      config["wasPokedRecentlyTimeThreshold_sec"] = 0.2;
     }
       break;
     case BEIConditionType::RobotTouched:

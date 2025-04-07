@@ -7,7 +7,7 @@
 #include "util/logging/printfLoggerProvider.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   CONSOLE_VAR_EXTERN(bool, kProcFace_HotspotRender)
   CONSOLE_VAR_EXTERN(s32, kProcFace_AntiAliasingSize)
   CONSOLE_VAR_EXTERN(s32, kProcFace_AntiAliasingSize)
@@ -16,7 +16,7 @@ namespace Cozmo {
 }
 
 using namespace Anki;
-using namespace Cozmo;
+using namespace Vector;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TEST(Cozmo, SimpleCozmoTest)
@@ -33,8 +33,8 @@ int main(int argc, char ** argv)
 {
   // For victor rendering
   kProcFace_HotspotRender = true;
-  kProcFace_AntiAliasingSize = 5.f;
-  kProcFace_AntiAliasingFilter = 0;
+  kProcFace_AntiAliasingSize = 3;
+  kProcFace_AntiAliasingFilter = 1;
 
   //LEAKING HERE
   Anki::Util::PrintfLoggerProvider* loggerProvider = new Anki::Util::PrintfLoggerProvider();
@@ -83,9 +83,6 @@ int main(int argc, char ** argv)
 
   // Initialize AndroidHAL singleton without supervisor
   CameraService::SetSupervisor(nullptr);
-
-  // Initialize OSState singleton without supervisor
-  OSState::SetSupervisor(nullptr);
 
   // Initialize CubeBleClient singleton without supervisor
   CubeBleClient::SetSupervisor(nullptr);

@@ -26,7 +26,7 @@
 #include "util/console/consoleInterface.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 CONSOLE_VAR_RANGED(float, kCubeDistance_mm, "BehaviorPlannerTest", 25.0f, 0.0f, 100.0f );
 CONSOLE_VAR_RANGED(float, kDistance_mm, "BehaviorPlannerTest", 1000.0f, 0.0f, 2000.0f );
@@ -53,7 +53,7 @@ BehaviorPlannerTest::BehaviorPlannerTest(const Json::Value& config)
 void BehaviorPlannerTest::GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const
 {
   modifiers.behaviorAlwaysDelegates = false;
-  modifiers.visionModesForActiveScope->insert( {VisionMode::DetectingMarkers, EVisionUpdateFrequency::High} );
+  modifiers.visionModesForActiveScope->insert( {VisionMode::Markers, EVisionUpdateFrequency::High} );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -104,7 +104,7 @@ void BehaviorPlannerTest::BehaviorUpdate()
 bool BehaviorPlannerTest::FindPoseFromCube()
 {
   BlockWorldFilter filter;
-  filter.SetAllowedFamilies( {ObjectFamily::LightCube} );
+  filter.SetFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
   
   std::vector<const ObservableObject*> objects;
   GetBEI().GetBlockWorld().FindLocatedMatchingObjects( filter, objects );
@@ -166,7 +166,7 @@ void BehaviorPlannerTest::CalcFarAwayPose()
 void BehaviorPlannerTest::GoToCubePose()
 {
   _dVars.state = State::DrivingToCube;
-  auto* action = new DriveToPoseAction( _dVars.cubePoses, false );
+  auto* action = new DriveToPoseAction( _dVars.cubePoses );
   action->SetMustContinueToOriginalGoal( kOnlyUseOriginalGoal );
   DelegateIfInControl( action, [this](const ActionResult& res){
     // if we havent done so already, remove all but the selected goal pose by the cube
@@ -180,11 +180,12 @@ void BehaviorPlannerTest::GoToCubePose()
       }
     }
     if( IActionRunner::GetActionResultCategory(res) == ActionResultCategory::RETRY ) {
-      DelegateIfInControl( new SayTextAction( "CUBE RETRY",   SayTextVoiceStyle::Unprocessed ), &BehaviorPlannerTest::GoToCubePose );
+      DelegateIfInControl( new SayTextAction( "CUBE RETRY",   SayTextAction::AudioTtsProcessingStyle::Unprocessed ),
+                           &BehaviorPlannerTest::GoToCubePose );
     } else if( res != ActionResult::SUCCESS ) {
-      DelegateIfInControl( new SayTextAction( "CUBE FAIL",    SayTextVoiceStyle::Unprocessed ) );
+      DelegateIfInControl( new SayTextAction( "CUBE FAIL",    SayTextAction::AudioTtsProcessingStyle::Unprocessed ) );
     } else {
-      DelegateIfInControl( new SayTextAction( "CUBE SUCCESS", SayTextVoiceStyle::Unprocessed ) );
+      DelegateIfInControl( new SayTextAction( "CUBE SUCCESS", SayTextAction::AudioTtsProcessingStyle::Unprocessed ) );
     }
   });
 }
@@ -194,13 +195,14 @@ void BehaviorPlannerTest::GoToFarAwayPose()
 {
   _dVars.state = State::DrivingFar;
   CalcFarAwayPose();
-  DelegateIfInControl( new DriveToPoseAction( _dVars.drivePose, false ), [this](const ActionResult& res){
+  DelegateIfInControl( new DriveToPoseAction( _dVars.drivePose ), [this](const ActionResult& res){
     if( IActionRunner::GetActionResultCategory(res) == ActionResultCategory::RETRY ) {
-      DelegateIfInControl( new SayTextAction( "DRIVE RETRY",   SayTextVoiceStyle::Unprocessed ), &BehaviorPlannerTest::GoToFarAwayPose );
+      DelegateIfInControl( new SayTextAction( "DRIVE RETRY",   SayTextAction::AudioTtsProcessingStyle::Unprocessed ),
+                           &BehaviorPlannerTest::GoToFarAwayPose );
     } else if( res != ActionResult::SUCCESS ) {
-      DelegateIfInControl( new SayTextAction( "DRIVE FAIL",    SayTextVoiceStyle::Unprocessed ) );
+      DelegateIfInControl( new SayTextAction( "DRIVE FAIL",    SayTextAction::AudioTtsProcessingStyle::Unprocessed ) );
     } else {
-      DelegateIfInControl( new SayTextAction( "DRIVE SUCCESS", SayTextVoiceStyle::Unprocessed ) );
+      DelegateIfInControl( new SayTextAction( "DRIVE SUCCESS", SayTextAction::AudioTtsProcessingStyle::Unprocessed ) );
     }
   });
 }

@@ -12,7 +12,6 @@
 
 #include "engine/aiComponent/beiConditions/conditions/iConditionUserIntent.h"
 
-#include "clad/types/behaviorComponent/userIntent.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
@@ -25,7 +24,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
   
   
@@ -38,7 +37,7 @@ std::unordered_map< std::string, IConditionUserIntent::EvalUserIntentFunc > ICon
 {
   // PLEASE KEEP ALPHABETIZED
   
-  
+
   {
     // test_lambda. Only used in unit tests. keep this at the end
     "test_lambda", [](const UserIntent& intent)

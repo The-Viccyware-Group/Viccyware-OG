@@ -17,12 +17,11 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BlockWorldFilter;
 class BehaviorPickUpCube;
 class BehaviorRequestToGoHome;
-class BehaviorRollBlock;
   
 class BehaviorClearChargerArea : public ICozmoBehavior
 {
@@ -37,7 +36,7 @@ public:
   
 protected:
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override {
-    modifiers.visionModesForActiveScope->insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::High });
+    modifiers.visionModesForActiveScope->insert({ VisionMode::Markers, EVisionUpdateFrequency::High });
     modifiers.wantsToBeActivatedWhenOnCharger = false;
     modifiers.wantsToBeActivatedWhenCarryingObject = true;
   }
@@ -55,9 +54,9 @@ private:
     InstanceConfig(const Json::Value& config, const std::string& debugName);
 
     std::shared_ptr<BehaviorPickUpCube>       pickupBehavior;
-    std::shared_ptr<BehaviorRollBlock>        rollBehavior;
     std::shared_ptr<BehaviorRequestToGoHome>  requestHomeBehavior;
     const int maxNumAttempts;
+    const bool tryToPickUpCube;
     std::unique_ptr<BlockWorldFilter> chargerFilter;
     std::unique_ptr<BlockWorldFilter> cubesFilter;
   };
@@ -72,7 +71,8 @@ private:
   DynamicVariables _dVars;
 
   void TransitionToCheckDockingArea();
-  void TransitionToRollCube();
+  void TransitionToPositionForRamming();
+  void TransitionToRamCube();
   void TransitionToPlacingCubeOnGround();
   
   // Get a pointer to a cube that is in the charger's
@@ -83,7 +83,7 @@ private:
 };
   
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_Behaviors_BehaviorClearChargerArea_H__

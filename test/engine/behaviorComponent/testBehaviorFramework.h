@@ -11,6 +11,8 @@
 *
 **/
 
+#ifndef __Test_Engine_TestBehaviorFramework_H__
+#define __Test_Engine_TestBehaviorFramework_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
@@ -18,7 +20,7 @@
 #include "clad/types/behaviorComponent/userIntent.h"
 
 
-extern Anki::Cozmo::CozmoContext* cozmoContext;
+extern Anki::Vector::CozmoContext* cozmoContext;
 
 #define DoTicks(testFramework, r, b, n) do { SCOPED_TRACE(__LINE__); DoTicks_(testFramework, r, b, n); } while(0)
 #define DoTicksToComplete(testFramework, r, b, n) do { SCOPED_TRACE(__LINE__); DoTicks_(testFramework,r, b, n, true); } while(0)
@@ -27,7 +29,7 @@ extern Anki::Cozmo::CozmoContext* cozmoContext;
 /// Setup a test behavior class that tracks data for testing
 //////////
 namespace Anki{
-namespace Cozmo{
+namespace Vector{
 class AIComponent;
 class BehaviorExternalInterface;
 class BehaviorSystemManager;
@@ -36,6 +38,8 @@ class Robot;
 class BehaviorEventComponent;
 class TestBehaviorWithHelpers;
 class TestBehaviorFramework;
+
+struct MetaUserIntent_SimpleVoiceResponse;
 
 // Function to do ticks on a behavior
 void DoTicks_(TestBehaviorFramework& testFramework, Robot& robot, TestBehaviorWithHelpers& behavior, int num, bool expectComplete = false);
@@ -108,19 +112,34 @@ public:
   // Delegate through all valid tree states TreeCallback is called after each delegation (and optionally takes
   // a bool which is true if the node is a leaf, false otherwise)
   void FullTreeWalk(std::map<IBehavior*,std::set<IBehavior*>>& delegateMap,
-                    std::function<void(void)> evaluateTreeCallback);
+                    const std::function<void(void)>& evaluateTreeCallback,
+                    const std::function<void(IBehavior*)>& evaluatePreDelgationCallback = nullptr);
 
   void FullTreeWalk(std::map<IBehavior*,std::set<IBehavior*>>& delegateMap,
-                    std::function<void(bool)> evaluateTreeCallback = nullptr);
+                    const std::function<void(bool)>& evaluateTreeCallback = nullptr,
+                    const std::function<void(IBehavior*)>& evaluatePreDelgationCallback = nullptr);
 
   // Walks the full freeplay tree to see whether the stack can occur
   static bool CanStackOccurDuringFreeplay(const std::vector<IBehavior*>& stackToBuild);
+  
+  // Adds a face if one doesn't already exist
+  void AddFakeFirstFace();
+  
+  // Adds objectType if one doesnt already exist, either at origin or at pose, if specified
+  void AddFakeFirstObject( ObjectType objectType, Pose3d* pose = nullptr );
+
+  // iterate the simple voice responses from the user intent map / component
+  void IterateSimpleVoiceResponse(std::function< void( const MetaUserIntent_SimpleVoiceResponse& ) > lambda);
+  
 
 private:
   // There are some special case delegations where behaviors require certain
   // properties of the system to be true before delegation - this is a place to
   // maintain the special case logic required
   void ApplyAdditionalRequirementsBeforeDelegation(IBehavior* delegate);
+  
+  // Restore state prior to calling ApplyAdditionalRequirementsBeforeDelegation
+  void RemoveAdditionalDelegationRequirements(IBehavior* delegate);
 
   // Called once during init to load the namedBehaviorStack map from Json
   void LoadNamedBehaviorStacks();
@@ -129,6 +148,8 @@ private:
   std::unique_ptr<Robot> _robot;
   
   std::unordered_map<std::string, std::vector<IBehavior*>> _namedBehaviorStacks;
+  
+  std::unordered_map<std::string, std::vector<bool>> _cachedDelegationReqs;
 
   // Not guaranteed to be initialized
   AIComponent*               _aiComponent;
@@ -234,3 +255,5 @@ public:
 
 }
 }
+
+#endif // __Test_Engine_TestBehaviorFramework_H__

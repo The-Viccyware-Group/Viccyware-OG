@@ -1,16 +1,14 @@
-# Victor Python SDK
+# Anki Vector SDK
 
-The SDK itself is now at https://github.com/anki/victor-python-sdk-private
+The Python SDK currently lives under `tools/sdk/vector-python-sdk-private/`. Instructions to
+use the SDK can be found [on confluence](https://ankiinc.atlassian.net/wiki/spaces/VD/pages/441319496/Python+Vector+SDK+-+Getting+Started).
 
-The `victorclad` directory contains boilerplate for creating a separate Python
-package for the CLAD dependency.
+## scripts
 
-# Vector Clad
-The `vector-clad` directory contains a script to build and copy up the current
-sdk-facing clad messages.  This is a pre-requisite for the vector-sdk folder.
+Contains scripts for setup of the python sdk.
+Further details may be found [in scripts' README](scripts/README.md)
 
-# Vector SDK
-The `vector-sdk` directory contains a starting point for a victor development
-kit.  Currently it consists of a single file which defines a robot similar to
-in the cozmo SDK, and invokes some basic driving/turning through the robot
-proxy.
+## gateway-tests
+
+The `gateway-tests` directory contains a few tests scripts which may be executed with pytest.
+Further details may be found [in gateway-tests's README](gateway-tests/README.md)

@@ -26,7 +26,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace Audio {
   
 #define ENABLE_TREAD_LOG 0
@@ -53,9 +53,13 @@ namespace Audio {
 #endif
 
 namespace {
-  CONSOLE_VAR(uint32_t, kTreadCoolDown_ms, "ProceduralAudioClient", 65);
-  CONSOLE_VAR(uint32_t, kHeadCoolDown_ms, "ProceduralAudioClient", 65);
-  CONSOLE_VAR(uint32_t, kLiftCoolDown_ms, "ProceduralAudioClient", 65);
+  #define CONSOLE_PATH "Audio.Procedural"
+  CONSOLE_VAR(bool, kEnableHeadProceduralMovement, CONSOLE_PATH, false);
+  CONSOLE_VAR(bool, kEnableLiftProceduralMovement, CONSOLE_PATH, false);
+  CONSOLE_VAR(bool, kEnableTreadProceduralMovement, CONSOLE_PATH, true);
+  CONSOLE_VAR_RANGED(uint32_t, kTreadCoolDown_ms, CONSOLE_PATH, 65, 0, 250);
+  CONSOLE_VAR_RANGED(uint32_t, kHeadCoolDown_ms, CONSOLE_PATH, 65, 0, 250);
+  CONSOLE_VAR_RANGED(uint32_t, kLiftCoolDown_ms, CONSOLE_PATH, 65, 0, 250);
   
   static const AudioEngine::AudioGameObject kProceduralGameObj =
     AudioEngine::ToAudioGameObject(AudioMetaData::GameObjectType::Procedural);
@@ -63,7 +67,7 @@ namespace {
   static const uint kFrameCount = 2;
 
 #if ALLOW_CVS_LOG
-  CONSOLE_VAR(bool, kEnableRobotStateLog, "ProceduralAudioClient", false);
+  CONSOLE_VAR(bool, kEnableRobotStateLog, CONSOLE_PATH, false);
   std::ofstream outputFile;
   const size_t _reserveSize = 30;
   std::string _logBuffer[_reserveSize];
@@ -160,9 +164,9 @@ void ProceduralAudioClient::HandleStateMessage(const RobotInterface::RobotToEngi
   
   // Update Audio Engine when active
   if (_isActive) {
-    UpdateTreadState(previousFrame, currentFrame);
     UpdateHeadState(previousFrame, currentFrame);
     UpdateLiftState(previousFrame, currentFrame);
+    UpdateTreadState(previousFrame, currentFrame);
   }
   
   LOG_CVS_FRAME(currentFrame);
@@ -172,6 +176,8 @@ void ProceduralAudioClient::HandleStateMessage(const RobotInterface::RobotToEngi
 void ProceduralAudioClient::UpdateTreadState(const AudioProceduralFrame& previousFrame,
                                              const AudioProceduralFrame& currentFrame)
 {
+  if (!kEnableTreadProceduralMovement) { return; }
+  
   using namespace AudioEngine;
   using GE = AudioMetaData::GameEvent::GenericEvent;
   using GP = AudioMetaData::GameParameter::ParameterType;
@@ -252,6 +258,8 @@ void ProceduralAudioClient::UpdateTreadState(const AudioProceduralFrame& previou
 void ProceduralAudioClient::UpdateHeadState(const AudioProceduralFrame& previousFrame,
                                             const AudioProceduralFrame& currentFrame)
 {
+  if (!kEnableHeadProceduralMovement) { return; }
+  
   using namespace AudioEngine;
   using GE = AudioMetaData::GameEvent::GenericEvent;
   using GP = AudioMetaData::GameParameter::ParameterType;
@@ -314,6 +322,8 @@ void ProceduralAudioClient::UpdateHeadState(const AudioProceduralFrame& previous
 void ProceduralAudioClient::UpdateLiftState(const AudioProceduralFrame& previousFrame,
                                             const AudioProceduralFrame& currentFrame)
 {
+  if (!kEnableLiftProceduralMovement) { return; }
+  
   using namespace AudioEngine;
   using GE = AudioMetaData::GameEvent::GenericEvent;
   using GP = AudioMetaData::GameParameter::ParameterType;
@@ -428,7 +438,6 @@ bool ProceduralAudioClient::FrameStateUpdate(bool inCoolDown,
   
   return didUpdate;
 }
-
 
 }
 }

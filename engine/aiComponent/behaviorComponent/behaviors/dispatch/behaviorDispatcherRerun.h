@@ -20,14 +20,17 @@
 #include <set>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorDispatcherRerun : public ICozmoBehavior
 {
 public:
   virtual ~BehaviorDispatcherRerun();
   
-  static Json::Value CreateConfig(BehaviorID newConfigID, BehaviorID delegateID, const int numRuns);  
+  static Json::Value CreateConfig(BehaviorID newConfigID,
+                                  BehaviorID delegateID,
+                                  const int numRuns,
+                                  bool presetConditions);  
 
   virtual bool WantsToBeActivatedBehavior() const override{return true;}
   
@@ -55,7 +58,8 @@ protected:
 private:
   struct InstanceConfig {
     InstanceConfig();
-    int numRuns; 
+    int numRuns;
+    bool presetConditions;
     
     BehaviorID        delegateID;
     ICozmoBehaviorPtr delegatePtr;
@@ -72,7 +76,7 @@ private:
   void CheckRerunState();
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_BehaviorDispatcherRerun_H__

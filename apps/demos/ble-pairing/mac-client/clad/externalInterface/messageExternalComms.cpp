@@ -6,7 +6,7 @@
 
 namespace Anki {
 
-namespace Victor {
+namespace Vector {
 
 namespace ExternalComms {
 
@@ -24,10 +24,10 @@ const char* EnumToString(const RtsMode m)
   return nullptr;
 }
 
-const char* RtsModeVersionHashStr = "0cc19ea3a020184dd8f6276941138952";
+const char* RtsModeVersionHashStr = "60727560e08ec14a1346383480cf9222";
 
 const uint8_t RtsModeVersionHash[16] = { 
-    0xc, 0xc1, 0x9e, 0xa3, 0xa0, 0x20, 0x18, 0x4d, 0xd8, 0xf6, 0x27, 0x69, 0x41, 0x13, 0x89, 0x52 
+    0x60, 0x72, 0x75, 0x60, 0xe0, 0x8e, 0xc1, 0x4a, 0x13, 0x46, 0x38, 0x34, 0x80, 0xcf, 0x92, 0x22 
 };
 
 const char* EnumToString(const RtsConnType m)
@@ -42,10 +42,54 @@ const char* EnumToString(const RtsConnType m)
   return nullptr;
 }
 
-const char* RtsConnTypeVersionHashStr = "1044b7670becdc70f8b09cef2e0d2044";
+const char* RtsConnTypeVersionHashStr = "8b45413b6963f40639e340d8652bbf0c";
 
 const uint8_t RtsConnTypeVersionHash[16] = { 
-    0x10, 0x44, 0xb7, 0x67, 0xb, 0xec, 0xdc, 0x70, 0xf8, 0xb0, 0x9c, 0xef, 0x2e, 0xd, 0x20, 0x44 
+    0x8b, 0x45, 0x41, 0x3b, 0x69, 0x63, 0xf4, 0x6, 0x39, 0xe3, 0x40, 0xd8, 0x65, 0x2b, 0xbf, 0xc 
+};
+
+const char* EnumToString(const RtsResponseCode m)
+{
+  switch(m) {
+    case RtsResponseCode::NotCloudAuthorized:
+      return "NotCloudAuthorized";
+    default: return nullptr;
+  }
+  return nullptr;
+}
+
+const char* RtsResponseCodeVersionHashStr = "d8b9cc44b8287568ef1a3a1d2f6da965";
+
+const uint8_t RtsResponseCodeVersionHash[16] = { 
+    0xd8, 0xb9, 0xcc, 0x44, 0xb8, 0x28, 0x75, 0x68, 0xef, 0x1a, 0x3a, 0x1d, 0x2f, 0x6d, 0xa9, 0x65 
+};
+
+const char* EnumToString(const RtsCloudStatus m)
+{
+  switch(m) {
+    case RtsCloudStatus::UnknownError:
+      return "UnknownError";
+    case RtsCloudStatus::ConnectionError:
+      return "ConnectionError";
+    case RtsCloudStatus::WrongAccount:
+      return "WrongAccount";
+    case RtsCloudStatus::InvalidSessionToken:
+      return "InvalidSessionToken";
+    case RtsCloudStatus::AuthorizedAsPrimary:
+      return "AuthorizedAsPrimary";
+    case RtsCloudStatus::AuthorizedAsSecondary:
+      return "AuthorizedAsSecondary";
+    case RtsCloudStatus::Reauthorized:
+      return "Reauthorized";
+    default: return nullptr;
+  }
+  return nullptr;
+}
+
+const char* RtsCloudStatusVersionHashStr = "971e60057a96b9080eaac9281db9b645";
+
+const uint8_t RtsCloudStatusVersionHash[16] = { 
+    0x97, 0x1e, 0x60, 0x5, 0x7a, 0x96, 0xb9, 0x8, 0xe, 0xaa, 0xc9, 0x28, 0x1d, 0xb9, 0xb6, 0x45 
 };
 
 // MESSAGE RtsWifiScanResult
@@ -116,10 +160,10 @@ bool RtsWifiScanResult::operator!=(const RtsWifiScanResult& other) const
 }
 
 
-const char* RtsWifiScanResultVersionHashStr = "84ba9b5455488d84ec8c026a622bc113";
+const char* RtsWifiScanResultVersionHashStr = "ca6c71a0b6d0276eb4c2caee19f2b009";
 
 const uint8_t RtsWifiScanResultVersionHash[16] = { 
-    0x84, 0xba, 0x9b, 0x54, 0x55, 0x48, 0x8d, 0x84, 0xec, 0x8c, 0x2, 0x6a, 0x62, 0x2b, 0xc1, 0x13 
+    0xca, 0x6c, 0x71, 0xa0, 0xb6, 0xd0, 0x27, 0x6e, 0xb4, 0xc2, 0xca, 0xee, 0x19, 0xf2, 0xb0, 0x9 
 };
 
 // MESSAGE RtsWifiScanResult_2
@@ -195,10 +239,94 @@ bool RtsWifiScanResult_2::operator!=(const RtsWifiScanResult_2& other) const
 }
 
 
-const char* RtsWifiScanResult_2VersionHashStr = "312324e7c38765237119903f33814f7d";
+const char* RtsWifiScanResult_2VersionHashStr = "f4e18ee8afb30753a7148a500a1070a5";
 
 const uint8_t RtsWifiScanResult_2VersionHash[16] = { 
-    0x31, 0x23, 0x24, 0xe7, 0xc3, 0x87, 0x65, 0x23, 0x71, 0x19, 0x90, 0x3f, 0x33, 0x81, 0x4f, 0x7d 
+    0xf4, 0xe1, 0x8e, 0xe8, 0xaf, 0xb3, 0x7, 0x53, 0xa7, 0x14, 0x8a, 0x50, 0xa, 0x10, 0x70, 0xa5 
+};
+
+// MESSAGE RtsWifiScanResult_3
+
+RtsWifiScanResult_3::RtsWifiScanResult_3(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsWifiScanResult_3::RtsWifiScanResult_3(const uint8_t* buff, size_t len)
+: RtsWifiScanResult_3::RtsWifiScanResult_3({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsWifiScanResult_3::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsWifiScanResult_3::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->authType);
+  buffer.Write(this->signalStrength);
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  buffer.Write(this->hidden);
+  buffer.Write(this->provisioned);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsWifiScanResult_3::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsWifiScanResult_3::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->authType);
+  buffer.Read(this->signalStrength);
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  buffer.Read(this->hidden);
+  buffer.Read(this->provisioned);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsWifiScanResult_3::Size() const
+{
+  size_t result = 0;
+  // authType
+  result += 1; // uint_8
+  // signalStrength
+  result += 1; // uint_8
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  // hidden
+  result += 1; // bool
+  // provisioned
+  result += 1; // bool
+  return result;
+}
+
+bool RtsWifiScanResult_3::operator==(const RtsWifiScanResult_3& other) const
+{
+  return (this->authType == other.authType &&
+    this->signalStrength == other.signalStrength &&
+    this->wifiSsidHex == other.wifiSsidHex &&
+    this->hidden == other.hidden &&
+    this->provisioned == other.provisioned);
+}
+
+bool RtsWifiScanResult_3::operator!=(const RtsWifiScanResult_3& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsWifiScanResult_3VersionHashStr = "212d69873d1a4cb0ff6759ba41ce663c";
+
+const uint8_t RtsWifiScanResult_3VersionHash[16] = { 
+    0x21, 0x2d, 0x69, 0x87, 0x3d, 0x1a, 0x4c, 0xb0, 0xff, 0x67, 0x59, 0xba, 0x41, 0xce, 0x66, 0x3c 
 };
 
 // MESSAGE RtsConnRequest
@@ -258,10 +386,10 @@ bool RtsConnRequest::operator!=(const RtsConnRequest& other) const
 }
 
 
-const char* RtsConnRequestVersionHashStr = "ac9db960e0ef1d2b1de1162fe4545ff0";
+const char* RtsConnRequestVersionHashStr = "ff06529f81ae651acd93857014b358f5";
 
 const uint8_t RtsConnRequestVersionHash[16] = { 
-    0xac, 0x9d, 0xb9, 0x60, 0xe0, 0xef, 0x1d, 0x2b, 0x1d, 0xe1, 0x16, 0x2f, 0xe4, 0x54, 0x5f, 0xf0 
+    0xff, 0x6, 0x52, 0x9f, 0x81, 0xae, 0x65, 0x1a, 0xcd, 0x93, 0x85, 0x70, 0x14, 0xb3, 0x58, 0xf5 
 };
 
 // MESSAGE RtsConnResponse
@@ -326,10 +454,10 @@ bool RtsConnResponse::operator!=(const RtsConnResponse& other) const
 }
 
 
-const char* RtsConnResponseVersionHashStr = "fbec058b14b46c9b5cdf5f66619eb996";
+const char* RtsConnResponseVersionHashStr = "a87800ef74ba59cc1ab5f2edafe365be";
 
 const uint8_t RtsConnResponseVersionHash[16] = { 
-    0xfb, 0xec, 0x5, 0x8b, 0x14, 0xb4, 0x6c, 0x9b, 0x5c, 0xdf, 0x5f, 0x66, 0x61, 0x9e, 0xb9, 0x96 
+    0xa8, 0x78, 0x0, 0xef, 0x74, 0xba, 0x59, 0xcc, 0x1a, 0xb5, 0xf2, 0xed, 0xaf, 0xe3, 0x65, 0xbe 
 };
 
 // MESSAGE RtsNonceMessage
@@ -394,10 +522,10 @@ bool RtsNonceMessage::operator!=(const RtsNonceMessage& other) const
 }
 
 
-const char* RtsNonceMessageVersionHashStr = "cb42948e43bdd6385450ae851e493e2a";
+const char* RtsNonceMessageVersionHashStr = "ea22ba0580cec176e710fd8fa089e7ea";
 
 const uint8_t RtsNonceMessageVersionHash[16] = { 
-    0xcb, 0x42, 0x94, 0x8e, 0x43, 0xbd, 0xd6, 0x38, 0x54, 0x50, 0xae, 0x85, 0x1e, 0x49, 0x3e, 0x2a 
+    0xea, 0x22, 0xba, 0x5, 0x80, 0xce, 0xc1, 0x76, 0xe7, 0x10, 0xfd, 0x8f, 0xa0, 0x89, 0xe7, 0xea 
 };
 
 // MESSAGE RtsAck
@@ -457,10 +585,10 @@ bool RtsAck::operator!=(const RtsAck& other) const
 }
 
 
-const char* RtsAckVersionHashStr = "a698708629f981ab20fa45c13ae27013";
+const char* RtsAckVersionHashStr = "59a4cbeb3e6ce69c9aa9cdc838cef4ee";
 
 const uint8_t RtsAckVersionHash[16] = { 
-    0xa6, 0x98, 0x70, 0x86, 0x29, 0xf9, 0x81, 0xab, 0x20, 0xfa, 0x45, 0xc1, 0x3a, 0xe2, 0x70, 0x13 
+    0x59, 0xa4, 0xcb, 0xeb, 0x3e, 0x6c, 0xe6, 0x9c, 0x9a, 0xa9, 0xcd, 0xc8, 0x38, 0xce, 0xf4, 0xee 
 };
 
 // MESSAGE RtsChallengeMessage
@@ -520,10 +648,10 @@ bool RtsChallengeMessage::operator!=(const RtsChallengeMessage& other) const
 }
 
 
-const char* RtsChallengeMessageVersionHashStr = "b3123d5e4f25183b02c3dad41afdea7f";
+const char* RtsChallengeMessageVersionHashStr = "14416612c69b3f9d46835cc35ced9d72";
 
 const uint8_t RtsChallengeMessageVersionHash[16] = { 
-    0xb3, 0x12, 0x3d, 0x5e, 0x4f, 0x25, 0x18, 0x3b, 0x2, 0xc3, 0xda, 0xd4, 0x1a, 0xfd, 0xea, 0x7f 
+    0x14, 0x41, 0x66, 0x12, 0xc6, 0x9b, 0x3f, 0x9d, 0x46, 0x83, 0x5c, 0xc3, 0x5c, 0xed, 0x9d, 0x72 
 };
 
 // MESSAGE RtsChallengeSuccessMessage
@@ -579,10 +707,148 @@ bool RtsChallengeSuccessMessage::operator!=(const RtsChallengeSuccessMessage& ot
 }
 
 
-const char* RtsChallengeSuccessMessageVersionHashStr = "43871b16e2aab82c58c86c02e17cf31b";
+const char* RtsChallengeSuccessMessageVersionHashStr = "e668a2b6dce93f0fdfdc2495d13139f8";
 
 const uint8_t RtsChallengeSuccessMessageVersionHash[16] = { 
-    0x43, 0x87, 0x1b, 0x16, 0xe2, 0xaa, 0xb8, 0x2c, 0x58, 0xc8, 0x6c, 0x2, 0xe1, 0x7c, 0xf3, 0x1b 
+    0xe6, 0x68, 0xa2, 0xb6, 0xdc, 0xe9, 0x3f, 0xf, 0xdf, 0xdc, 0x24, 0x95, 0xd1, 0x31, 0x39, 0xf8 
+};
+
+// MESSAGE RtsWifiForgetRequest
+
+RtsWifiForgetRequest::RtsWifiForgetRequest(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsWifiForgetRequest::RtsWifiForgetRequest(const uint8_t* buff, size_t len)
+: RtsWifiForgetRequest::RtsWifiForgetRequest({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsWifiForgetRequest::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsWifiForgetRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->deleteAll);
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsWifiForgetRequest::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsWifiForgetRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->deleteAll);
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsWifiForgetRequest::Size() const
+{
+  size_t result = 0;
+  // deleteAll
+  result += 1; // bool
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  return result;
+}
+
+bool RtsWifiForgetRequest::operator==(const RtsWifiForgetRequest& other) const
+{
+  return (this->deleteAll == other.deleteAll &&
+    this->wifiSsidHex == other.wifiSsidHex);
+}
+
+bool RtsWifiForgetRequest::operator!=(const RtsWifiForgetRequest& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsWifiForgetRequestVersionHashStr = "9fd6f373d96de48b7ff51babc3478ac5";
+
+const uint8_t RtsWifiForgetRequestVersionHash[16] = { 
+    0x9f, 0xd6, 0xf3, 0x73, 0xd9, 0x6d, 0xe4, 0x8b, 0x7f, 0xf5, 0x1b, 0xab, 0xc3, 0x47, 0x8a, 0xc5 
+};
+
+// MESSAGE RtsWifiForgetResponse
+
+RtsWifiForgetResponse::RtsWifiForgetResponse(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsWifiForgetResponse::RtsWifiForgetResponse(const uint8_t* buff, size_t len)
+: RtsWifiForgetResponse::RtsWifiForgetResponse({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsWifiForgetResponse::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsWifiForgetResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->didDelete);
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsWifiForgetResponse::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsWifiForgetResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->didDelete);
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsWifiForgetResponse::Size() const
+{
+  size_t result = 0;
+  // didDelete
+  result += 1; // bool
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  return result;
+}
+
+bool RtsWifiForgetResponse::operator==(const RtsWifiForgetResponse& other) const
+{
+  return (this->didDelete == other.didDelete &&
+    this->wifiSsidHex == other.wifiSsidHex);
+}
+
+bool RtsWifiForgetResponse::operator!=(const RtsWifiForgetResponse& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsWifiForgetResponseVersionHashStr = "155f09a2552a6653550984e02d73d02e";
+
+const uint8_t RtsWifiForgetResponseVersionHash[16] = { 
+    0x15, 0x5f, 0x9, 0xa2, 0x55, 0x2a, 0x66, 0x53, 0x55, 0x9, 0x84, 0xe0, 0x2d, 0x73, 0xd0, 0x2e 
 };
 
 // MESSAGE RtsWifiConnectRequest
@@ -664,10 +930,10 @@ bool RtsWifiConnectRequest::operator!=(const RtsWifiConnectRequest& other) const
 }
 
 
-const char* RtsWifiConnectRequestVersionHashStr = "c39f1194af6e9106b5deb511a368118c";
+const char* RtsWifiConnectRequestVersionHashStr = "47fe754b56f91dce0270badb7c562a5c";
 
 const uint8_t RtsWifiConnectRequestVersionHash[16] = { 
-    0xc3, 0x9f, 0x11, 0x94, 0xaf, 0x6e, 0x91, 0x6, 0xb5, 0xde, 0xb5, 0x11, 0xa3, 0x68, 0x11, 0x8c 
+    0x47, 0xfe, 0x75, 0x4b, 0x56, 0xf9, 0x1d, 0xce, 0x2, 0x70, 0xba, 0xdb, 0x7c, 0x56, 0x2a, 0x5c 
 };
 
 // MESSAGE RtsWifiConnectResponse
@@ -733,10 +999,84 @@ bool RtsWifiConnectResponse::operator!=(const RtsWifiConnectResponse& other) con
 }
 
 
-const char* RtsWifiConnectResponseVersionHashStr = "676bd89e05e379ddd27c2c14c972912f";
+const char* RtsWifiConnectResponseVersionHashStr = "082fd7c04cd3d02f65f2262db8f5919b";
 
 const uint8_t RtsWifiConnectResponseVersionHash[16] = { 
-    0x67, 0x6b, 0xd8, 0x9e, 0x5, 0xe3, 0x79, 0xdd, 0xd2, 0x7c, 0x2c, 0x14, 0xc9, 0x72, 0x91, 0x2f 
+    0x8, 0x2f, 0xd7, 0xc0, 0x4c, 0xd3, 0xd0, 0x2f, 0x65, 0xf2, 0x26, 0x2d, 0xb8, 0xf5, 0x91, 0x9b 
+};
+
+// MESSAGE RtsWifiConnectResponse_3
+
+RtsWifiConnectResponse_3::RtsWifiConnectResponse_3(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsWifiConnectResponse_3::RtsWifiConnectResponse_3(const uint8_t* buff, size_t len)
+: RtsWifiConnectResponse_3::RtsWifiConnectResponse_3({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsWifiConnectResponse_3::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsWifiConnectResponse_3::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  buffer.Write(this->wifiState);
+  buffer.Write(this->connectResult);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsWifiConnectResponse_3::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsWifiConnectResponse_3::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  buffer.Read(this->wifiState);
+  buffer.Read(this->connectResult);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsWifiConnectResponse_3::Size() const
+{
+  size_t result = 0;
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  // wifiState
+  result += 1; // uint_8
+  // connectResult
+  result += 1; // uint_8
+  return result;
+}
+
+bool RtsWifiConnectResponse_3::operator==(const RtsWifiConnectResponse_3& other) const
+{
+  return (this->wifiSsidHex == other.wifiSsidHex &&
+    this->wifiState == other.wifiState &&
+    this->connectResult == other.connectResult);
+}
+
+bool RtsWifiConnectResponse_3::operator!=(const RtsWifiConnectResponse_3& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsWifiConnectResponse_3VersionHashStr = "bedb19cc2f803794dc0ce5dc82dd1600";
+
+const uint8_t RtsWifiConnectResponse_3VersionHash[16] = { 
+    0xbe, 0xdb, 0x19, 0xcc, 0x2f, 0x80, 0x37, 0x94, 0xdc, 0xc, 0xe5, 0xdc, 0x82, 0xdd, 0x16, 0x0 
 };
 
 // MESSAGE RtsWifiIpRequest
@@ -792,10 +1132,10 @@ bool RtsWifiIpRequest::operator!=(const RtsWifiIpRequest& other) const
 }
 
 
-const char* RtsWifiIpRequestVersionHashStr = "f2a7949d69fc5ede6f9b228b71e7db4f";
+const char* RtsWifiIpRequestVersionHashStr = "260b5113893e56678c0abf2fd3e04ac7";
 
 const uint8_t RtsWifiIpRequestVersionHash[16] = { 
-    0xf2, 0xa7, 0x94, 0x9d, 0x69, 0xfc, 0x5e, 0xde, 0x6f, 0x9b, 0x22, 0x8b, 0x71, 0xe7, 0xdb, 0x4f 
+    0x26, 0xb, 0x51, 0x13, 0x89, 0x3e, 0x56, 0x67, 0x8c, 0xa, 0xbf, 0x2f, 0xd3, 0xe0, 0x4a, 0xc7 
 };
 
 // MESSAGE RtsWifiIpResponse
@@ -870,10 +1210,10 @@ bool RtsWifiIpResponse::operator!=(const RtsWifiIpResponse& other) const
 }
 
 
-const char* RtsWifiIpResponseVersionHashStr = "3b861607666953e477618c3cbee1f00d";
+const char* RtsWifiIpResponseVersionHashStr = "a86086af8ee93d88bac4c9896b3c5477";
 
 const uint8_t RtsWifiIpResponseVersionHash[16] = { 
-    0x3b, 0x86, 0x16, 0x7, 0x66, 0x69, 0x53, 0xe4, 0x77, 0x61, 0x8c, 0x3c, 0xbe, 0xe1, 0xf0, 0xd 
+    0xa8, 0x60, 0x86, 0xaf, 0x8e, 0xe9, 0x3d, 0x88, 0xba, 0xc4, 0xc9, 0x89, 0x6b, 0x3c, 0x54, 0x77 
 };
 
 // MESSAGE RtsStatusRequest
@@ -929,10 +1269,10 @@ bool RtsStatusRequest::operator!=(const RtsStatusRequest& other) const
 }
 
 
-const char* RtsStatusRequestVersionHashStr = "d9b435055989dbae131f04619f984d1f";
+const char* RtsStatusRequestVersionHashStr = "6a2d2d09edf31c79d9fe2e960ed347fa";
 
 const uint8_t RtsStatusRequestVersionHash[16] = { 
-    0xd9, 0xb4, 0x35, 0x5, 0x59, 0x89, 0xdb, 0xae, 0x13, 0x1f, 0x4, 0x61, 0x9f, 0x98, 0x4d, 0x1f 
+    0x6a, 0x2d, 0x2d, 0x9, 0xed, 0xf3, 0x1c, 0x79, 0xd9, 0xfe, 0x2e, 0x96, 0xe, 0xd3, 0x47, 0xfa 
 };
 
 // MESSAGE RtsStatusResponse
@@ -1013,10 +1353,10 @@ bool RtsStatusResponse::operator!=(const RtsStatusResponse& other) const
 }
 
 
-const char* RtsStatusResponseVersionHashStr = "22ac1bf14bfb0a04b2dd66150b80ca4a";
+const char* RtsStatusResponseVersionHashStr = "7f8d5ead923b52435332b8098e49ebd1";
 
 const uint8_t RtsStatusResponseVersionHash[16] = { 
-    0x22, 0xac, 0x1b, 0xf1, 0x4b, 0xfb, 0xa, 0x4, 0xb2, 0xdd, 0x66, 0x15, 0xb, 0x80, 0xca, 0x4a 
+    0x7f, 0x8d, 0x5e, 0xad, 0x92, 0x3b, 0x52, 0x43, 0x53, 0x32, 0xb8, 0x9, 0x8e, 0x49, 0xeb, 0xd1 
 };
 
 // MESSAGE RtsStatusResponse_2
@@ -1108,10 +1448,327 @@ bool RtsStatusResponse_2::operator!=(const RtsStatusResponse_2& other) const
 }
 
 
-const char* RtsStatusResponse_2VersionHashStr = "25f0391edee291156a151237ab915393";
+const char* RtsStatusResponse_2VersionHashStr = "c78dea3bc2590d0d6d2d8343482d2783";
 
 const uint8_t RtsStatusResponse_2VersionHash[16] = { 
-    0x25, 0xf0, 0x39, 0x1e, 0xde, 0xe2, 0x91, 0x15, 0x6a, 0x15, 0x12, 0x37, 0xab, 0x91, 0x53, 0x93 
+    0xc7, 0x8d, 0xea, 0x3b, 0xc2, 0x59, 0xd, 0xd, 0x6d, 0x2d, 0x83, 0x43, 0x48, 0x2d, 0x27, 0x83 
+};
+
+// MESSAGE RtsStatusResponse_3
+
+RtsStatusResponse_3::RtsStatusResponse_3(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsStatusResponse_3::RtsStatusResponse_3(const uint8_t* buff, size_t len)
+: RtsStatusResponse_3::RtsStatusResponse_3({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsStatusResponse_3::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsStatusResponse_3::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  buffer.Write(this->wifiState);
+  buffer.Write(this->accessPoint);
+  buffer.Write(this->bleState);
+  buffer.Write(this->batteryState);
+  buffer.WritePString<uint8_t>(this->version);
+  buffer.Write(this->otaInProgress);
+  buffer.Write(this->hasOwner);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsStatusResponse_3::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsStatusResponse_3::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  buffer.Read(this->wifiState);
+  buffer.Read(this->accessPoint);
+  buffer.Read(this->bleState);
+  buffer.Read(this->batteryState);
+  buffer.ReadPString<uint8_t>(this->version);
+  buffer.Read(this->otaInProgress);
+  buffer.Read(this->hasOwner);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsStatusResponse_3::Size() const
+{
+  size_t result = 0;
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  // wifiState
+  result += 1; // uint_8
+  // accessPoint
+  result += 1; // bool
+  // bleState
+  result += 1; // uint_8
+  // batteryState
+  result += 1; // uint_8
+  // version
+  result += 1; // uint_8 (string length)
+  result += this->version.length(); // uint_8
+  // otaInProgress
+  result += 1; // bool
+  // hasOwner
+  result += 1; // bool
+  return result;
+}
+
+bool RtsStatusResponse_3::operator==(const RtsStatusResponse_3& other) const
+{
+  return (this->wifiSsidHex == other.wifiSsidHex &&
+    this->wifiState == other.wifiState &&
+    this->accessPoint == other.accessPoint &&
+    this->bleState == other.bleState &&
+    this->batteryState == other.batteryState &&
+    this->version == other.version &&
+    this->otaInProgress == other.otaInProgress &&
+    this->hasOwner == other.hasOwner);
+}
+
+bool RtsStatusResponse_3::operator!=(const RtsStatusResponse_3& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsStatusResponse_3VersionHashStr = "9a6e0464dfc95ff93a373f02667bc05c";
+
+const uint8_t RtsStatusResponse_3VersionHash[16] = { 
+    0x9a, 0x6e, 0x4, 0x64, 0xdf, 0xc9, 0x5f, 0xf9, 0x3a, 0x37, 0x3f, 0x2, 0x66, 0x7b, 0xc0, 0x5c 
+};
+
+// MESSAGE RtsStatusResponse_4
+
+RtsStatusResponse_4::RtsStatusResponse_4(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsStatusResponse_4::RtsStatusResponse_4(const uint8_t* buff, size_t len)
+: RtsStatusResponse_4::RtsStatusResponse_4({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsStatusResponse_4::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsStatusResponse_4::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  buffer.Write(this->wifiState);
+  buffer.Write(this->accessPoint);
+  buffer.Write(this->bleState);
+  buffer.Write(this->batteryState);
+  buffer.WritePString<uint8_t>(this->version);
+  buffer.WritePString<uint8_t>(this->esn);
+  buffer.Write(this->otaInProgress);
+  buffer.Write(this->hasOwner);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsStatusResponse_4::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsStatusResponse_4::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  buffer.Read(this->wifiState);
+  buffer.Read(this->accessPoint);
+  buffer.Read(this->bleState);
+  buffer.Read(this->batteryState);
+  buffer.ReadPString<uint8_t>(this->version);
+  buffer.ReadPString<uint8_t>(this->esn);
+  buffer.Read(this->otaInProgress);
+  buffer.Read(this->hasOwner);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsStatusResponse_4::Size() const
+{
+  size_t result = 0;
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  // wifiState
+  result += 1; // uint_8
+  // accessPoint
+  result += 1; // bool
+  // bleState
+  result += 1; // uint_8
+  // batteryState
+  result += 1; // uint_8
+  // version
+  result += 1; // uint_8 (string length)
+  result += this->version.length(); // uint_8
+  // esn
+  result += 1; // uint_8 (string length)
+  result += this->esn.length(); // uint_8
+  // otaInProgress
+  result += 1; // bool
+  // hasOwner
+  result += 1; // bool
+  return result;
+}
+
+bool RtsStatusResponse_4::operator==(const RtsStatusResponse_4& other) const
+{
+  return (this->wifiSsidHex == other.wifiSsidHex &&
+    this->wifiState == other.wifiState &&
+    this->accessPoint == other.accessPoint &&
+    this->bleState == other.bleState &&
+    this->batteryState == other.batteryState &&
+    this->version == other.version &&
+    this->esn == other.esn &&
+    this->otaInProgress == other.otaInProgress &&
+    this->hasOwner == other.hasOwner);
+}
+
+bool RtsStatusResponse_4::operator!=(const RtsStatusResponse_4& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsStatusResponse_4VersionHashStr = "25f2f1d8ffb67d327b34101da683cdb4";
+
+const uint8_t RtsStatusResponse_4VersionHash[16] = { 
+    0x25, 0xf2, 0xf1, 0xd8, 0xff, 0xb6, 0x7d, 0x32, 0x7b, 0x34, 0x10, 0x1d, 0xa6, 0x83, 0xcd, 0xb4 
+};
+
+// MESSAGE RtsStatusResponse_5
+
+RtsStatusResponse_5::RtsStatusResponse_5(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsStatusResponse_5::RtsStatusResponse_5(const uint8_t* buff, size_t len)
+: RtsStatusResponse_5::RtsStatusResponse_5({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsStatusResponse_5::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsStatusResponse_5::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->wifiSsidHex);
+  buffer.Write(this->wifiState);
+  buffer.Write(this->accessPoint);
+  buffer.Write(this->bleState);
+  buffer.Write(this->batteryState);
+  buffer.WritePString<uint8_t>(this->version);
+  buffer.WritePString<uint8_t>(this->esn);
+  buffer.Write(this->otaInProgress);
+  buffer.Write(this->hasOwner);
+  buffer.Write(this->isCloudAuthed);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsStatusResponse_5::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsStatusResponse_5::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->wifiSsidHex);
+  buffer.Read(this->wifiState);
+  buffer.Read(this->accessPoint);
+  buffer.Read(this->bleState);
+  buffer.Read(this->batteryState);
+  buffer.ReadPString<uint8_t>(this->version);
+  buffer.ReadPString<uint8_t>(this->esn);
+  buffer.Read(this->otaInProgress);
+  buffer.Read(this->hasOwner);
+  buffer.Read(this->isCloudAuthed);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsStatusResponse_5::Size() const
+{
+  size_t result = 0;
+  // wifiSsidHex
+  result += 1; // uint_8 (string length)
+  result += this->wifiSsidHex.length(); // uint_8
+  // wifiState
+  result += 1; // uint_8
+  // accessPoint
+  result += 1; // bool
+  // bleState
+  result += 1; // uint_8
+  // batteryState
+  result += 1; // uint_8
+  // version
+  result += 1; // uint_8 (string length)
+  result += this->version.length(); // uint_8
+  // esn
+  result += 1; // uint_8 (string length)
+  result += this->esn.length(); // uint_8
+  // otaInProgress
+  result += 1; // bool
+  // hasOwner
+  result += 1; // bool
+  // isCloudAuthed
+  result += 1; // bool
+  return result;
+}
+
+bool RtsStatusResponse_5::operator==(const RtsStatusResponse_5& other) const
+{
+  return (this->wifiSsidHex == other.wifiSsidHex &&
+    this->wifiState == other.wifiState &&
+    this->accessPoint == other.accessPoint &&
+    this->bleState == other.bleState &&
+    this->batteryState == other.batteryState &&
+    this->version == other.version &&
+    this->esn == other.esn &&
+    this->otaInProgress == other.otaInProgress &&
+    this->hasOwner == other.hasOwner &&
+    this->isCloudAuthed == other.isCloudAuthed);
+}
+
+bool RtsStatusResponse_5::operator!=(const RtsStatusResponse_5& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsStatusResponse_5VersionHashStr = "3c43852ff42108343b883bb23a078e5c";
+
+const uint8_t RtsStatusResponse_5VersionHash[16] = { 
+    0x3c, 0x43, 0x85, 0x2f, 0xf4, 0x21, 0x8, 0x34, 0x3b, 0x88, 0x3b, 0xb2, 0x3a, 0x7, 0x8e, 0x5c 
 };
 
 // MESSAGE RtsWifiScanRequest
@@ -1167,10 +1824,10 @@ bool RtsWifiScanRequest::operator!=(const RtsWifiScanRequest& other) const
 }
 
 
-const char* RtsWifiScanRequestVersionHashStr = "0eb26b336f95f3f6e58b752fac76b729";
+const char* RtsWifiScanRequestVersionHashStr = "1375170c3e1e071f888962f7f5b65b19";
 
 const uint8_t RtsWifiScanRequestVersionHash[16] = { 
-    0xe, 0xb2, 0x6b, 0x33, 0x6f, 0x95, 0xf3, 0xf6, 0xe5, 0x8b, 0x75, 0x2f, 0xac, 0x76, 0xb7, 0x29 
+    0x13, 0x75, 0x17, 0xc, 0x3e, 0x1e, 0x7, 0x1f, 0x88, 0x89, 0x62, 0xf7, 0xf5, 0xb6, 0x5b, 0x19 
 };
 
 // MESSAGE RtsWifiScanResponse
@@ -1196,7 +1853,7 @@ size_t RtsWifiScanResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
 {
   buffer.Write(this->statusCode);
   buffer.Write(static_cast<uint8_t>(scanResult.size()));
-  for (const Anki::Victor::ExternalComms::RtsWifiScanResult& m : scanResult) {
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult& m : scanResult) {
     m.Pack(buffer);
   }
   const size_t bytesWritten {buffer.GetBytesWritten()};
@@ -1212,7 +1869,7 @@ size_t RtsWifiScanResponse::Unpack(const uint8_t* buff, const size_t len)
 size_t RtsWifiScanResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
 {
   buffer.Read(this->statusCode);
-  buffer.ReadCompoundTypeVArray<Anki::Victor::ExternalComms::RtsWifiScanResult, uint8_t>(this->scanResult);
+  buffer.ReadCompoundTypeVArray<Anki::Vector::ExternalComms::RtsWifiScanResult, uint8_t>(this->scanResult);
   return buffer.GetBytesRead();
 }
 
@@ -1223,7 +1880,7 @@ size_t RtsWifiScanResponse::Size() const
   result += 1; // uint_8
   // scanResult
   result += 1; // uint_8 (array length)
-  for (const Anki::Victor::ExternalComms::RtsWifiScanResult& m : this->scanResult) {
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult& m : this->scanResult) {
     result += m.Size();
   }
   return result;
@@ -1241,10 +1898,10 @@ bool RtsWifiScanResponse::operator!=(const RtsWifiScanResponse& other) const
 }
 
 
-const char* RtsWifiScanResponseVersionHashStr = "ab3dab446cbe21302e1b1f76fc17c330";
+const char* RtsWifiScanResponseVersionHashStr = "e4740280769c7f26bc97132fe6768790";
 
 const uint8_t RtsWifiScanResponseVersionHash[16] = { 
-    0xab, 0x3d, 0xab, 0x44, 0x6c, 0xbe, 0x21, 0x30, 0x2e, 0x1b, 0x1f, 0x76, 0xfc, 0x17, 0xc3, 0x30 
+    0xe4, 0x74, 0x2, 0x80, 0x76, 0x9c, 0x7f, 0x26, 0xbc, 0x97, 0x13, 0x2f, 0xe6, 0x76, 0x87, 0x90 
 };
 
 // MESSAGE RtsWifiScanResponse_2
@@ -1270,7 +1927,7 @@ size_t RtsWifiScanResponse_2::Pack(CLAD::SafeMessageBuffer& buffer) const
 {
   buffer.Write(this->statusCode);
   buffer.Write(static_cast<uint8_t>(scanResult.size()));
-  for (const Anki::Victor::ExternalComms::RtsWifiScanResult_2& m : scanResult) {
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult_2& m : scanResult) {
     m.Pack(buffer);
   }
   const size_t bytesWritten {buffer.GetBytesWritten()};
@@ -1286,7 +1943,7 @@ size_t RtsWifiScanResponse_2::Unpack(const uint8_t* buff, const size_t len)
 size_t RtsWifiScanResponse_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
 {
   buffer.Read(this->statusCode);
-  buffer.ReadCompoundTypeVArray<Anki::Victor::ExternalComms::RtsWifiScanResult_2, uint8_t>(this->scanResult);
+  buffer.ReadCompoundTypeVArray<Anki::Vector::ExternalComms::RtsWifiScanResult_2, uint8_t>(this->scanResult);
   return buffer.GetBytesRead();
 }
 
@@ -1297,7 +1954,7 @@ size_t RtsWifiScanResponse_2::Size() const
   result += 1; // uint_8
   // scanResult
   result += 1; // uint_8 (array length)
-  for (const Anki::Victor::ExternalComms::RtsWifiScanResult_2& m : this->scanResult) {
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult_2& m : this->scanResult) {
     result += m.Size();
   }
   return result;
@@ -1315,10 +1972,84 @@ bool RtsWifiScanResponse_2::operator!=(const RtsWifiScanResponse_2& other) const
 }
 
 
-const char* RtsWifiScanResponse_2VersionHashStr = "e380e17b42f1e675b6c2624d27fa8572";
+const char* RtsWifiScanResponse_2VersionHashStr = "5f335f0c517272d55497031475f562e0";
 
 const uint8_t RtsWifiScanResponse_2VersionHash[16] = { 
-    0xe3, 0x80, 0xe1, 0x7b, 0x42, 0xf1, 0xe6, 0x75, 0xb6, 0xc2, 0x62, 0x4d, 0x27, 0xfa, 0x85, 0x72 
+    0x5f, 0x33, 0x5f, 0xc, 0x51, 0x72, 0x72, 0xd5, 0x54, 0x97, 0x3, 0x14, 0x75, 0xf5, 0x62, 0xe0 
+};
+
+// MESSAGE RtsWifiScanResponse_3
+
+RtsWifiScanResponse_3::RtsWifiScanResponse_3(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsWifiScanResponse_3::RtsWifiScanResponse_3(const uint8_t* buff, size_t len)
+: RtsWifiScanResponse_3::RtsWifiScanResponse_3({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsWifiScanResponse_3::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsWifiScanResponse_3::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->statusCode);
+  buffer.Write(static_cast<uint8_t>(scanResult.size()));
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult_3& m : scanResult) {
+    m.Pack(buffer);
+  }
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsWifiScanResponse_3::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsWifiScanResponse_3::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->statusCode);
+  buffer.ReadCompoundTypeVArray<Anki::Vector::ExternalComms::RtsWifiScanResult_3, uint8_t>(this->scanResult);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsWifiScanResponse_3::Size() const
+{
+  size_t result = 0;
+  // statusCode
+  result += 1; // uint_8
+  // scanResult
+  result += 1; // uint_8 (array length)
+  for (const Anki::Vector::ExternalComms::RtsWifiScanResult_3& m : this->scanResult) {
+    result += m.Size();
+  }
+  return result;
+}
+
+bool RtsWifiScanResponse_3::operator==(const RtsWifiScanResponse_3& other) const
+{
+  return (this->statusCode == other.statusCode &&
+    this->scanResult == other.scanResult);
+}
+
+bool RtsWifiScanResponse_3::operator!=(const RtsWifiScanResponse_3& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsWifiScanResponse_3VersionHashStr = "5589d2032483b9e4160d39091600b335";
+
+const uint8_t RtsWifiScanResponse_3VersionHash[16] = { 
+    0x55, 0x89, 0xd2, 0x3, 0x24, 0x83, 0xb9, 0xe4, 0x16, 0xd, 0x39, 0x9, 0x16, 0x0, 0xb3, 0x35 
 };
 
 // MESSAGE RtsOtaUpdateRequest
@@ -1379,10 +2110,10 @@ bool RtsOtaUpdateRequest::operator!=(const RtsOtaUpdateRequest& other) const
 }
 
 
-const char* RtsOtaUpdateRequestVersionHashStr = "34abeee2b5da4911bdec8d7e0a7ca1c6";
+const char* RtsOtaUpdateRequestVersionHashStr = "04cbaabc0cacabff3e7af51e0761325c";
 
 const uint8_t RtsOtaUpdateRequestVersionHash[16] = { 
-    0x34, 0xab, 0xee, 0xe2, 0xb5, 0xda, 0x49, 0x11, 0xbd, 0xec, 0x8d, 0x7e, 0xa, 0x7c, 0xa1, 0xc6 
+    0x4, 0xcb, 0xaa, 0xbc, 0xc, 0xac, 0xab, 0xff, 0x3e, 0x7a, 0xf5, 0x1e, 0x7, 0x61, 0x32, 0x5c 
 };
 
 // MESSAGE RtsOtaCancelRequest
@@ -1438,10 +2169,10 @@ bool RtsOtaCancelRequest::operator!=(const RtsOtaCancelRequest& other) const
 }
 
 
-const char* RtsOtaCancelRequestVersionHashStr = "a7d3597d9a697b66c5f4f06ca9e9b3f2";
+const char* RtsOtaCancelRequestVersionHashStr = "a2b882158ce1250edbd5c4f33d006d77";
 
 const uint8_t RtsOtaCancelRequestVersionHash[16] = { 
-    0xa7, 0xd3, 0x59, 0x7d, 0x9a, 0x69, 0x7b, 0x66, 0xc5, 0xf4, 0xf0, 0x6c, 0xa9, 0xe9, 0xb3, 0xf2 
+    0xa2, 0xb8, 0x82, 0x15, 0x8c, 0xe1, 0x25, 0xe, 0xdb, 0xd5, 0xc4, 0xf3, 0x3d, 0x0, 0x6d, 0x77 
 };
 
 // MESSAGE RtsOtaUpdateResponse
@@ -1511,10 +2242,10 @@ bool RtsOtaUpdateResponse::operator!=(const RtsOtaUpdateResponse& other) const
 }
 
 
-const char* RtsOtaUpdateResponseVersionHashStr = "34427a7a2867a199d287e69093eb5229";
+const char* RtsOtaUpdateResponseVersionHashStr = "9e31d73115176dacc3f617b9299daa70";
 
 const uint8_t RtsOtaUpdateResponseVersionHash[16] = { 
-    0x34, 0x42, 0x7a, 0x7a, 0x28, 0x67, 0xa1, 0x99, 0xd2, 0x87, 0xe6, 0x90, 0x93, 0xeb, 0x52, 0x29 
+    0x9e, 0x31, 0xd7, 0x31, 0x15, 0x17, 0x6d, 0xac, 0xc3, 0xf6, 0x17, 0xb9, 0x29, 0x9d, 0xaa, 0x70 
 };
 
 // MESSAGE RtsWifiAccessPointRequest
@@ -1574,10 +2305,10 @@ bool RtsWifiAccessPointRequest::operator!=(const RtsWifiAccessPointRequest& othe
 }
 
 
-const char* RtsWifiAccessPointRequestVersionHashStr = "3c3da793135710edb20ccf6cdb219090";
+const char* RtsWifiAccessPointRequestVersionHashStr = "eb7aec802a2a8e28d90550490f0cd80b";
 
 const uint8_t RtsWifiAccessPointRequestVersionHash[16] = { 
-    0x3c, 0x3d, 0xa7, 0x93, 0x13, 0x57, 0x10, 0xed, 0xb2, 0xc, 0xcf, 0x6c, 0xdb, 0x21, 0x90, 0x90 
+    0xeb, 0x7a, 0xec, 0x80, 0x2a, 0x2a, 0x8e, 0x28, 0xd9, 0x5, 0x50, 0x49, 0xf, 0xc, 0xd8, 0xb 
 };
 
 // MESSAGE RtsWifiAccessPointResponse
@@ -1649,10 +2380,10 @@ bool RtsWifiAccessPointResponse::operator!=(const RtsWifiAccessPointResponse& ot
 }
 
 
-const char* RtsWifiAccessPointResponseVersionHashStr = "6a6f141c94f9697b8f93671ad2a55911";
+const char* RtsWifiAccessPointResponseVersionHashStr = "8fda642c4b2ae2935abf4cde7e424ded";
 
 const uint8_t RtsWifiAccessPointResponseVersionHash[16] = { 
-    0x6a, 0x6f, 0x14, 0x1c, 0x94, 0xf9, 0x69, 0x7b, 0x8f, 0x93, 0x67, 0x1a, 0xd2, 0xa5, 0x59, 0x11 
+    0x8f, 0xda, 0x64, 0x2c, 0x4b, 0x2a, 0xe2, 0x93, 0x5a, 0xbf, 0x4c, 0xde, 0x7e, 0x42, 0x4d, 0xed 
 };
 
 // MESSAGE RtsCancelPairing
@@ -1708,10 +2439,10 @@ bool RtsCancelPairing::operator!=(const RtsCancelPairing& other) const
 }
 
 
-const char* RtsCancelPairingVersionHashStr = "cf52ef5bad5f23b246dba4529b0785a4";
+const char* RtsCancelPairingVersionHashStr = "2a5b2772a05746d5b1cefd2cf95e7e46";
 
 const uint8_t RtsCancelPairingVersionHash[16] = { 
-    0xcf, 0x52, 0xef, 0x5b, 0xad, 0x5f, 0x23, 0xb2, 0x46, 0xdb, 0xa4, 0x52, 0x9b, 0x7, 0x85, 0xa4 
+    0x2a, 0x5b, 0x27, 0x72, 0xa0, 0x57, 0x46, 0xd5, 0xb1, 0xce, 0xfd, 0x2c, 0xf9, 0x5e, 0x7e, 0x46 
 };
 
 // MESSAGE RtsForceDisconnect
@@ -1767,10 +2498,10 @@ bool RtsForceDisconnect::operator!=(const RtsForceDisconnect& other) const
 }
 
 
-const char* RtsForceDisconnectVersionHashStr = "3687f5bfb7d68b2835d9c94d6ae5a37c";
+const char* RtsForceDisconnectVersionHashStr = "421238330b7295b31aebe8750ae7f40a";
 
 const uint8_t RtsForceDisconnectVersionHash[16] = { 
-    0x36, 0x87, 0xf5, 0xbf, 0xb7, 0xd6, 0x8b, 0x28, 0x35, 0xd9, 0xc9, 0x4d, 0x6a, 0xe5, 0xa3, 0x7c 
+    0x42, 0x12, 0x38, 0x33, 0xb, 0x72, 0x95, 0xb3, 0x1a, 0xeb, 0xe8, 0x75, 0xa, 0xe7, 0xf4, 0xa 
 };
 
 // MESSAGE RtsSshRequest
@@ -1834,10 +2565,10 @@ bool RtsSshRequest::operator!=(const RtsSshRequest& other) const
 }
 
 
-const char* RtsSshRequestVersionHashStr = "c8a7af695d56ef99d2a87e476aa01134";
+const char* RtsSshRequestVersionHashStr = "a902436210e1b8316cf0212f5c2fb30f";
 
 const uint8_t RtsSshRequestVersionHash[16] = { 
-    0xc8, 0xa7, 0xaf, 0x69, 0x5d, 0x56, 0xef, 0x99, 0xd2, 0xa8, 0x7e, 0x47, 0x6a, 0xa0, 0x11, 0x34 
+    0xa9, 0x2, 0x43, 0x62, 0x10, 0xe1, 0xb8, 0x31, 0x6c, 0xf0, 0x21, 0x2f, 0x5c, 0x2f, 0xb3, 0xf 
 };
 
 // MESSAGE RtsSshResponse
@@ -1893,10 +2624,10 @@ bool RtsSshResponse::operator!=(const RtsSshResponse& other) const
 }
 
 
-const char* RtsSshResponseVersionHashStr = "cb0eb98b103a38cf34a24f4422209711";
+const char* RtsSshResponseVersionHashStr = "585e2e3598a2ee61d0024bd7b4e99583";
 
 const uint8_t RtsSshResponseVersionHash[16] = { 
-    0xcb, 0xe, 0xb9, 0x8b, 0x10, 0x3a, 0x38, 0xcf, 0x34, 0xa2, 0x4f, 0x44, 0x22, 0x20, 0x97, 0x11 
+    0x58, 0x5e, 0x2e, 0x35, 0x98, 0xa2, 0xee, 0x61, 0xd0, 0x2, 0x4b, 0xd7, 0xb4, 0xe9, 0x95, 0x83 
 };
 
 // MESSAGE RtsLogRequest
@@ -1965,10 +2696,10 @@ bool RtsLogRequest::operator!=(const RtsLogRequest& other) const
 }
 
 
-const char* RtsLogRequestVersionHashStr = "810562ad55beb91ee6f05f371e3b493e";
+const char* RtsLogRequestVersionHashStr = "a8363f7f8db3b20e93862cf1714c7f8e";
 
 const uint8_t RtsLogRequestVersionHash[16] = { 
-    0x81, 0x5, 0x62, 0xad, 0x55, 0xbe, 0xb9, 0x1e, 0xe6, 0xf0, 0x5f, 0x37, 0x1e, 0x3b, 0x49, 0x3e 
+    0xa8, 0x36, 0x3f, 0x7f, 0x8d, 0xb3, 0xb2, 0xe, 0x93, 0x86, 0x2c, 0xf1, 0x71, 0x4c, 0x7f, 0x8e 
 };
 
 // MESSAGE RtsLogResponse
@@ -2033,10 +2764,10 @@ bool RtsLogResponse::operator!=(const RtsLogResponse& other) const
 }
 
 
-const char* RtsLogResponseVersionHashStr = "df59c1cfa0b204dc0c34a454780f4fde";
+const char* RtsLogResponseVersionHashStr = "96318d43f2701739be951619c723a5e8";
 
 const uint8_t RtsLogResponseVersionHash[16] = { 
-    0xdf, 0x59, 0xc1, 0xcf, 0xa0, 0xb2, 0x4, 0xdc, 0xc, 0x34, 0xa4, 0x54, 0x78, 0xf, 0x4f, 0xde 
+    0x96, 0x31, 0x8d, 0x43, 0xf2, 0x70, 0x17, 0x39, 0xbe, 0x95, 0x16, 0x19, 0xc7, 0x23, 0xa5, 0xe8 
 };
 
 // MESSAGE RtsFileDownload
@@ -2117,10 +2848,579 @@ bool RtsFileDownload::operator!=(const RtsFileDownload& other) const
 }
 
 
-const char* RtsFileDownloadVersionHashStr = "4b499c8a4a58c7c24d6661931f35305e";
+const char* RtsFileDownloadVersionHashStr = "4f891e5d9780a34c963c3902e33bccd2";
 
 const uint8_t RtsFileDownloadVersionHash[16] = { 
-    0x4b, 0x49, 0x9c, 0x8a, 0x4a, 0x58, 0xc7, 0xc2, 0x4d, 0x66, 0x61, 0x93, 0x1f, 0x35, 0x30, 0x5e 
+    0x4f, 0x89, 0x1e, 0x5d, 0x97, 0x80, 0xa3, 0x4c, 0x96, 0x3c, 0x39, 0x2, 0xe3, 0x3b, 0xcc, 0xd2 
+};
+
+// MESSAGE RtsCloudSessionRequest
+
+RtsCloudSessionRequest::RtsCloudSessionRequest(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsCloudSessionRequest::RtsCloudSessionRequest(const uint8_t* buff, size_t len)
+: RtsCloudSessionRequest::RtsCloudSessionRequest({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsCloudSessionRequest::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsCloudSessionRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint16_t>(this->sessionToken);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsCloudSessionRequest::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsCloudSessionRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint16_t>(this->sessionToken);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsCloudSessionRequest::Size() const
+{
+  size_t result = 0;
+  // sessionToken
+  result += 2; // uint_16 (string length)
+  result += this->sessionToken.length(); // uint_8
+  return result;
+}
+
+bool RtsCloudSessionRequest::operator==(const RtsCloudSessionRequest& other) const
+{
+  return (this->sessionToken == other.sessionToken);
+}
+
+bool RtsCloudSessionRequest::operator!=(const RtsCloudSessionRequest& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsCloudSessionRequestVersionHashStr = "4a361608610fedd12e45dea9f02bbe15";
+
+const uint8_t RtsCloudSessionRequestVersionHash[16] = { 
+    0x4a, 0x36, 0x16, 0x8, 0x61, 0xf, 0xed, 0xd1, 0x2e, 0x45, 0xde, 0xa9, 0xf0, 0x2b, 0xbe, 0x15 
+};
+
+// MESSAGE RtsCloudSessionRequest_2
+
+RtsCloudSessionRequest_2::RtsCloudSessionRequest_2(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsCloudSessionRequest_2::RtsCloudSessionRequest_2(const uint8_t* buff, size_t len)
+: RtsCloudSessionRequest_2::RtsCloudSessionRequest_2({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsCloudSessionRequest_2::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsCloudSessionRequest_2::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint16_t>(this->sessionToken);
+  buffer.WritePString<uint8_t>(this->clientName);
+  buffer.WritePString<uint8_t>(this->appId);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsCloudSessionRequest_2::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsCloudSessionRequest_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint16_t>(this->sessionToken);
+  buffer.ReadPString<uint8_t>(this->clientName);
+  buffer.ReadPString<uint8_t>(this->appId);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsCloudSessionRequest_2::Size() const
+{
+  size_t result = 0;
+  // sessionToken
+  result += 2; // uint_16 (string length)
+  result += this->sessionToken.length(); // uint_8
+  // clientName
+  result += 1; // uint_8 (string length)
+  result += this->clientName.length(); // uint_8
+  // appId
+  result += 1; // uint_8 (string length)
+  result += this->appId.length(); // uint_8
+  return result;
+}
+
+bool RtsCloudSessionRequest_2::operator==(const RtsCloudSessionRequest_2& other) const
+{
+  return (this->sessionToken == other.sessionToken &&
+    this->clientName == other.clientName &&
+    this->appId == other.appId);
+}
+
+bool RtsCloudSessionRequest_2::operator!=(const RtsCloudSessionRequest_2& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsCloudSessionRequest_2VersionHashStr = "dd93fd23138cf5f89794e3d9ddaf0f7a";
+
+const uint8_t RtsCloudSessionRequest_2VersionHash[16] = { 
+    0xdd, 0x93, 0xfd, 0x23, 0x13, 0x8c, 0xf5, 0xf8, 0x97, 0x94, 0xe3, 0xd9, 0xdd, 0xaf, 0xf, 0x7a 
+};
+
+// MESSAGE RtsCloudSessionResponse
+
+RtsCloudSessionResponse::RtsCloudSessionResponse(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsCloudSessionResponse::RtsCloudSessionResponse(const uint8_t* buff, size_t len)
+: RtsCloudSessionResponse::RtsCloudSessionResponse({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsCloudSessionResponse::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsCloudSessionResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->success);
+  buffer.Write(this->statusCode);
+  buffer.WritePString<uint16_t>(this->clientTokenGuid);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsCloudSessionResponse::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsCloudSessionResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->success);
+  buffer.Read(this->statusCode);
+  buffer.ReadPString<uint16_t>(this->clientTokenGuid);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsCloudSessionResponse::Size() const
+{
+  size_t result = 0;
+  // success
+  result += 1; // bool
+  // statusCode
+  result += 1; // RtsCloudStatus
+  // clientTokenGuid
+  result += 2; // uint_16 (string length)
+  result += this->clientTokenGuid.length(); // uint_8
+  return result;
+}
+
+bool RtsCloudSessionResponse::operator==(const RtsCloudSessionResponse& other) const
+{
+  return (this->success == other.success &&
+    this->statusCode == other.statusCode &&
+    this->clientTokenGuid == other.clientTokenGuid);
+}
+
+bool RtsCloudSessionResponse::operator!=(const RtsCloudSessionResponse& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsCloudSessionResponseVersionHashStr = "fa6ad327c2c7eaed2681d273f8829d90";
+
+const uint8_t RtsCloudSessionResponseVersionHash[16] = { 
+    0xfa, 0x6a, 0xd3, 0x27, 0xc2, 0xc7, 0xea, 0xed, 0x26, 0x81, 0xd2, 0x73, 0xf8, 0x82, 0x9d, 0x90 
+};
+
+// MESSAGE RtsAppConnectionIdRequest
+
+RtsAppConnectionIdRequest::RtsAppConnectionIdRequest(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsAppConnectionIdRequest::RtsAppConnectionIdRequest(const uint8_t* buff, size_t len)
+: RtsAppConnectionIdRequest::RtsAppConnectionIdRequest({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsAppConnectionIdRequest::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsAppConnectionIdRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint16_t>(this->connectionId);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsAppConnectionIdRequest::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsAppConnectionIdRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint16_t>(this->connectionId);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsAppConnectionIdRequest::Size() const
+{
+  size_t result = 0;
+  // connectionId
+  result += 2; // uint_16 (string length)
+  result += this->connectionId.length(); // uint_8
+  return result;
+}
+
+bool RtsAppConnectionIdRequest::operator==(const RtsAppConnectionIdRequest& other) const
+{
+  return (this->connectionId == other.connectionId);
+}
+
+bool RtsAppConnectionIdRequest::operator!=(const RtsAppConnectionIdRequest& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsAppConnectionIdRequestVersionHashStr = "6f1adfb53a52356fddac8a003618392b";
+
+const uint8_t RtsAppConnectionIdRequestVersionHash[16] = { 
+    0x6f, 0x1a, 0xdf, 0xb5, 0x3a, 0x52, 0x35, 0x6f, 0xdd, 0xac, 0x8a, 0x0, 0x36, 0x18, 0x39, 0x2b 
+};
+
+// MESSAGE RtsAppConnectionIdResponse
+
+RtsAppConnectionIdResponse::RtsAppConnectionIdResponse(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsAppConnectionIdResponse::RtsAppConnectionIdResponse(const uint8_t* buff, size_t len)
+: RtsAppConnectionIdResponse::RtsAppConnectionIdResponse({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsAppConnectionIdResponse::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsAppConnectionIdResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsAppConnectionIdResponse::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsAppConnectionIdResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  return buffer.GetBytesRead();
+}
+
+size_t RtsAppConnectionIdResponse::Size() const
+{
+  size_t result = 0;
+  return result;
+}
+
+bool RtsAppConnectionIdResponse::operator==(const RtsAppConnectionIdResponse& other) const
+{
+return true;
+}
+
+bool RtsAppConnectionIdResponse::operator!=(const RtsAppConnectionIdResponse& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsAppConnectionIdResponseVersionHashStr = "7c746c5bbb9f5df0eae86b5c6a89e07b";
+
+const uint8_t RtsAppConnectionIdResponseVersionHash[16] = { 
+    0x7c, 0x74, 0x6c, 0x5b, 0xbb, 0x9f, 0x5d, 0xf0, 0xea, 0xe8, 0x6b, 0x5c, 0x6a, 0x89, 0xe0, 0x7b 
+};
+
+// MESSAGE RtsResponse
+
+RtsResponse::RtsResponse(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsResponse::RtsResponse(const uint8_t* buff, size_t len)
+: RtsResponse::RtsResponse({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsResponse::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(this->code);
+  buffer.WritePString<uint16_t>(this->responseMessage);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsResponse::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.Read(this->code);
+  buffer.ReadPString<uint16_t>(this->responseMessage);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsResponse::Size() const
+{
+  size_t result = 0;
+  // code
+  result += 2; // RtsResponseCode
+  // responseMessage
+  result += 2; // uint_16 (string length)
+  result += this->responseMessage.length(); // uint_8
+  return result;
+}
+
+bool RtsResponse::operator==(const RtsResponse& other) const
+{
+  return (this->code == other.code &&
+    this->responseMessage == other.responseMessage);
+}
+
+bool RtsResponse::operator!=(const RtsResponse& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsResponseVersionHashStr = "6654bf79b167206af5aac44fd5f7ef45";
+
+const uint8_t RtsResponseVersionHash[16] = { 
+    0x66, 0x54, 0xbf, 0x79, 0xb1, 0x67, 0x20, 0x6a, 0xf5, 0xaa, 0xc4, 0x4f, 0xd5, 0xf7, 0xef, 0x45 
+};
+
+// MESSAGE RtsSdkProxyRequest
+
+RtsSdkProxyRequest::RtsSdkProxyRequest(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsSdkProxyRequest::RtsSdkProxyRequest(const uint8_t* buff, size_t len)
+: RtsSdkProxyRequest::RtsSdkProxyRequest({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsSdkProxyRequest::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsSdkProxyRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->clientGuid);
+  buffer.WritePString<uint8_t>(this->messageId);
+  buffer.WritePString<uint8_t>(this->urlPath);
+  buffer.WritePString<uint16_t>(this->json);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsSdkProxyRequest::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsSdkProxyRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->clientGuid);
+  buffer.ReadPString<uint8_t>(this->messageId);
+  buffer.ReadPString<uint8_t>(this->urlPath);
+  buffer.ReadPString<uint16_t>(this->json);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsSdkProxyRequest::Size() const
+{
+  size_t result = 0;
+  // clientGuid
+  result += 1; // uint_8 (string length)
+  result += this->clientGuid.length(); // uint_8
+  // messageId
+  result += 1; // uint_8 (string length)
+  result += this->messageId.length(); // uint_8
+  // urlPath
+  result += 1; // uint_8 (string length)
+  result += this->urlPath.length(); // uint_8
+  // json
+  result += 2; // uint_16 (string length)
+  result += this->json.length(); // uint_8
+  return result;
+}
+
+bool RtsSdkProxyRequest::operator==(const RtsSdkProxyRequest& other) const
+{
+  return (this->clientGuid == other.clientGuid &&
+    this->messageId == other.messageId &&
+    this->urlPath == other.urlPath &&
+    this->json == other.json);
+}
+
+bool RtsSdkProxyRequest::operator!=(const RtsSdkProxyRequest& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsSdkProxyRequestVersionHashStr = "481b5a2ef6f501a6d616a68f4e5acb88";
+
+const uint8_t RtsSdkProxyRequestVersionHash[16] = { 
+    0x48, 0x1b, 0x5a, 0x2e, 0xf6, 0xf5, 0x1, 0xa6, 0xd6, 0x16, 0xa6, 0x8f, 0x4e, 0x5a, 0xcb, 0x88 
+};
+
+// MESSAGE RtsSdkProxyResponse
+
+RtsSdkProxyResponse::RtsSdkProxyResponse(const CLAD::SafeMessageBuffer& buffer)
+
+{
+  Unpack(buffer);
+}
+
+RtsSdkProxyResponse::RtsSdkProxyResponse(const uint8_t* buff, size_t len)
+: RtsSdkProxyResponse::RtsSdkProxyResponse({const_cast<uint8_t*>(buff), len, false})
+{
+}
+
+size_t RtsSdkProxyResponse::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsSdkProxyResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.WritePString<uint8_t>(this->messageId);
+  buffer.Write(this->statusCode);
+  buffer.WritePString<uint8_t>(this->responseType);
+  buffer.WritePString<uint16_t>(this->responseBody);
+  const size_t bytesWritten {buffer.GetBytesWritten()};
+  return bytesWritten;
+}
+
+size_t RtsSdkProxyResponse::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsSdkProxyResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  buffer.ReadPString<uint8_t>(this->messageId);
+  buffer.Read(this->statusCode);
+  buffer.ReadPString<uint8_t>(this->responseType);
+  buffer.ReadPString<uint16_t>(this->responseBody);
+  return buffer.GetBytesRead();
+}
+
+size_t RtsSdkProxyResponse::Size() const
+{
+  size_t result = 0;
+  // messageId
+  result += 1; // uint_8 (string length)
+  result += this->messageId.length(); // uint_8
+  // statusCode
+  result += 2; // uint_16
+  // responseType
+  result += 1; // uint_8 (string length)
+  result += this->responseType.length(); // uint_8
+  // responseBody
+  result += 2; // uint_16 (string length)
+  result += this->responseBody.length(); // uint_8
+  return result;
+}
+
+bool RtsSdkProxyResponse::operator==(const RtsSdkProxyResponse& other) const
+{
+  return (this->messageId == other.messageId &&
+    this->statusCode == other.statusCode &&
+    this->responseType == other.responseType &&
+    this->responseBody == other.responseBody);
+}
+
+bool RtsSdkProxyResponse::operator!=(const RtsSdkProxyResponse& other) const
+{
+  return !(operator==(other));
+}
+
+
+const char* RtsSdkProxyResponseVersionHashStr = "84142461fc1d020c13e951919cac1a0c";
+
+const uint8_t RtsSdkProxyResponseVersionHash[16] = { 
+    0x84, 0x14, 0x24, 0x61, 0xfc, 0x1d, 0x2, 0xc, 0x13, 0xe9, 0x51, 0x91, 0x9c, 0xac, 0x1a, 0xc 
 };
 
 // MESSAGE Error
@@ -2176,10 +3476,10 @@ bool Error::operator!=(const Error& other) const
 }
 
 
-const char* ErrorVersionHashStr = "3c4b79921f0eb7bee2f0f2ecd5224457";
+const char* ErrorVersionHashStr = "b895feaac225b233546cc3c52cdd9b4d";
 
 const uint8_t ErrorVersionHash[16] = { 
-    0x3c, 0x4b, 0x79, 0x92, 0x1f, 0xe, 0xb7, 0xbe, 0xe2, 0xf0, 0xf2, 0xec, 0xd5, 0x22, 0x44, 0x57 
+    0xb8, 0x95, 0xfe, 0xaa, 0xc2, 0x25, 0xb2, 0x33, 0x54, 0x6c, 0xc3, 0xc5, 0x2c, 0xdd, 0x9b, 0x4d 
 };
 
 // UNION RtsConnection_2
@@ -2202,85 +3502,85 @@ RtsConnection_2::RtsConnection_2(const RtsConnection_2& other)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
     break;
   case Tag::RtsStatusResponse_2:
-    new(&(this->_RtsStatusResponse_2)) Anki::Victor::ExternalComms::RtsStatusResponse_2(other._RtsStatusResponse_2);
+    new(&(this->_RtsStatusResponse_2)) Anki::Vector::ExternalComms::RtsStatusResponse_2(other._RtsStatusResponse_2);
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
     break;
   case Tag::RtsWifiScanResponse_2:
-    new(&(this->_RtsWifiScanResponse_2)) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(other._RtsWifiScanResponse_2);
+    new(&(this->_RtsWifiScanResponse_2)) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(other._RtsWifiScanResponse_2);
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(other._RtsAck);
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
     break;
   case Tag::RtsOtaCancelRequest:
-    new(&(this->_RtsOtaCancelRequest)) Anki::Victor::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
     break;
   case Tag::RtsLogRequest:
-    new(&(this->_RtsLogRequest)) Anki::Victor::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
     break;
   case Tag::RtsLogResponse:
-    new(&(this->_RtsLogResponse)) Anki::Victor::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
     break;
   case Tag::RtsFileDownload:
-    new(&(this->_RtsFileDownload)) Anki::Victor::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
     break;
   default:
     _tag = Tag::INVALID;
@@ -2293,85 +3593,85 @@ RtsConnection_2::RtsConnection_2(RtsConnection_2&& other) noexcept
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
     break;
   case Tag::RtsStatusResponse_2:
-    new(&(this->_RtsStatusResponse_2)) Anki::Victor::ExternalComms::RtsStatusResponse_2(std::move(other._RtsStatusResponse_2));
+    new(&(this->_RtsStatusResponse_2)) Anki::Vector::ExternalComms::RtsStatusResponse_2(std::move(other._RtsStatusResponse_2));
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
     break;
   case Tag::RtsWifiScanResponse_2:
-    new(&(this->_RtsWifiScanResponse_2)) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(std::move(other._RtsWifiScanResponse_2));
+    new(&(this->_RtsWifiScanResponse_2)) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(std::move(other._RtsWifiScanResponse_2));
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(std::move(other._RtsAck));
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
     break;
   case Tag::RtsOtaCancelRequest:
-    new(&(this->_RtsOtaCancelRequest)) Anki::Victor::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
     break;
   case Tag::RtsLogRequest:
-    new(&(this->_RtsLogRequest)) Anki::Victor::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
     break;
   case Tag::RtsLogResponse:
-    new(&(this->_RtsLogResponse)) Anki::Victor::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
     break;
   case Tag::RtsFileDownload:
-    new(&(this->_RtsFileDownload)) Anki::Victor::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
     break;
   default:
     _tag = Tag::INVALID;
@@ -2387,85 +3687,85 @@ RtsConnection_2& RtsConnection_2::operator=(const RtsConnection_2& other)
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
     break;
   case Tag::RtsStatusResponse_2:
-    new(&(this->_RtsStatusResponse_2)) Anki::Victor::ExternalComms::RtsStatusResponse_2(other._RtsStatusResponse_2);
+    new(&(this->_RtsStatusResponse_2)) Anki::Vector::ExternalComms::RtsStatusResponse_2(other._RtsStatusResponse_2);
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
     break;
   case Tag::RtsWifiScanResponse_2:
-    new(&(this->_RtsWifiScanResponse_2)) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(other._RtsWifiScanResponse_2);
+    new(&(this->_RtsWifiScanResponse_2)) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(other._RtsWifiScanResponse_2);
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(other._RtsAck);
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
     break;
   case Tag::RtsOtaCancelRequest:
-    new(&(this->_RtsOtaCancelRequest)) Anki::Victor::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
     break;
   case Tag::RtsLogRequest:
-    new(&(this->_RtsLogRequest)) Anki::Victor::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
     break;
   case Tag::RtsLogResponse:
-    new(&(this->_RtsLogResponse)) Anki::Victor::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
     break;
   case Tag::RtsFileDownload:
-    new(&(this->_RtsFileDownload)) Anki::Victor::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
     break;
   default:
     _tag = Tag::INVALID;
@@ -2481,85 +3781,85 @@ RtsConnection_2& RtsConnection_2::operator=(RtsConnection_2&& other) noexcept
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
     break;
   case Tag::RtsStatusResponse_2:
-    new(&(this->_RtsStatusResponse_2)) Anki::Victor::ExternalComms::RtsStatusResponse_2(std::move(other._RtsStatusResponse_2));
+    new(&(this->_RtsStatusResponse_2)) Anki::Vector::ExternalComms::RtsStatusResponse_2(std::move(other._RtsStatusResponse_2));
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
     break;
   case Tag::RtsWifiScanResponse_2:
-    new(&(this->_RtsWifiScanResponse_2)) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(std::move(other._RtsWifiScanResponse_2));
+    new(&(this->_RtsWifiScanResponse_2)) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(std::move(other._RtsWifiScanResponse_2));
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(std::move(other._RtsAck));
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
     break;
   case Tag::RtsOtaCancelRequest:
-    new(&(this->_RtsOtaCancelRequest)) Anki::Victor::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
     break;
   case Tag::RtsLogRequest:
-    new(&(this->_RtsLogRequest)) Anki::Victor::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
     break;
   case Tag::RtsLogResponse:
-    new(&(this->_RtsLogResponse)) Anki::Victor::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
     break;
   case Tag::RtsFileDownload:
-    new(&(this->_RtsFileDownload)) Anki::Victor::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
     break;
   default:
     _tag = Tag::INVALID;
@@ -2569,1514 +3869,1514 @@ RtsConnection_2& RtsConnection_2::operator=(RtsConnection_2&& other) noexcept
   return *this;
 }
 
-RtsConnection_2 RtsConnection_2::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_2 RtsConnection_2::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   RtsConnection_2 m;
   m.Set_Error(new_Error);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
   _tag = Tag::Error;
 }
 
-const Anki::Victor::ExternalComms::Error& RtsConnection_2::Get_Error() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_2::Get_Error() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
-void RtsConnection_2::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
+void RtsConnection_2::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
 {
   if(this->_tag == Tag::Error) {
     this->_Error = new_Error;
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
     _tag = Tag::Error;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::Error& RtsConnection_2::Get_<RtsConnection_2::Tag::Error>() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_2::Get_<RtsConnection_2::Tag::Error>() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::Error>(Anki::Victor::ExternalComms::Error member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::Error>(Anki::Vector::ExternalComms::Error member)
 {
   return CreateError(std::move(member));
 }
 
-void RtsConnection_2::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
+void RtsConnection_2::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   if (this->_tag == Tag::Error) {
     this->_Error = std::move(new_Error);
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
     _tag = Tag::Error;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsConnRequest(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsConnRequest(new_RtsConnRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
-  new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+  new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
   _tag = Tag::RtsConnRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsConnRequest& RtsConnection_2::Get_RtsConnRequest() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_2::Get_RtsConnRequest() const
 {
   assert(_tag == Tag::RtsConnRequest);
   return this->_RtsConnRequest;
 }
 
-void RtsConnection_2::Set_RtsConnRequest(const Anki::Victor::ExternalComms::RtsConnRequest& new_RtsConnRequest)
+void RtsConnection_2::Set_RtsConnRequest(const Anki::Vector::ExternalComms::RtsConnRequest& new_RtsConnRequest)
 {
   if(this->_tag == Tag::RtsConnRequest) {
     this->_RtsConnRequest = new_RtsConnRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(new_RtsConnRequest);
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(new_RtsConnRequest);
     _tag = Tag::RtsConnRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsConnRequest>() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsConnRequest>() const
 {
   assert(_tag == Tag::RtsConnRequest);
   return this->_RtsConnRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsConnRequest>(Anki::Victor::ExternalComms::RtsConnRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsConnRequest>(Anki::Vector::ExternalComms::RtsConnRequest member)
 {
   return CreateRtsConnRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsConnRequest(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+void RtsConnection_2::Set_RtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
   if (this->_tag == Tag::RtsConnRequest) {
     this->_RtsConnRequest = std::move(new_RtsConnRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
     _tag = Tag::RtsConnRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsConnResponse(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsConnResponse(new_RtsConnResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
-  new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+  new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
   _tag = Tag::RtsConnResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsConnResponse& RtsConnection_2::Get_RtsConnResponse() const
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_2::Get_RtsConnResponse() const
 {
   assert(_tag == Tag::RtsConnResponse);
   return this->_RtsConnResponse;
 }
 
-void RtsConnection_2::Set_RtsConnResponse(const Anki::Victor::ExternalComms::RtsConnResponse& new_RtsConnResponse)
+void RtsConnection_2::Set_RtsConnResponse(const Anki::Vector::ExternalComms::RtsConnResponse& new_RtsConnResponse)
 {
   if(this->_tag == Tag::RtsConnResponse) {
     this->_RtsConnResponse = new_RtsConnResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(new_RtsConnResponse);
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(new_RtsConnResponse);
     _tag = Tag::RtsConnResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsConnResponse>() const
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsConnResponse>() const
 {
   assert(_tag == Tag::RtsConnResponse);
   return this->_RtsConnResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsConnResponse>(Anki::Victor::ExternalComms::RtsConnResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsConnResponse>(Anki::Vector::ExternalComms::RtsConnResponse member)
 {
   return CreateRtsConnResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsConnResponse(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+void RtsConnection_2::Set_RtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
   if (this->_tag == Tag::RtsConnResponse) {
     this->_RtsConnResponse = std::move(new_RtsConnResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
     _tag = Tag::RtsConnResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsNonceMessage(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+RtsConnection_2 RtsConnection_2::CreateRtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
   RtsConnection_2 m;
   m.Set_RtsNonceMessage(new_RtsNonceMessage);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
-  new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+  new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
   _tag = Tag::RtsNonceMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsNonceMessage& RtsConnection_2::Get_RtsNonceMessage() const
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_2::Get_RtsNonceMessage() const
 {
   assert(_tag == Tag::RtsNonceMessage);
   return this->_RtsNonceMessage;
 }
 
-void RtsConnection_2::Set_RtsNonceMessage(const Anki::Victor::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
+void RtsConnection_2::Set_RtsNonceMessage(const Anki::Vector::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
 {
   if(this->_tag == Tag::RtsNonceMessage) {
     this->_RtsNonceMessage = new_RtsNonceMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
     _tag = Tag::RtsNonceMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsNonceMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsNonceMessage>() const
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsNonceMessage>() const
 {
   assert(_tag == Tag::RtsNonceMessage);
   return this->_RtsNonceMessage;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsNonceMessage>(Anki::Victor::ExternalComms::RtsNonceMessage member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsNonceMessage>(Anki::Vector::ExternalComms::RtsNonceMessage member)
 {
   return CreateRtsNonceMessage(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsNonceMessage(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+void RtsConnection_2::Set_RtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
   if (this->_tag == Tag::RtsNonceMessage) {
     this->_RtsNonceMessage = std::move(new_RtsNonceMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
     _tag = Tag::RtsNonceMessage;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsChallengeMessage(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+RtsConnection_2 RtsConnection_2::CreateRtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
   RtsConnection_2 m;
   m.Set_RtsChallengeMessage(new_RtsChallengeMessage);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
-  new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+  new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
   _tag = Tag::RtsChallengeMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsChallengeMessage& RtsConnection_2::Get_RtsChallengeMessage() const
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_2::Get_RtsChallengeMessage() const
 {
   assert(_tag == Tag::RtsChallengeMessage);
   return this->_RtsChallengeMessage;
 }
 
-void RtsConnection_2::Set_RtsChallengeMessage(const Anki::Victor::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
+void RtsConnection_2::Set_RtsChallengeMessage(const Anki::Vector::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
 {
   if(this->_tag == Tag::RtsChallengeMessage) {
     this->_RtsChallengeMessage = new_RtsChallengeMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
     _tag = Tag::RtsChallengeMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsChallengeMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsChallengeMessage>() const
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsChallengeMessage>() const
 {
   assert(_tag == Tag::RtsChallengeMessage);
   return this->_RtsChallengeMessage;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsChallengeMessage>(Anki::Victor::ExternalComms::RtsChallengeMessage member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsChallengeMessage>(Anki::Vector::ExternalComms::RtsChallengeMessage member)
 {
   return CreateRtsChallengeMessage(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsChallengeMessage(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+void RtsConnection_2::Set_RtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
   if (this->_tag == Tag::RtsChallengeMessage) {
     this->_RtsChallengeMessage = std::move(new_RtsChallengeMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
     _tag = Tag::RtsChallengeMessage;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsChallengeSuccessMessage(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+RtsConnection_2 RtsConnection_2::CreateRtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
   RtsConnection_2 m;
   m.Set_RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
-  new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+  new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
   _tag = Tag::RtsChallengeSuccessMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_2::Get_RtsChallengeSuccessMessage() const
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_2::Get_RtsChallengeSuccessMessage() const
 {
   assert(_tag == Tag::RtsChallengeSuccessMessage);
   return this->_RtsChallengeSuccessMessage;
 }
 
-void RtsConnection_2::Set_RtsChallengeSuccessMessage(const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
+void RtsConnection_2::Set_RtsChallengeSuccessMessage(const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
 {
   if(this->_tag == Tag::RtsChallengeSuccessMessage) {
     this->_RtsChallengeSuccessMessage = new_RtsChallengeSuccessMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
     _tag = Tag::RtsChallengeSuccessMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsChallengeSuccessMessage>() const
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsChallengeSuccessMessage>() const
 {
   assert(_tag == Tag::RtsChallengeSuccessMessage);
   return this->_RtsChallengeSuccessMessage;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsChallengeSuccessMessage>(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsChallengeSuccessMessage>(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage member)
 {
   return CreateRtsChallengeSuccessMessage(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsChallengeSuccessMessage(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+void RtsConnection_2::Set_RtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
   if (this->_tag == Tag::RtsChallengeSuccessMessage) {
     this->_RtsChallengeSuccessMessage = std::move(new_RtsChallengeSuccessMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
     _tag = Tag::RtsChallengeSuccessMessage;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiConnectRequest(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiConnectRequest(new_RtsWifiConnectRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
-  new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+  new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
   _tag = Tag::RtsWifiConnectRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiConnectRequest& RtsConnection_2::Get_RtsWifiConnectRequest() const
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_2::Get_RtsWifiConnectRequest() const
 {
   assert(_tag == Tag::RtsWifiConnectRequest);
   return this->_RtsWifiConnectRequest;
 }
 
-void RtsConnection_2::Set_RtsWifiConnectRequest(const Anki::Victor::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
+void RtsConnection_2::Set_RtsWifiConnectRequest(const Anki::Vector::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
 {
   if(this->_tag == Tag::RtsWifiConnectRequest) {
     this->_RtsWifiConnectRequest = new_RtsWifiConnectRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
     _tag = Tag::RtsWifiConnectRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiConnectRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiConnectRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiConnectRequest>() const
 {
   assert(_tag == Tag::RtsWifiConnectRequest);
   return this->_RtsWifiConnectRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiConnectRequest>(Anki::Victor::ExternalComms::RtsWifiConnectRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiConnectRequest>(Anki::Vector::ExternalComms::RtsWifiConnectRequest member)
 {
   return CreateRtsWifiConnectRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiConnectRequest(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+void RtsConnection_2::Set_RtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
   if (this->_tag == Tag::RtsWifiConnectRequest) {
     this->_RtsWifiConnectRequest = std::move(new_RtsWifiConnectRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
     _tag = Tag::RtsWifiConnectRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiConnectResponse(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiConnectResponse(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiConnectResponse(new_RtsWifiConnectResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
-  new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
+  new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
   _tag = Tag::RtsWifiConnectResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiConnectResponse& RtsConnection_2::Get_RtsWifiConnectResponse() const
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse& RtsConnection_2::Get_RtsWifiConnectResponse() const
 {
   assert(_tag == Tag::RtsWifiConnectResponse);
   return this->_RtsWifiConnectResponse;
 }
 
-void RtsConnection_2::Set_RtsWifiConnectResponse(const Anki::Victor::ExternalComms::RtsWifiConnectResponse& new_RtsWifiConnectResponse)
+void RtsConnection_2::Set_RtsWifiConnectResponse(const Anki::Vector::ExternalComms::RtsWifiConnectResponse& new_RtsWifiConnectResponse)
 {
   if(this->_tag == Tag::RtsWifiConnectResponse) {
     this->_RtsWifiConnectResponse = new_RtsWifiConnectResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(new_RtsWifiConnectResponse);
+    new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(new_RtsWifiConnectResponse);
     _tag = Tag::RtsWifiConnectResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiConnectResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiConnectResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiConnectResponse>() const
 {
   assert(_tag == Tag::RtsWifiConnectResponse);
   return this->_RtsWifiConnectResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiConnectResponse>(Anki::Victor::ExternalComms::RtsWifiConnectResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiConnectResponse>(Anki::Vector::ExternalComms::RtsWifiConnectResponse member)
 {
   return CreateRtsWifiConnectResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiConnectResponse(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+void RtsConnection_2::Set_RtsWifiConnectResponse(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
   if (this->_tag == Tag::RtsWifiConnectResponse) {
     this->_RtsWifiConnectResponse = std::move(new_RtsWifiConnectResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
+    new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
     _tag = Tag::RtsWifiConnectResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiIpRequest(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiIpRequest(new_RtsWifiIpRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
-  new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+  new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
   _tag = Tag::RtsWifiIpRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiIpRequest& RtsConnection_2::Get_RtsWifiIpRequest() const
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_2::Get_RtsWifiIpRequest() const
 {
   assert(_tag == Tag::RtsWifiIpRequest);
   return this->_RtsWifiIpRequest;
 }
 
-void RtsConnection_2::Set_RtsWifiIpRequest(const Anki::Victor::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
+void RtsConnection_2::Set_RtsWifiIpRequest(const Anki::Vector::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
 {
   if(this->_tag == Tag::RtsWifiIpRequest) {
     this->_RtsWifiIpRequest = new_RtsWifiIpRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
     _tag = Tag::RtsWifiIpRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiIpRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiIpRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiIpRequest>() const
 {
   assert(_tag == Tag::RtsWifiIpRequest);
   return this->_RtsWifiIpRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiIpRequest>(Anki::Victor::ExternalComms::RtsWifiIpRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiIpRequest>(Anki::Vector::ExternalComms::RtsWifiIpRequest member)
 {
   return CreateRtsWifiIpRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiIpRequest(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+void RtsConnection_2::Set_RtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
   if (this->_tag == Tag::RtsWifiIpRequest) {
     this->_RtsWifiIpRequest = std::move(new_RtsWifiIpRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
     _tag = Tag::RtsWifiIpRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiIpResponse(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiIpResponse(new_RtsWifiIpResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
-  new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+  new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
   _tag = Tag::RtsWifiIpResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiIpResponse& RtsConnection_2::Get_RtsWifiIpResponse() const
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_2::Get_RtsWifiIpResponse() const
 {
   assert(_tag == Tag::RtsWifiIpResponse);
   return this->_RtsWifiIpResponse;
 }
 
-void RtsConnection_2::Set_RtsWifiIpResponse(const Anki::Victor::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
+void RtsConnection_2::Set_RtsWifiIpResponse(const Anki::Vector::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
 {
   if(this->_tag == Tag::RtsWifiIpResponse) {
     this->_RtsWifiIpResponse = new_RtsWifiIpResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
     _tag = Tag::RtsWifiIpResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiIpResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiIpResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiIpResponse>() const
 {
   assert(_tag == Tag::RtsWifiIpResponse);
   return this->_RtsWifiIpResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiIpResponse>(Anki::Victor::ExternalComms::RtsWifiIpResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiIpResponse>(Anki::Vector::ExternalComms::RtsWifiIpResponse member)
 {
   return CreateRtsWifiIpResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiIpResponse(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+void RtsConnection_2::Set_RtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
   if (this->_tag == Tag::RtsWifiIpResponse) {
     this->_RtsWifiIpResponse = std::move(new_RtsWifiIpResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
     _tag = Tag::RtsWifiIpResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsStatusRequest(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsStatusRequest(new_RtsStatusRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
-  new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+  new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
   _tag = Tag::RtsStatusRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsStatusRequest& RtsConnection_2::Get_RtsStatusRequest() const
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_2::Get_RtsStatusRequest() const
 {
   assert(_tag == Tag::RtsStatusRequest);
   return this->_RtsStatusRequest;
 }
 
-void RtsConnection_2::Set_RtsStatusRequest(const Anki::Victor::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
+void RtsConnection_2::Set_RtsStatusRequest(const Anki::Vector::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
 {
   if(this->_tag == Tag::RtsStatusRequest) {
     this->_RtsStatusRequest = new_RtsStatusRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
     _tag = Tag::RtsStatusRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsStatusRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsStatusRequest>() const
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsStatusRequest>() const
 {
   assert(_tag == Tag::RtsStatusRequest);
   return this->_RtsStatusRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsStatusRequest>(Anki::Victor::ExternalComms::RtsStatusRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsStatusRequest>(Anki::Vector::ExternalComms::RtsStatusRequest member)
 {
   return CreateRtsStatusRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsStatusRequest(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+void RtsConnection_2::Set_RtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
   if (this->_tag == Tag::RtsStatusRequest) {
     this->_RtsStatusRequest = std::move(new_RtsStatusRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
     _tag = Tag::RtsStatusRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsStatusResponse_2(Anki::Victor::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
+RtsConnection_2 RtsConnection_2::CreateRtsStatusResponse_2(Anki::Vector::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
 {
   RtsConnection_2 m;
   m.Set_RtsStatusResponse_2(new_RtsStatusResponse_2);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
 {
-  new(&this->_RtsStatusResponse_2) Anki::Victor::ExternalComms::RtsStatusResponse_2(std::move(new_RtsStatusResponse_2));
+  new(&this->_RtsStatusResponse_2) Anki::Vector::ExternalComms::RtsStatusResponse_2(std::move(new_RtsStatusResponse_2));
   _tag = Tag::RtsStatusResponse_2;
 }
 
-const Anki::Victor::ExternalComms::RtsStatusResponse_2& RtsConnection_2::Get_RtsStatusResponse_2() const
+const Anki::Vector::ExternalComms::RtsStatusResponse_2& RtsConnection_2::Get_RtsStatusResponse_2() const
 {
   assert(_tag == Tag::RtsStatusResponse_2);
   return this->_RtsStatusResponse_2;
 }
 
-void RtsConnection_2::Set_RtsStatusResponse_2(const Anki::Victor::ExternalComms::RtsStatusResponse_2& new_RtsStatusResponse_2)
+void RtsConnection_2::Set_RtsStatusResponse_2(const Anki::Vector::ExternalComms::RtsStatusResponse_2& new_RtsStatusResponse_2)
 {
   if(this->_tag == Tag::RtsStatusResponse_2) {
     this->_RtsStatusResponse_2 = new_RtsStatusResponse_2;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusResponse_2) Anki::Victor::ExternalComms::RtsStatusResponse_2(new_RtsStatusResponse_2);
+    new(&this->_RtsStatusResponse_2) Anki::Vector::ExternalComms::RtsStatusResponse_2(new_RtsStatusResponse_2);
     _tag = Tag::RtsStatusResponse_2;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsStatusResponse_2& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsStatusResponse_2>() const
+const Anki::Vector::ExternalComms::RtsStatusResponse_2& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsStatusResponse_2>() const
 {
   assert(_tag == Tag::RtsStatusResponse_2);
   return this->_RtsStatusResponse_2;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsStatusResponse_2>(Anki::Victor::ExternalComms::RtsStatusResponse_2 member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsStatusResponse_2>(Anki::Vector::ExternalComms::RtsStatusResponse_2 member)
 {
   return CreateRtsStatusResponse_2(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsStatusResponse_2(Anki::Victor::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
+void RtsConnection_2::Set_RtsStatusResponse_2(Anki::Vector::ExternalComms::RtsStatusResponse_2&& new_RtsStatusResponse_2)
 {
   if (this->_tag == Tag::RtsStatusResponse_2) {
     this->_RtsStatusResponse_2 = std::move(new_RtsStatusResponse_2);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusResponse_2) Anki::Victor::ExternalComms::RtsStatusResponse_2(std::move(new_RtsStatusResponse_2));
+    new(&this->_RtsStatusResponse_2) Anki::Vector::ExternalComms::RtsStatusResponse_2(std::move(new_RtsStatusResponse_2));
     _tag = Tag::RtsStatusResponse_2;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiScanRequest(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiScanRequest(new_RtsWifiScanRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
-  new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+  new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
   _tag = Tag::RtsWifiScanRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiScanRequest& RtsConnection_2::Get_RtsWifiScanRequest() const
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_2::Get_RtsWifiScanRequest() const
 {
   assert(_tag == Tag::RtsWifiScanRequest);
   return this->_RtsWifiScanRequest;
 }
 
-void RtsConnection_2::Set_RtsWifiScanRequest(const Anki::Victor::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
+void RtsConnection_2::Set_RtsWifiScanRequest(const Anki::Vector::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
 {
   if(this->_tag == Tag::RtsWifiScanRequest) {
     this->_RtsWifiScanRequest = new_RtsWifiScanRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
     _tag = Tag::RtsWifiScanRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiScanRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiScanRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiScanRequest>() const
 {
   assert(_tag == Tag::RtsWifiScanRequest);
   return this->_RtsWifiScanRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiScanRequest>(Anki::Victor::ExternalComms::RtsWifiScanRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiScanRequest>(Anki::Vector::ExternalComms::RtsWifiScanRequest member)
 {
   return CreateRtsWifiScanRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiScanRequest(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+void RtsConnection_2::Set_RtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
   if (this->_tag == Tag::RtsWifiScanRequest) {
     this->_RtsWifiScanRequest = std::move(new_RtsWifiScanRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
     _tag = Tag::RtsWifiScanRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiScanResponse_2(Anki::Victor::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiScanResponse_2(Anki::Vector::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiScanResponse_2(new_RtsWifiScanResponse_2);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
 {
-  new(&this->_RtsWifiScanResponse_2) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(std::move(new_RtsWifiScanResponse_2));
+  new(&this->_RtsWifiScanResponse_2) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(std::move(new_RtsWifiScanResponse_2));
   _tag = Tag::RtsWifiScanResponse_2;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiScanResponse_2& RtsConnection_2::Get_RtsWifiScanResponse_2() const
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_2& RtsConnection_2::Get_RtsWifiScanResponse_2() const
 {
   assert(_tag == Tag::RtsWifiScanResponse_2);
   return this->_RtsWifiScanResponse_2;
 }
 
-void RtsConnection_2::Set_RtsWifiScanResponse_2(const Anki::Victor::ExternalComms::RtsWifiScanResponse_2& new_RtsWifiScanResponse_2)
+void RtsConnection_2::Set_RtsWifiScanResponse_2(const Anki::Vector::ExternalComms::RtsWifiScanResponse_2& new_RtsWifiScanResponse_2)
 {
   if(this->_tag == Tag::RtsWifiScanResponse_2) {
     this->_RtsWifiScanResponse_2 = new_RtsWifiScanResponse_2;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanResponse_2) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(new_RtsWifiScanResponse_2);
+    new(&this->_RtsWifiScanResponse_2) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(new_RtsWifiScanResponse_2);
     _tag = Tag::RtsWifiScanResponse_2;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiScanResponse_2& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiScanResponse_2>() const
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_2& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiScanResponse_2>() const
 {
   assert(_tag == Tag::RtsWifiScanResponse_2);
   return this->_RtsWifiScanResponse_2;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiScanResponse_2>(Anki::Victor::ExternalComms::RtsWifiScanResponse_2 member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiScanResponse_2>(Anki::Vector::ExternalComms::RtsWifiScanResponse_2 member)
 {
   return CreateRtsWifiScanResponse_2(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiScanResponse_2(Anki::Victor::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
+void RtsConnection_2::Set_RtsWifiScanResponse_2(Anki::Vector::ExternalComms::RtsWifiScanResponse_2&& new_RtsWifiScanResponse_2)
 {
   if (this->_tag == Tag::RtsWifiScanResponse_2) {
     this->_RtsWifiScanResponse_2 = std::move(new_RtsWifiScanResponse_2);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanResponse_2) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(std::move(new_RtsWifiScanResponse_2));
+    new(&this->_RtsWifiScanResponse_2) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(std::move(new_RtsWifiScanResponse_2));
     _tag = Tag::RtsWifiScanResponse_2;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsOtaUpdateRequest(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
-  new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+  new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
   _tag = Tag::RtsOtaUpdateRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& RtsConnection_2::Get_RtsOtaUpdateRequest() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_2::Get_RtsOtaUpdateRequest() const
 {
   assert(_tag == Tag::RtsOtaUpdateRequest);
   return this->_RtsOtaUpdateRequest;
 }
 
-void RtsConnection_2::Set_RtsOtaUpdateRequest(const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
+void RtsConnection_2::Set_RtsOtaUpdateRequest(const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
 {
   if(this->_tag == Tag::RtsOtaUpdateRequest) {
     this->_RtsOtaUpdateRequest = new_RtsOtaUpdateRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
     _tag = Tag::RtsOtaUpdateRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaUpdateRequest>() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaUpdateRequest>() const
 {
   assert(_tag == Tag::RtsOtaUpdateRequest);
   return this->_RtsOtaUpdateRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaUpdateRequest>(Anki::Victor::ExternalComms::RtsOtaUpdateRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaUpdateRequest>(Anki::Vector::ExternalComms::RtsOtaUpdateRequest member)
 {
   return CreateRtsOtaUpdateRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsOtaUpdateRequest(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+void RtsConnection_2::Set_RtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
   if (this->_tag == Tag::RtsOtaUpdateRequest) {
     this->_RtsOtaUpdateRequest = std::move(new_RtsOtaUpdateRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
     _tag = Tag::RtsOtaUpdateRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsOtaUpdateResponse(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
-  new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+  new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
   _tag = Tag::RtsOtaUpdateResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& RtsConnection_2::Get_RtsOtaUpdateResponse() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_2::Get_RtsOtaUpdateResponse() const
 {
   assert(_tag == Tag::RtsOtaUpdateResponse);
   return this->_RtsOtaUpdateResponse;
 }
 
-void RtsConnection_2::Set_RtsOtaUpdateResponse(const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
+void RtsConnection_2::Set_RtsOtaUpdateResponse(const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
 {
   if(this->_tag == Tag::RtsOtaUpdateResponse) {
     this->_RtsOtaUpdateResponse = new_RtsOtaUpdateResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
     _tag = Tag::RtsOtaUpdateResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaUpdateResponse>() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaUpdateResponse>() const
 {
   assert(_tag == Tag::RtsOtaUpdateResponse);
   return this->_RtsOtaUpdateResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaUpdateResponse>(Anki::Victor::ExternalComms::RtsOtaUpdateResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaUpdateResponse>(Anki::Vector::ExternalComms::RtsOtaUpdateResponse member)
 {
   return CreateRtsOtaUpdateResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsOtaUpdateResponse(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+void RtsConnection_2::Set_RtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
   if (this->_tag == Tag::RtsOtaUpdateResponse) {
     this->_RtsOtaUpdateResponse = std::move(new_RtsOtaUpdateResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
     _tag = Tag::RtsOtaUpdateResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsCancelPairing(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+RtsConnection_2 RtsConnection_2::CreateRtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
   RtsConnection_2 m;
   m.Set_RtsCancelPairing(new_RtsCancelPairing);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
-  new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+  new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
   _tag = Tag::RtsCancelPairing;
 }
 
-const Anki::Victor::ExternalComms::RtsCancelPairing& RtsConnection_2::Get_RtsCancelPairing() const
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_2::Get_RtsCancelPairing() const
 {
   assert(_tag == Tag::RtsCancelPairing);
   return this->_RtsCancelPairing;
 }
 
-void RtsConnection_2::Set_RtsCancelPairing(const Anki::Victor::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
+void RtsConnection_2::Set_RtsCancelPairing(const Anki::Vector::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
 {
   if(this->_tag == Tag::RtsCancelPairing) {
     this->_RtsCancelPairing = new_RtsCancelPairing;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
     _tag = Tag::RtsCancelPairing;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsCancelPairing& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsCancelPairing>() const
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsCancelPairing>() const
 {
   assert(_tag == Tag::RtsCancelPairing);
   return this->_RtsCancelPairing;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsCancelPairing>(Anki::Victor::ExternalComms::RtsCancelPairing member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsCancelPairing>(Anki::Vector::ExternalComms::RtsCancelPairing member)
 {
   return CreateRtsCancelPairing(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsCancelPairing(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+void RtsConnection_2::Set_RtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
   if (this->_tag == Tag::RtsCancelPairing) {
     this->_RtsCancelPairing = std::move(new_RtsCancelPairing);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
     _tag = Tag::RtsCancelPairing;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsForceDisconnect(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+RtsConnection_2 RtsConnection_2::CreateRtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
   RtsConnection_2 m;
   m.Set_RtsForceDisconnect(new_RtsForceDisconnect);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
-  new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+  new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
   _tag = Tag::RtsForceDisconnect;
 }
 
-const Anki::Victor::ExternalComms::RtsForceDisconnect& RtsConnection_2::Get_RtsForceDisconnect() const
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_2::Get_RtsForceDisconnect() const
 {
   assert(_tag == Tag::RtsForceDisconnect);
   return this->_RtsForceDisconnect;
 }
 
-void RtsConnection_2::Set_RtsForceDisconnect(const Anki::Victor::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
+void RtsConnection_2::Set_RtsForceDisconnect(const Anki::Vector::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
 {
   if(this->_tag == Tag::RtsForceDisconnect) {
     this->_RtsForceDisconnect = new_RtsForceDisconnect;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
     _tag = Tag::RtsForceDisconnect;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsForceDisconnect& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsForceDisconnect>() const
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsForceDisconnect>() const
 {
   assert(_tag == Tag::RtsForceDisconnect);
   return this->_RtsForceDisconnect;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsForceDisconnect>(Anki::Victor::ExternalComms::RtsForceDisconnect member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsForceDisconnect>(Anki::Vector::ExternalComms::RtsForceDisconnect member)
 {
   return CreateRtsForceDisconnect(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsForceDisconnect(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+void RtsConnection_2::Set_RtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
   if (this->_tag == Tag::RtsForceDisconnect) {
     this->_RtsForceDisconnect = std::move(new_RtsForceDisconnect);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
     _tag = Tag::RtsForceDisconnect;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsAck(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+RtsConnection_2 RtsConnection_2::CreateRtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
   RtsConnection_2 m;
   m.Set_RtsAck(new_RtsAck);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
-  new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(std::move(new_RtsAck));
+  new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
   _tag = Tag::RtsAck;
 }
 
-const Anki::Victor::ExternalComms::RtsAck& RtsConnection_2::Get_RtsAck() const
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_2::Get_RtsAck() const
 {
   assert(_tag == Tag::RtsAck);
   return this->_RtsAck;
 }
 
-void RtsConnection_2::Set_RtsAck(const Anki::Victor::ExternalComms::RtsAck& new_RtsAck)
+void RtsConnection_2::Set_RtsAck(const Anki::Vector::ExternalComms::RtsAck& new_RtsAck)
 {
   if(this->_tag == Tag::RtsAck) {
     this->_RtsAck = new_RtsAck;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(new_RtsAck);
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(new_RtsAck);
     _tag = Tag::RtsAck;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsAck& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsAck>() const
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsAck>() const
 {
   assert(_tag == Tag::RtsAck);
   return this->_RtsAck;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsAck>(Anki::Victor::ExternalComms::RtsAck member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsAck>(Anki::Vector::ExternalComms::RtsAck member)
 {
   return CreateRtsAck(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsAck(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+void RtsConnection_2::Set_RtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
   if (this->_tag == Tag::RtsAck) {
     this->_RtsAck = std::move(new_RtsAck);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(std::move(new_RtsAck));
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
     _tag = Tag::RtsAck;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiAccessPointRequest(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
-  new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+  new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
   _tag = Tag::RtsWifiAccessPointRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_2::Get_RtsWifiAccessPointRequest() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_2::Get_RtsWifiAccessPointRequest() const
 {
   assert(_tag == Tag::RtsWifiAccessPointRequest);
   return this->_RtsWifiAccessPointRequest;
 }
 
-void RtsConnection_2::Set_RtsWifiAccessPointRequest(const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
+void RtsConnection_2::Set_RtsWifiAccessPointRequest(const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
 {
   if(this->_tag == Tag::RtsWifiAccessPointRequest) {
     this->_RtsWifiAccessPointRequest = new_RtsWifiAccessPointRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
     _tag = Tag::RtsWifiAccessPointRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiAccessPointRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiAccessPointRequest>() const
 {
   assert(_tag == Tag::RtsWifiAccessPointRequest);
   return this->_RtsWifiAccessPointRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiAccessPointRequest>(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiAccessPointRequest>(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest member)
 {
   return CreateRtsWifiAccessPointRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiAccessPointRequest(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+void RtsConnection_2::Set_RtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
   if (this->_tag == Tag::RtsWifiAccessPointRequest) {
     this->_RtsWifiAccessPointRequest = std::move(new_RtsWifiAccessPointRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
     _tag = Tag::RtsWifiAccessPointRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsWifiAccessPointResponse(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
-  new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+  new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
   _tag = Tag::RtsWifiAccessPointResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_2::Get_RtsWifiAccessPointResponse() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_2::Get_RtsWifiAccessPointResponse() const
 {
   assert(_tag == Tag::RtsWifiAccessPointResponse);
   return this->_RtsWifiAccessPointResponse;
 }
 
-void RtsConnection_2::Set_RtsWifiAccessPointResponse(const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
+void RtsConnection_2::Set_RtsWifiAccessPointResponse(const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
 {
   if(this->_tag == Tag::RtsWifiAccessPointResponse) {
     this->_RtsWifiAccessPointResponse = new_RtsWifiAccessPointResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
     _tag = Tag::RtsWifiAccessPointResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiAccessPointResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsWifiAccessPointResponse>() const
 {
   assert(_tag == Tag::RtsWifiAccessPointResponse);
   return this->_RtsWifiAccessPointResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiAccessPointResponse>(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsWifiAccessPointResponse>(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse member)
 {
   return CreateRtsWifiAccessPointResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsWifiAccessPointResponse(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+void RtsConnection_2::Set_RtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
   if (this->_tag == Tag::RtsWifiAccessPointResponse) {
     this->_RtsWifiAccessPointResponse = std::move(new_RtsWifiAccessPointResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
     _tag = Tag::RtsWifiAccessPointResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsSshRequest(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsSshRequest(new_RtsSshRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
-  new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+  new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
   _tag = Tag::RtsSshRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsSshRequest& RtsConnection_2::Get_RtsSshRequest() const
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_2::Get_RtsSshRequest() const
 {
   assert(_tag == Tag::RtsSshRequest);
   return this->_RtsSshRequest;
 }
 
-void RtsConnection_2::Set_RtsSshRequest(const Anki::Victor::ExternalComms::RtsSshRequest& new_RtsSshRequest)
+void RtsConnection_2::Set_RtsSshRequest(const Anki::Vector::ExternalComms::RtsSshRequest& new_RtsSshRequest)
 {
   if(this->_tag == Tag::RtsSshRequest) {
     this->_RtsSshRequest = new_RtsSshRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(new_RtsSshRequest);
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(new_RtsSshRequest);
     _tag = Tag::RtsSshRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsSshRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsSshRequest>() const
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsSshRequest>() const
 {
   assert(_tag == Tag::RtsSshRequest);
   return this->_RtsSshRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsSshRequest>(Anki::Victor::ExternalComms::RtsSshRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsSshRequest>(Anki::Vector::ExternalComms::RtsSshRequest member)
 {
   return CreateRtsSshRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsSshRequest(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+void RtsConnection_2::Set_RtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
   if (this->_tag == Tag::RtsSshRequest) {
     this->_RtsSshRequest = std::move(new_RtsSshRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
     _tag = Tag::RtsSshRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsSshResponse(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsSshResponse(new_RtsSshResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
-  new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+  new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
   _tag = Tag::RtsSshResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsSshResponse& RtsConnection_2::Get_RtsSshResponse() const
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_2::Get_RtsSshResponse() const
 {
   assert(_tag == Tag::RtsSshResponse);
   return this->_RtsSshResponse;
 }
 
-void RtsConnection_2::Set_RtsSshResponse(const Anki::Victor::ExternalComms::RtsSshResponse& new_RtsSshResponse)
+void RtsConnection_2::Set_RtsSshResponse(const Anki::Vector::ExternalComms::RtsSshResponse& new_RtsSshResponse)
 {
   if(this->_tag == Tag::RtsSshResponse) {
     this->_RtsSshResponse = new_RtsSshResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(new_RtsSshResponse);
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(new_RtsSshResponse);
     _tag = Tag::RtsSshResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsSshResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsSshResponse>() const
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsSshResponse>() const
 {
   assert(_tag == Tag::RtsSshResponse);
   return this->_RtsSshResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsSshResponse>(Anki::Victor::ExternalComms::RtsSshResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsSshResponse>(Anki::Vector::ExternalComms::RtsSshResponse member)
 {
   return CreateRtsSshResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsSshResponse(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+void RtsConnection_2::Set_RtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
   if (this->_tag == Tag::RtsSshResponse) {
     this->_RtsSshResponse = std::move(new_RtsSshResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
     _tag = Tag::RtsSshResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsOtaCancelRequest(Anki::Victor::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsOtaCancelRequest(new_RtsOtaCancelRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
 {
-  new(&this->_RtsOtaCancelRequest) Anki::Victor::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+  new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
   _tag = Tag::RtsOtaCancelRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsOtaCancelRequest& RtsConnection_2::Get_RtsOtaCancelRequest() const
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_2::Get_RtsOtaCancelRequest() const
 {
   assert(_tag == Tag::RtsOtaCancelRequest);
   return this->_RtsOtaCancelRequest;
 }
 
-void RtsConnection_2::Set_RtsOtaCancelRequest(const Anki::Victor::ExternalComms::RtsOtaCancelRequest& new_RtsOtaCancelRequest)
+void RtsConnection_2::Set_RtsOtaCancelRequest(const Anki::Vector::ExternalComms::RtsOtaCancelRequest& new_RtsOtaCancelRequest)
 {
   if(this->_tag == Tag::RtsOtaCancelRequest) {
     this->_RtsOtaCancelRequest = new_RtsOtaCancelRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaCancelRequest) Anki::Victor::ExternalComms::RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(new_RtsOtaCancelRequest);
     _tag = Tag::RtsOtaCancelRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsOtaCancelRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaCancelRequest>() const
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsOtaCancelRequest>() const
 {
   assert(_tag == Tag::RtsOtaCancelRequest);
   return this->_RtsOtaCancelRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaCancelRequest>(Anki::Victor::ExternalComms::RtsOtaCancelRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsOtaCancelRequest>(Anki::Vector::ExternalComms::RtsOtaCancelRequest member)
 {
   return CreateRtsOtaCancelRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsOtaCancelRequest(Anki::Victor::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+void RtsConnection_2::Set_RtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
 {
   if (this->_tag == Tag::RtsOtaCancelRequest) {
     this->_RtsOtaCancelRequest = std::move(new_RtsOtaCancelRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaCancelRequest) Anki::Victor::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
     _tag = Tag::RtsOtaCancelRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsLogRequest(Anki::Victor::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+RtsConnection_2 RtsConnection_2::CreateRtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
 {
   RtsConnection_2 m;
   m.Set_RtsLogRequest(new_RtsLogRequest);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
 {
-  new(&this->_RtsLogRequest) Anki::Victor::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+  new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
   _tag = Tag::RtsLogRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsLogRequest& RtsConnection_2::Get_RtsLogRequest() const
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_2::Get_RtsLogRequest() const
 {
   assert(_tag == Tag::RtsLogRequest);
   return this->_RtsLogRequest;
 }
 
-void RtsConnection_2::Set_RtsLogRequest(const Anki::Victor::ExternalComms::RtsLogRequest& new_RtsLogRequest)
+void RtsConnection_2::Set_RtsLogRequest(const Anki::Vector::ExternalComms::RtsLogRequest& new_RtsLogRequest)
 {
   if(this->_tag == Tag::RtsLogRequest) {
     this->_RtsLogRequest = new_RtsLogRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsLogRequest) Anki::Victor::ExternalComms::RtsLogRequest(new_RtsLogRequest);
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(new_RtsLogRequest);
     _tag = Tag::RtsLogRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsLogRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsLogRequest>() const
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsLogRequest>() const
 {
   assert(_tag == Tag::RtsLogRequest);
   return this->_RtsLogRequest;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsLogRequest>(Anki::Victor::ExternalComms::RtsLogRequest member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsLogRequest>(Anki::Vector::ExternalComms::RtsLogRequest member)
 {
   return CreateRtsLogRequest(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsLogRequest(Anki::Victor::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+void RtsConnection_2::Set_RtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
 {
   if (this->_tag == Tag::RtsLogRequest) {
     this->_RtsLogRequest = std::move(new_RtsLogRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsLogRequest) Anki::Victor::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
     _tag = Tag::RtsLogRequest;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsLogResponse(Anki::Victor::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+RtsConnection_2 RtsConnection_2::CreateRtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
 {
   RtsConnection_2 m;
   m.Set_RtsLogResponse(new_RtsLogResponse);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
 {
-  new(&this->_RtsLogResponse) Anki::Victor::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+  new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
   _tag = Tag::RtsLogResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsLogResponse& RtsConnection_2::Get_RtsLogResponse() const
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_2::Get_RtsLogResponse() const
 {
   assert(_tag == Tag::RtsLogResponse);
   return this->_RtsLogResponse;
 }
 
-void RtsConnection_2::Set_RtsLogResponse(const Anki::Victor::ExternalComms::RtsLogResponse& new_RtsLogResponse)
+void RtsConnection_2::Set_RtsLogResponse(const Anki::Vector::ExternalComms::RtsLogResponse& new_RtsLogResponse)
 {
   if(this->_tag == Tag::RtsLogResponse) {
     this->_RtsLogResponse = new_RtsLogResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsLogResponse) Anki::Victor::ExternalComms::RtsLogResponse(new_RtsLogResponse);
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(new_RtsLogResponse);
     _tag = Tag::RtsLogResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsLogResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsLogResponse>() const
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsLogResponse>() const
 {
   assert(_tag == Tag::RtsLogResponse);
   return this->_RtsLogResponse;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsLogResponse>(Anki::Victor::ExternalComms::RtsLogResponse member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsLogResponse>(Anki::Vector::ExternalComms::RtsLogResponse member)
 {
   return CreateRtsLogResponse(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsLogResponse(Anki::Victor::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+void RtsConnection_2::Set_RtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
 {
   if (this->_tag == Tag::RtsLogResponse) {
     this->_RtsLogResponse = std::move(new_RtsLogResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsLogResponse) Anki::Victor::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
     _tag = Tag::RtsLogResponse;
   }
 }
 
-RtsConnection_2 RtsConnection_2::CreateRtsFileDownload(Anki::Victor::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+RtsConnection_2 RtsConnection_2::CreateRtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
 {
   RtsConnection_2 m;
   m.Set_RtsFileDownload(new_RtsFileDownload);
   return m;
 }
 
-RtsConnection_2::RtsConnection_2(Anki::Victor::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+RtsConnection_2::RtsConnection_2(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
 {
-  new(&this->_RtsFileDownload) Anki::Victor::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+  new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
   _tag = Tag::RtsFileDownload;
 }
 
-const Anki::Victor::ExternalComms::RtsFileDownload& RtsConnection_2::Get_RtsFileDownload() const
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_2::Get_RtsFileDownload() const
 {
   assert(_tag == Tag::RtsFileDownload);
   return this->_RtsFileDownload;
 }
 
-void RtsConnection_2::Set_RtsFileDownload(const Anki::Victor::ExternalComms::RtsFileDownload& new_RtsFileDownload)
+void RtsConnection_2::Set_RtsFileDownload(const Anki::Vector::ExternalComms::RtsFileDownload& new_RtsFileDownload)
 {
   if(this->_tag == Tag::RtsFileDownload) {
     this->_RtsFileDownload = new_RtsFileDownload;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsFileDownload) Anki::Victor::ExternalComms::RtsFileDownload(new_RtsFileDownload);
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(new_RtsFileDownload);
     _tag = Tag::RtsFileDownload;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsFileDownload& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsFileDownload>() const
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_2::Get_<RtsConnection_2::Tag::RtsFileDownload>() const
 {
   assert(_tag == Tag::RtsFileDownload);
   return this->_RtsFileDownload;
 }
 
 template<>
-RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsFileDownload>(Anki::Victor::ExternalComms::RtsFileDownload member)
+RtsConnection_2 RtsConnection_2::Create_<RtsConnection_2::Tag::RtsFileDownload>(Anki::Vector::ExternalComms::RtsFileDownload member)
 {
   return CreateRtsFileDownload(std::move(member));
 }
 
-void RtsConnection_2::Set_RtsFileDownload(Anki::Victor::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+void RtsConnection_2::Set_RtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
 {
   if (this->_tag == Tag::RtsFileDownload) {
     this->_RtsFileDownload = std::move(new_RtsFileDownload);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsFileDownload) Anki::Victor::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
     _tag = Tag::RtsFileDownload;
   }
 }
@@ -4098,7 +5398,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
   switch(newTag) {
   case Tag::Error:
     if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
     }
     else {
       this->_Error.Unpack(buffer);
@@ -4106,7 +5406,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(buffer);
+      new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(buffer);
     }
     else {
       this->_RtsConnRequest.Unpack(buffer);
@@ -4114,7 +5414,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(buffer);
+      new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(buffer);
     }
     else {
       this->_RtsConnResponse.Unpack(buffer);
@@ -4122,7 +5422,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsNonceMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(buffer);
+      new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(buffer);
     }
     else {
       this->_RtsNonceMessage.Unpack(buffer);
@@ -4130,7 +5430,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsChallengeMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(buffer);
+      new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(buffer);
     }
     else {
       this->_RtsChallengeMessage.Unpack(buffer);
@@ -4138,7 +5438,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsChallengeSuccessMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(buffer);
+      new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(buffer);
     }
     else {
       this->_RtsChallengeSuccessMessage.Unpack(buffer);
@@ -4146,7 +5446,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiConnectRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(buffer);
+      new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(buffer);
     }
     else {
       this->_RtsWifiConnectRequest.Unpack(buffer);
@@ -4154,7 +5454,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiConnectResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(buffer);
+      new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(buffer);
     }
     else {
       this->_RtsWifiConnectResponse.Unpack(buffer);
@@ -4162,7 +5462,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiIpRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(buffer);
+      new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(buffer);
     }
     else {
       this->_RtsWifiIpRequest.Unpack(buffer);
@@ -4170,7 +5470,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiIpResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(buffer);
+      new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(buffer);
     }
     else {
       this->_RtsWifiIpResponse.Unpack(buffer);
@@ -4178,7 +5478,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsStatusRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(buffer);
+      new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(buffer);
     }
     else {
       this->_RtsStatusRequest.Unpack(buffer);
@@ -4186,7 +5486,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsStatusResponse_2:
     if (newTag != oldTag) {
-      new(&(this->_RtsStatusResponse_2)) Anki::Victor::ExternalComms::RtsStatusResponse_2(buffer);
+      new(&(this->_RtsStatusResponse_2)) Anki::Vector::ExternalComms::RtsStatusResponse_2(buffer);
     }
     else {
       this->_RtsStatusResponse_2.Unpack(buffer);
@@ -4194,7 +5494,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiScanRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(buffer);
+      new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(buffer);
     }
     else {
       this->_RtsWifiScanRequest.Unpack(buffer);
@@ -4202,7 +5502,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiScanResponse_2:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiScanResponse_2)) Anki::Victor::ExternalComms::RtsWifiScanResponse_2(buffer);
+      new(&(this->_RtsWifiScanResponse_2)) Anki::Vector::ExternalComms::RtsWifiScanResponse_2(buffer);
     }
     else {
       this->_RtsWifiScanResponse_2.Unpack(buffer);
@@ -4210,7 +5510,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsOtaUpdateRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(buffer);
+      new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(buffer);
     }
     else {
       this->_RtsOtaUpdateRequest.Unpack(buffer);
@@ -4218,7 +5518,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsOtaUpdateResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(buffer);
+      new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(buffer);
     }
     else {
       this->_RtsOtaUpdateResponse.Unpack(buffer);
@@ -4226,7 +5526,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsCancelPairing:
     if (newTag != oldTag) {
-      new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(buffer);
+      new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(buffer);
     }
     else {
       this->_RtsCancelPairing.Unpack(buffer);
@@ -4234,7 +5534,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsForceDisconnect:
     if (newTag != oldTag) {
-      new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(buffer);
+      new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(buffer);
     }
     else {
       this->_RtsForceDisconnect.Unpack(buffer);
@@ -4242,7 +5542,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsAck:
     if (newTag != oldTag) {
-      new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(buffer);
+      new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(buffer);
     }
     else {
       this->_RtsAck.Unpack(buffer);
@@ -4250,7 +5550,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiAccessPointRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(buffer);
+      new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(buffer);
     }
     else {
       this->_RtsWifiAccessPointRequest.Unpack(buffer);
@@ -4258,7 +5558,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiAccessPointResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(buffer);
+      new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(buffer);
     }
     else {
       this->_RtsWifiAccessPointResponse.Unpack(buffer);
@@ -4266,7 +5566,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsSshRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(buffer);
+      new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(buffer);
     }
     else {
       this->_RtsSshRequest.Unpack(buffer);
@@ -4274,7 +5574,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsSshResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(buffer);
+      new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(buffer);
     }
     else {
       this->_RtsSshResponse.Unpack(buffer);
@@ -4282,7 +5582,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsOtaCancelRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsOtaCancelRequest)) Anki::Victor::ExternalComms::RtsOtaCancelRequest(buffer);
+      new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(buffer);
     }
     else {
       this->_RtsOtaCancelRequest.Unpack(buffer);
@@ -4290,7 +5590,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsLogRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsLogRequest)) Anki::Victor::ExternalComms::RtsLogRequest(buffer);
+      new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(buffer);
     }
     else {
       this->_RtsLogRequest.Unpack(buffer);
@@ -4298,7 +5598,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsLogResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsLogResponse)) Anki::Victor::ExternalComms::RtsLogResponse(buffer);
+      new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(buffer);
     }
     else {
       this->_RtsLogResponse.Unpack(buffer);
@@ -4306,7 +5606,7 @@ size_t RtsConnection_2::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsFileDownload:
     if (newTag != oldTag) {
-      new(&(this->_RtsFileDownload)) Anki::Victor::ExternalComms::RtsFileDownload(buffer);
+      new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(buffer);
     }
     else {
       this->_RtsFileDownload.Unpack(buffer);
@@ -4728,36 +6028,123 @@ const char* RtsConnection_2TagToString(const RtsConnection_2Tag tag) {
   }
 }
 
-const char* RtsConnection_2VersionHashStr = "3ef2a15e2df3baa973fe886381a98c9a";
+const char* RtsConnection_2VersionHashStr = "8f8aef23dd10d02ae39567d8617bcc5c";
 
 const uint8_t RtsConnection_2VersionHash[16] = { 
-    0x3e, 0xf2, 0xa1, 0x5e, 0x2d, 0xf3, 0xba, 0xa9, 0x73, 0xfe, 0x88, 0x63, 0x81, 0xa9, 0x8c, 0x9a 
+    0x8f, 0x8a, 0xef, 0x23, 0xdd, 0x10, 0xd0, 0x2a, 0xe3, 0x95, 0x67, 0xd8, 0x61, 0x7b, 0xcc, 0x5c 
 };
 
-// UNION RtsConnection
+// UNION RtsConnection_3
 
-RtsConnection::RtsConnection(const CLAD::SafeMessageBuffer& buff)
+RtsConnection_3::RtsConnection_3(const CLAD::SafeMessageBuffer& buff)
 : _tag(Tag::INVALID)
 {
   Unpack(buff);
 }
 
-RtsConnection::RtsConnection(const uint8_t* buffer, size_t length)
+RtsConnection_3::RtsConnection_3(const uint8_t* buffer, size_t length)
 : _tag(Tag::INVALID)
 {
   CLAD::SafeMessageBuffer buff(const_cast<uint8_t*>(buffer), length);
   Unpack(buff);
 }
 
-RtsConnection::RtsConnection(const RtsConnection& other)
+RtsConnection_3::RtsConnection_3(const RtsConnection_3& other)
 : _tag(other._tag)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
-  case Tag::RtsConnection_2:
-    new(&(this->_RtsConnection_2)) Anki::Victor::ExternalComms::RtsConnection_2(other._RtsConnection_2);
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_3:
+    new(&(this->_RtsStatusResponse_3)) Anki::Vector::ExternalComms::RtsStatusResponse_3(other._RtsStatusResponse_3);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(other._RtsCloudSessionRequest);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
     break;
   default:
     _tag = Tag::INVALID;
@@ -4765,15 +6152,102 @@ RtsConnection::RtsConnection(const RtsConnection& other)
   }
 }
 
-RtsConnection::RtsConnection(RtsConnection&& other) noexcept
+RtsConnection_3::RtsConnection_3(RtsConnection_3&& other) noexcept
 : _tag(other._tag)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
-  case Tag::RtsConnection_2:
-    new(&(this->_RtsConnection_2)) Anki::Victor::ExternalComms::RtsConnection_2(std::move(other._RtsConnection_2));
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_3:
+    new(&(this->_RtsStatusResponse_3)) Anki::Vector::ExternalComms::RtsStatusResponse_3(std::move(other._RtsStatusResponse_3));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(other._RtsCloudSessionRequest));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
     break;
   default:
     _tag = Tag::INVALID;
@@ -4782,17 +6256,104 @@ RtsConnection::RtsConnection(RtsConnection&& other) noexcept
   other.ClearCurrent();
 }
 
-RtsConnection& RtsConnection::operator=(const RtsConnection& other)
+RtsConnection_3& RtsConnection_3::operator=(const RtsConnection_3& other)
 {
   if(this == &other) { return *this; }
   ClearCurrent();
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
-  case Tag::RtsConnection_2:
-    new(&(this->_RtsConnection_2)) Anki::Victor::ExternalComms::RtsConnection_2(other._RtsConnection_2);
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_3:
+    new(&(this->_RtsStatusResponse_3)) Anki::Vector::ExternalComms::RtsStatusResponse_3(other._RtsStatusResponse_3);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(other._RtsCloudSessionRequest);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
     break;
   default:
     _tag = Tag::INVALID;
@@ -4801,17 +6362,104 @@ RtsConnection& RtsConnection::operator=(const RtsConnection& other)
   return *this;
 }
 
-RtsConnection& RtsConnection::operator=(RtsConnection&& other) noexcept
+RtsConnection_3& RtsConnection_3::operator=(RtsConnection_3&& other) noexcept
 {
   if(this == &other) { return *this; }
   ClearCurrent();
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
-  case Tag::RtsConnection_2:
-    new(&(this->_RtsConnection_2)) Anki::Victor::ExternalComms::RtsConnection_2(std::move(other._RtsConnection_2));
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_3:
+    new(&(this->_RtsStatusResponse_3)) Anki::Vector::ExternalComms::RtsStatusResponse_3(std::move(other._RtsStatusResponse_3));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(other._RtsCloudSessionRequest));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
     break;
   default:
     _tag = Tag::INVALID;
@@ -4821,125 +6469,1749 @@ RtsConnection& RtsConnection::operator=(RtsConnection&& other) noexcept
   return *this;
 }
 
-RtsConnection RtsConnection::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_3 RtsConnection_3::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  RtsConnection m;
+  RtsConnection_3 m;
   m.Set_Error(new_Error);
   return m;
 }
 
-RtsConnection::RtsConnection(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
   _tag = Tag::Error;
 }
 
-const Anki::Victor::ExternalComms::Error& RtsConnection::Get_Error() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_3::Get_Error() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
-void RtsConnection::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
+void RtsConnection_3::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
 {
   if(this->_tag == Tag::Error) {
     this->_Error = new_Error;
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
     _tag = Tag::Error;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::Error& RtsConnection::Get_<RtsConnection::Tag::Error>() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_3::Get_<RtsConnection_3::Tag::Error>() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
 template<>
-RtsConnection RtsConnection::Create_<RtsConnection::Tag::Error>(Anki::Victor::ExternalComms::Error member)
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::Error>(Anki::Vector::ExternalComms::Error member)
 {
   return CreateError(std::move(member));
 }
 
-void RtsConnection::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
+void RtsConnection_3::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   if (this->_tag == Tag::Error) {
     this->_Error = std::move(new_Error);
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
     _tag = Tag::Error;
   }
 }
 
-RtsConnection RtsConnection::CreateRtsConnection_2(Anki::Victor::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
+RtsConnection_3 RtsConnection_3::CreateRtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
-  RtsConnection m;
-  m.Set_RtsConnection_2(new_RtsConnection_2);
+  RtsConnection_3 m;
+  m.Set_RtsConnRequest(new_RtsConnRequest);
   return m;
 }
 
-RtsConnection::RtsConnection(Anki::Victor::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
-  new(&this->_RtsConnection_2) Anki::Victor::ExternalComms::RtsConnection_2(std::move(new_RtsConnection_2));
-  _tag = Tag::RtsConnection_2;
+  new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+  _tag = Tag::RtsConnRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsConnection_2& RtsConnection::Get_RtsConnection_2() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_3::Get_RtsConnRequest() const
 {
-  assert(_tag == Tag::RtsConnection_2);
-  return this->_RtsConnection_2;
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
 }
 
-void RtsConnection::Set_RtsConnection_2(const Anki::Victor::ExternalComms::RtsConnection_2& new_RtsConnection_2)
+void RtsConnection_3::Set_RtsConnRequest(const Anki::Vector::ExternalComms::RtsConnRequest& new_RtsConnRequest)
 {
-  if(this->_tag == Tag::RtsConnection_2) {
-    this->_RtsConnection_2 = new_RtsConnection_2;
+  if(this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = new_RtsConnRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection_2) Anki::Victor::ExternalComms::RtsConnection_2(new_RtsConnection_2);
-    _tag = Tag::RtsConnection_2;
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(new_RtsConnRequest);
+    _tag = Tag::RtsConnRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnection_2& RtsConnection::Get_<RtsConnection::Tag::RtsConnection_2>() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsConnRequest>() const
 {
-  assert(_tag == Tag::RtsConnection_2);
-  return this->_RtsConnection_2;
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
 }
 
 template<>
-RtsConnection RtsConnection::Create_<RtsConnection::Tag::RtsConnection_2>(Anki::Victor::ExternalComms::RtsConnection_2 member)
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsConnRequest>(Anki::Vector::ExternalComms::RtsConnRequest member)
 {
-  return CreateRtsConnection_2(std::move(member));
+  return CreateRtsConnRequest(std::move(member));
 }
 
-void RtsConnection::Set_RtsConnection_2(Anki::Victor::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
+void RtsConnection_3::Set_RtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
-  if (this->_tag == Tag::RtsConnection_2) {
-    this->_RtsConnection_2 = std::move(new_RtsConnection_2);
+  if (this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = std::move(new_RtsConnRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection_2) Anki::Victor::ExternalComms::RtsConnection_2(std::move(new_RtsConnection_2));
-    _tag = Tag::RtsConnection_2;
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+    _tag = Tag::RtsConnRequest;
   }
 }
 
-size_t RtsConnection::Unpack(const uint8_t* buff, const size_t len)
+RtsConnection_3 RtsConnection_3::CreateRtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsConnResponse(new_RtsConnResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+  _tag = Tag::RtsConnResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_3::Get_RtsConnResponse() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+void RtsConnection_3::Set_RtsConnResponse(const Anki::Vector::ExternalComms::RtsConnResponse& new_RtsConnResponse)
+{
+  if(this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = new_RtsConnResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(new_RtsConnResponse);
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsConnResponse>() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsConnResponse>(Anki::Vector::ExternalComms::RtsConnResponse member)
+{
+  return CreateRtsConnResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  if (this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = std::move(new_RtsConnResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  RtsConnection_3 m;
+  m.Set_RtsNonceMessage(new_RtsNonceMessage);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+  _tag = Tag::RtsNonceMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_3::Get_RtsNonceMessage() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+void RtsConnection_3::Set_RtsNonceMessage(const Anki::Vector::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
+{
+  if(this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = new_RtsNonceMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsNonceMessage>() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsNonceMessage>(Anki::Vector::ExternalComms::RtsNonceMessage member)
+{
+  return CreateRtsNonceMessage(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  if (this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = std::move(new_RtsNonceMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  RtsConnection_3 m;
+  m.Set_RtsChallengeMessage(new_RtsChallengeMessage);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+  _tag = Tag::RtsChallengeMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_3::Get_RtsChallengeMessage() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+void RtsConnection_3::Set_RtsChallengeMessage(const Anki::Vector::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
+{
+  if(this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = new_RtsChallengeMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsChallengeMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsChallengeMessage>(Anki::Vector::ExternalComms::RtsChallengeMessage member)
+{
+  return CreateRtsChallengeMessage(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  if (this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = std::move(new_RtsChallengeMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  RtsConnection_3 m;
+  m.Set_RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+  _tag = Tag::RtsChallengeSuccessMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_3::Get_RtsChallengeSuccessMessage() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+void RtsConnection_3::Set_RtsChallengeSuccessMessage(const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
+{
+  if(this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = new_RtsChallengeSuccessMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsChallengeSuccessMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsChallengeSuccessMessage>(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage member)
+{
+  return CreateRtsChallengeSuccessMessage(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  if (this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = std::move(new_RtsChallengeSuccessMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+  _tag = Tag::RtsWifiConnectRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_3::Get_RtsWifiConnectRequest() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+void RtsConnection_3::Set_RtsWifiConnectRequest(const Anki::Vector::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
+{
+  if(this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = new_RtsWifiConnectRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiConnectRequest>() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiConnectRequest>(Anki::Vector::ExternalComms::RtsWifiConnectRequest member)
+{
+  return CreateRtsWifiConnectRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  if (this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = std::move(new_RtsWifiConnectRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+  _tag = Tag::RtsWifiConnectResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_3::Get_RtsWifiConnectResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+void RtsConnection_3::Set_RtsWifiConnectResponse_3(const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& new_RtsWifiConnectResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = new_RtsWifiConnectResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiConnectResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiConnectResponse_3>(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3 member)
+{
+  return CreateRtsWifiConnectResponse_3(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = std::move(new_RtsWifiConnectResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiIpRequest(new_RtsWifiIpRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+  _tag = Tag::RtsWifiIpRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_3::Get_RtsWifiIpRequest() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+void RtsConnection_3::Set_RtsWifiIpRequest(const Anki::Vector::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
+{
+  if(this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = new_RtsWifiIpRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiIpRequest>() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiIpRequest>(Anki::Vector::ExternalComms::RtsWifiIpRequest member)
+{
+  return CreateRtsWifiIpRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  if (this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = std::move(new_RtsWifiIpRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiIpResponse(new_RtsWifiIpResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+  _tag = Tag::RtsWifiIpResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_3::Get_RtsWifiIpResponse() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+void RtsConnection_3::Set_RtsWifiIpResponse(const Anki::Vector::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
+{
+  if(this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = new_RtsWifiIpResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiIpResponse>() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiIpResponse>(Anki::Vector::ExternalComms::RtsWifiIpResponse member)
+{
+  return CreateRtsWifiIpResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  if (this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = std::move(new_RtsWifiIpResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsStatusRequest(new_RtsStatusRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+  _tag = Tag::RtsStatusRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_3::Get_RtsStatusRequest() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+void RtsConnection_3::Set_RtsStatusRequest(const Anki::Vector::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
+{
+  if(this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = new_RtsStatusRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsStatusRequest>() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsStatusRequest>(Anki::Vector::ExternalComms::RtsStatusRequest member)
+{
+  return CreateRtsStatusRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  if (this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = std::move(new_RtsStatusRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsStatusResponse_3(Anki::Vector::ExternalComms::RtsStatusResponse_3&& new_RtsStatusResponse_3)
+{
+  RtsConnection_3 m;
+  m.Set_RtsStatusResponse_3(new_RtsStatusResponse_3);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsStatusResponse_3&& new_RtsStatusResponse_3)
+{
+  new(&this->_RtsStatusResponse_3) Anki::Vector::ExternalComms::RtsStatusResponse_3(std::move(new_RtsStatusResponse_3));
+  _tag = Tag::RtsStatusResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusResponse_3& RtsConnection_3::Get_RtsStatusResponse_3() const
+{
+  assert(_tag == Tag::RtsStatusResponse_3);
+  return this->_RtsStatusResponse_3;
+}
+
+void RtsConnection_3::Set_RtsStatusResponse_3(const Anki::Vector::ExternalComms::RtsStatusResponse_3& new_RtsStatusResponse_3)
+{
+  if(this->_tag == Tag::RtsStatusResponse_3) {
+    this->_RtsStatusResponse_3 = new_RtsStatusResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_3) Anki::Vector::ExternalComms::RtsStatusResponse_3(new_RtsStatusResponse_3);
+    _tag = Tag::RtsStatusResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusResponse_3& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsStatusResponse_3>() const
+{
+  assert(_tag == Tag::RtsStatusResponse_3);
+  return this->_RtsStatusResponse_3;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsStatusResponse_3>(Anki::Vector::ExternalComms::RtsStatusResponse_3 member)
+{
+  return CreateRtsStatusResponse_3(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsStatusResponse_3(Anki::Vector::ExternalComms::RtsStatusResponse_3&& new_RtsStatusResponse_3)
+{
+  if (this->_tag == Tag::RtsStatusResponse_3) {
+    this->_RtsStatusResponse_3 = std::move(new_RtsStatusResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_3) Anki::Vector::ExternalComms::RtsStatusResponse_3(std::move(new_RtsStatusResponse_3));
+    _tag = Tag::RtsStatusResponse_3;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiScanRequest(new_RtsWifiScanRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+  _tag = Tag::RtsWifiScanRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_3::Get_RtsWifiScanRequest() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+void RtsConnection_3::Set_RtsWifiScanRequest(const Anki::Vector::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
+{
+  if(this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = new_RtsWifiScanRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiScanRequest>() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiScanRequest>(Anki::Vector::ExternalComms::RtsWifiScanRequest member)
+{
+  return CreateRtsWifiScanRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  if (this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = std::move(new_RtsWifiScanRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+  _tag = Tag::RtsWifiScanResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_3::Get_RtsWifiScanResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+void RtsConnection_3::Set_RtsWifiScanResponse_3(const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& new_RtsWifiScanResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = new_RtsWifiScanResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiScanResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiScanResponse_3>(Anki::Vector::ExternalComms::RtsWifiScanResponse_3 member)
+{
+  return CreateRtsWifiScanResponse_3(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = std::move(new_RtsWifiScanResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+  _tag = Tag::RtsOtaUpdateRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_3::Get_RtsOtaUpdateRequest() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+void RtsConnection_3::Set_RtsOtaUpdateRequest(const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
+{
+  if(this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = new_RtsOtaUpdateRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsOtaUpdateRequest>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsOtaUpdateRequest>(Anki::Vector::ExternalComms::RtsOtaUpdateRequest member)
+{
+  return CreateRtsOtaUpdateRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  if (this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = std::move(new_RtsOtaUpdateRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+  _tag = Tag::RtsOtaUpdateResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_3::Get_RtsOtaUpdateResponse() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+void RtsConnection_3::Set_RtsOtaUpdateResponse(const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
+{
+  if(this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = new_RtsOtaUpdateResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsOtaUpdateResponse>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsOtaUpdateResponse>(Anki::Vector::ExternalComms::RtsOtaUpdateResponse member)
+{
+  return CreateRtsOtaUpdateResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  if (this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = std::move(new_RtsOtaUpdateResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  RtsConnection_3 m;
+  m.Set_RtsCancelPairing(new_RtsCancelPairing);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+  _tag = Tag::RtsCancelPairing;
+}
+
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_3::Get_RtsCancelPairing() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+void RtsConnection_3::Set_RtsCancelPairing(const Anki::Vector::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
+{
+  if(this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = new_RtsCancelPairing;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsCancelPairing>() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsCancelPairing>(Anki::Vector::ExternalComms::RtsCancelPairing member)
+{
+  return CreateRtsCancelPairing(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  if (this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = std::move(new_RtsCancelPairing);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  RtsConnection_3 m;
+  m.Set_RtsForceDisconnect(new_RtsForceDisconnect);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+  _tag = Tag::RtsForceDisconnect;
+}
+
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_3::Get_RtsForceDisconnect() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+void RtsConnection_3::Set_RtsForceDisconnect(const Anki::Vector::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
+{
+  if(this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = new_RtsForceDisconnect;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsForceDisconnect>() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsForceDisconnect>(Anki::Vector::ExternalComms::RtsForceDisconnect member)
+{
+  return CreateRtsForceDisconnect(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  if (this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = std::move(new_RtsForceDisconnect);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  RtsConnection_3 m;
+  m.Set_RtsAck(new_RtsAck);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+  _tag = Tag::RtsAck;
+}
+
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_3::Get_RtsAck() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+void RtsConnection_3::Set_RtsAck(const Anki::Vector::ExternalComms::RtsAck& new_RtsAck)
+{
+  if(this->_tag == Tag::RtsAck) {
+    this->_RtsAck = new_RtsAck;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(new_RtsAck);
+    _tag = Tag::RtsAck;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsAck>() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsAck>(Anki::Vector::ExternalComms::RtsAck member)
+{
+  return CreateRtsAck(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  if (this->_tag == Tag::RtsAck) {
+    this->_RtsAck = std::move(new_RtsAck);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+    _tag = Tag::RtsAck;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+  _tag = Tag::RtsWifiAccessPointRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_3::Get_RtsWifiAccessPointRequest() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+void RtsConnection_3::Set_RtsWifiAccessPointRequest(const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = new_RtsWifiAccessPointRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiAccessPointRequest>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiAccessPointRequest>(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest member)
+{
+  return CreateRtsWifiAccessPointRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = std::move(new_RtsWifiAccessPointRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+  _tag = Tag::RtsWifiAccessPointResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_3::Get_RtsWifiAccessPointResponse() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+void RtsConnection_3::Set_RtsWifiAccessPointResponse(const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = new_RtsWifiAccessPointResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiAccessPointResponse>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiAccessPointResponse>(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse member)
+{
+  return CreateRtsWifiAccessPointResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = std::move(new_RtsWifiAccessPointResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsSshRequest(new_RtsSshRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+  _tag = Tag::RtsSshRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_3::Get_RtsSshRequest() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+void RtsConnection_3::Set_RtsSshRequest(const Anki::Vector::ExternalComms::RtsSshRequest& new_RtsSshRequest)
+{
+  if(this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = new_RtsSshRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(new_RtsSshRequest);
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsSshRequest>() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsSshRequest>(Anki::Vector::ExternalComms::RtsSshRequest member)
+{
+  return CreateRtsSshRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  if (this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = std::move(new_RtsSshRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsSshResponse(new_RtsSshResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+  _tag = Tag::RtsSshResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_3::Get_RtsSshResponse() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+void RtsConnection_3::Set_RtsSshResponse(const Anki::Vector::ExternalComms::RtsSshResponse& new_RtsSshResponse)
+{
+  if(this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = new_RtsSshResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(new_RtsSshResponse);
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsSshResponse>() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsSshResponse>(Anki::Vector::ExternalComms::RtsSshResponse member)
+{
+  return CreateRtsSshResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  if (this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = std::move(new_RtsSshResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+  _tag = Tag::RtsOtaCancelRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_3::Get_RtsOtaCancelRequest() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+void RtsConnection_3::Set_RtsOtaCancelRequest(const Anki::Vector::ExternalComms::RtsOtaCancelRequest& new_RtsOtaCancelRequest)
+{
+  if(this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = new_RtsOtaCancelRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsOtaCancelRequest>() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsOtaCancelRequest>(Anki::Vector::ExternalComms::RtsOtaCancelRequest member)
+{
+  return CreateRtsOtaCancelRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  if (this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = std::move(new_RtsOtaCancelRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsLogRequest(new_RtsLogRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+  _tag = Tag::RtsLogRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_3::Get_RtsLogRequest() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+void RtsConnection_3::Set_RtsLogRequest(const Anki::Vector::ExternalComms::RtsLogRequest& new_RtsLogRequest)
+{
+  if(this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = new_RtsLogRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(new_RtsLogRequest);
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsLogRequest>() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsLogRequest>(Anki::Vector::ExternalComms::RtsLogRequest member)
+{
+  return CreateRtsLogRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  if (this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = std::move(new_RtsLogRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsLogResponse(new_RtsLogResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+  _tag = Tag::RtsLogResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_3::Get_RtsLogResponse() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+void RtsConnection_3::Set_RtsLogResponse(const Anki::Vector::ExternalComms::RtsLogResponse& new_RtsLogResponse)
+{
+  if(this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = new_RtsLogResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(new_RtsLogResponse);
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsLogResponse>() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsLogResponse>(Anki::Vector::ExternalComms::RtsLogResponse member)
+{
+  return CreateRtsLogResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  if (this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = std::move(new_RtsLogResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  RtsConnection_3 m;
+  m.Set_RtsFileDownload(new_RtsFileDownload);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+  _tag = Tag::RtsFileDownload;
+}
+
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_3::Get_RtsFileDownload() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+void RtsConnection_3::Set_RtsFileDownload(const Anki::Vector::ExternalComms::RtsFileDownload& new_RtsFileDownload)
+{
+  if(this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = new_RtsFileDownload;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(new_RtsFileDownload);
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsFileDownload>() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsFileDownload>(Anki::Vector::ExternalComms::RtsFileDownload member)
+{
+  return CreateRtsFileDownload(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  if (this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = std::move(new_RtsFileDownload);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+  _tag = Tag::RtsWifiForgetRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_3::Get_RtsWifiForgetRequest() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+void RtsConnection_3::Set_RtsWifiForgetRequest(const Anki::Vector::ExternalComms::RtsWifiForgetRequest& new_RtsWifiForgetRequest)
+{
+  if(this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = new_RtsWifiForgetRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiForgetRequest>() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiForgetRequest>(Anki::Vector::ExternalComms::RtsWifiForgetRequest member)
+{
+  return CreateRtsWifiForgetRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  if (this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = std::move(new_RtsWifiForgetRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+  _tag = Tag::RtsWifiForgetResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_3::Get_RtsWifiForgetResponse() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+void RtsConnection_3::Set_RtsWifiForgetResponse(const Anki::Vector::ExternalComms::RtsWifiForgetResponse& new_RtsWifiForgetResponse)
+{
+  if(this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = new_RtsWifiForgetResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsWifiForgetResponse>() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsWifiForgetResponse>(Anki::Vector::ExternalComms::RtsWifiForgetResponse member)
+{
+  return CreateRtsWifiForgetResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  if (this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = std::move(new_RtsWifiForgetResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsCloudSessionRequest(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  RtsConnection_3 m;
+  m.Set_RtsCloudSessionRequest(new_RtsCloudSessionRequest);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(new_RtsCloudSessionRequest));
+  _tag = Tag::RtsCloudSessionRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest& RtsConnection_3::Get_RtsCloudSessionRequest() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest);
+  return this->_RtsCloudSessionRequest;
+}
+
+void RtsConnection_3::Set_RtsCloudSessionRequest(const Anki::Vector::ExternalComms::RtsCloudSessionRequest& new_RtsCloudSessionRequest)
+{
+  if(this->_tag == Tag::RtsCloudSessionRequest) {
+    this->_RtsCloudSessionRequest = new_RtsCloudSessionRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(new_RtsCloudSessionRequest);
+    _tag = Tag::RtsCloudSessionRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsCloudSessionRequest>() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest);
+  return this->_RtsCloudSessionRequest;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsCloudSessionRequest>(Anki::Vector::ExternalComms::RtsCloudSessionRequest member)
+{
+  return CreateRtsCloudSessionRequest(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsCloudSessionRequest(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  if (this->_tag == Tag::RtsCloudSessionRequest) {
+    this->_RtsCloudSessionRequest = std::move(new_RtsCloudSessionRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(new_RtsCloudSessionRequest));
+    _tag = Tag::RtsCloudSessionRequest;
+  }
+}
+
+RtsConnection_3 RtsConnection_3::CreateRtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  RtsConnection_3 m;
+  m.Set_RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+  return m;
+}
+
+RtsConnection_3::RtsConnection_3(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+  _tag = Tag::RtsCloudSessionResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_3::Get_RtsCloudSessionResponse() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+void RtsConnection_3::Set_RtsCloudSessionResponse(const Anki::Vector::ExternalComms::RtsCloudSessionResponse& new_RtsCloudSessionResponse)
+{
+  if(this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = new_RtsCloudSessionResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_3::Get_<RtsConnection_3::Tag::RtsCloudSessionResponse>() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+template<>
+RtsConnection_3 RtsConnection_3::Create_<RtsConnection_3::Tag::RtsCloudSessionResponse>(Anki::Vector::ExternalComms::RtsCloudSessionResponse member)
+{
+  return CreateRtsCloudSessionResponse(std::move(member));
+}
+
+void RtsConnection_3::Set_RtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  if (this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = std::move(new_RtsCloudSessionResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+size_t RtsConnection_3::Unpack(const uint8_t* buff, const size_t len)
 {
   const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
   return Unpack(buffer);
 }
 
-size_t RtsConnection::Unpack(const CLAD::SafeMessageBuffer& buffer)
+size_t RtsConnection_3::Unpack(const CLAD::SafeMessageBuffer& buffer)
 {
   Tag newTag {Tag::INVALID};
   const Tag oldTag {GetTag()};
@@ -4950,18 +8222,250 @@ size_t RtsConnection::Unpack(const CLAD::SafeMessageBuffer& buffer)
   switch(newTag) {
   case Tag::Error:
     if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
     }
     else {
       this->_Error.Unpack(buffer);
     }
     break;
-  case Tag::RtsConnection_2:
+  case Tag::RtsConnRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnection_2)) Anki::Victor::ExternalComms::RtsConnection_2(buffer);
+      new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(buffer);
     }
     else {
-      this->_RtsConnection_2.Unpack(buffer);
+      this->_RtsConnRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(buffer);
+    }
+    else {
+      this->_RtsConnResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsNonceMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(buffer);
+    }
+    else {
+      this->_RtsNonceMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeSuccessMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(buffer);
+    }
+    else {
+      this->_RtsWifiConnectRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiConnectResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(buffer);
+    }
+    else {
+      this->_RtsWifiIpRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(buffer);
+    }
+    else {
+      this->_RtsWifiIpResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(buffer);
+    }
+    else {
+      this->_RtsStatusRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusResponse_3)) Anki::Vector::ExternalComms::RtsStatusResponse_3(buffer);
+    }
+    else {
+      this->_RtsStatusResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(buffer);
+    }
+    else {
+      this->_RtsWifiScanRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiScanResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCancelPairing:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(buffer);
+    }
+    else {
+      this->_RtsCancelPairing.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsForceDisconnect:
+    if (newTag != oldTag) {
+      new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(buffer);
+    }
+    else {
+      this->_RtsForceDisconnect.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAck:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(buffer);
+    }
+    else {
+      this->_RtsAck.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(buffer);
+    }
+    else {
+      this->_RtsSshRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(buffer);
+    }
+    else {
+      this->_RtsSshResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaCancelRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(buffer);
+    }
+    else {
+      this->_RtsOtaCancelRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(buffer);
+    }
+    else {
+      this->_RtsLogRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(buffer);
+    }
+    else {
+      this->_RtsLogResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsFileDownload:
+    if (newTag != oldTag) {
+      new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(buffer);
+    }
+    else {
+      this->_RtsFileDownload.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(buffer);
+    }
+    else {
+      this->_RtsWifiForgetRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(buffer);
+    }
+    else {
+      this->_RtsWifiForgetResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(buffer);
+    }
+    else {
+      this->_RtsCloudSessionRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(buffer);
+    }
+    else {
+      this->_RtsCloudSessionResponse.Unpack(buffer);
     }
     break;
   default:
@@ -4971,21 +8475,108 @@ size_t RtsConnection::Unpack(const CLAD::SafeMessageBuffer& buffer)
   return buffer.GetBytesRead();
 }
 
-size_t RtsConnection::Pack(uint8_t* buff, size_t len) const
+size_t RtsConnection_3::Pack(uint8_t* buff, size_t len) const
 {
   CLAD::SafeMessageBuffer buffer(buff, len, false);
   return Pack(buffer);
 }
 
-size_t RtsConnection::Pack(CLAD::SafeMessageBuffer& buffer) const
+size_t RtsConnection_3::Pack(CLAD::SafeMessageBuffer& buffer) const
 {
   buffer.Write(_tag);
   switch(GetTag()) {
   case Tag::Error:
     this->_Error.Pack(buffer);
     break;
-  case Tag::RtsConnection_2:
-    this->_RtsConnection_2.Pack(buffer);
+  case Tag::RtsConnRequest:
+    this->_RtsConnRequest.Pack(buffer);
+    break;
+  case Tag::RtsConnResponse:
+    this->_RtsConnResponse.Pack(buffer);
+    break;
+  case Tag::RtsNonceMessage:
+    this->_RtsNonceMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeMessage:
+    this->_RtsChallengeMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    this->_RtsChallengeSuccessMessage.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    this->_RtsWifiConnectRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    this->_RtsWifiConnectResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpRequest:
+    this->_RtsWifiIpRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpResponse:
+    this->_RtsWifiIpResponse.Pack(buffer);
+    break;
+  case Tag::RtsStatusRequest:
+    this->_RtsStatusRequest.Pack(buffer);
+    break;
+  case Tag::RtsStatusResponse_3:
+    this->_RtsStatusResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanRequest:
+    this->_RtsWifiScanRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    this->_RtsWifiScanResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    this->_RtsOtaUpdateRequest.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    this->_RtsOtaUpdateResponse.Pack(buffer);
+    break;
+  case Tag::RtsCancelPairing:
+    this->_RtsCancelPairing.Pack(buffer);
+    break;
+  case Tag::RtsForceDisconnect:
+    this->_RtsForceDisconnect.Pack(buffer);
+    break;
+  case Tag::RtsAck:
+    this->_RtsAck.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    this->_RtsWifiAccessPointRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    this->_RtsWifiAccessPointResponse.Pack(buffer);
+    break;
+  case Tag::RtsSshRequest:
+    this->_RtsSshRequest.Pack(buffer);
+    break;
+  case Tag::RtsSshResponse:
+    this->_RtsSshResponse.Pack(buffer);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    this->_RtsOtaCancelRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogRequest:
+    this->_RtsLogRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogResponse:
+    this->_RtsLogResponse.Pack(buffer);
+    break;
+  case Tag::RtsFileDownload:
+    this->_RtsFileDownload.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    this->_RtsWifiForgetRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    this->_RtsWifiForgetResponse.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    this->_RtsCloudSessionRequest.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    this->_RtsCloudSessionResponse.Pack(buffer);
     break;
   default:
     break;
@@ -4993,15 +8584,102 @@ size_t RtsConnection::Pack(CLAD::SafeMessageBuffer& buffer) const
   return buffer.GetBytesWritten();
 }
 
-size_t RtsConnection::Size() const
+size_t RtsConnection_3::Size() const
 {
   size_t result {1}; // tag = uint_8
   switch(GetTag()) {
   case Tag::Error:
     result += this->_Error.Size(); // Error
     break;
-  case Tag::RtsConnection_2:
-    result += this->_RtsConnection_2.Size(); // RtsConnection_2
+  case Tag::RtsConnRequest:
+    result += this->_RtsConnRequest.Size(); // RtsConnRequest
+    break;
+  case Tag::RtsConnResponse:
+    result += this->_RtsConnResponse.Size(); // RtsConnResponse
+    break;
+  case Tag::RtsNonceMessage:
+    result += this->_RtsNonceMessage.Size(); // RtsNonceMessage
+    break;
+  case Tag::RtsChallengeMessage:
+    result += this->_RtsChallengeMessage.Size(); // RtsChallengeMessage
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    result += this->_RtsChallengeSuccessMessage.Size(); // RtsChallengeSuccessMessage
+    break;
+  case Tag::RtsWifiConnectRequest:
+    result += this->_RtsWifiConnectRequest.Size(); // RtsWifiConnectRequest
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    result += this->_RtsWifiConnectResponse_3.Size(); // RtsWifiConnectResponse_3
+    break;
+  case Tag::RtsWifiIpRequest:
+    result += this->_RtsWifiIpRequest.Size(); // RtsWifiIpRequest
+    break;
+  case Tag::RtsWifiIpResponse:
+    result += this->_RtsWifiIpResponse.Size(); // RtsWifiIpResponse
+    break;
+  case Tag::RtsStatusRequest:
+    result += this->_RtsStatusRequest.Size(); // RtsStatusRequest
+    break;
+  case Tag::RtsStatusResponse_3:
+    result += this->_RtsStatusResponse_3.Size(); // RtsStatusResponse_3
+    break;
+  case Tag::RtsWifiScanRequest:
+    result += this->_RtsWifiScanRequest.Size(); // RtsWifiScanRequest
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    result += this->_RtsWifiScanResponse_3.Size(); // RtsWifiScanResponse_3
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    result += this->_RtsOtaUpdateRequest.Size(); // RtsOtaUpdateRequest
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    result += this->_RtsOtaUpdateResponse.Size(); // RtsOtaUpdateResponse
+    break;
+  case Tag::RtsCancelPairing:
+    result += this->_RtsCancelPairing.Size(); // RtsCancelPairing
+    break;
+  case Tag::RtsForceDisconnect:
+    result += this->_RtsForceDisconnect.Size(); // RtsForceDisconnect
+    break;
+  case Tag::RtsAck:
+    result += this->_RtsAck.Size(); // RtsAck
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    result += this->_RtsWifiAccessPointRequest.Size(); // RtsWifiAccessPointRequest
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    result += this->_RtsWifiAccessPointResponse.Size(); // RtsWifiAccessPointResponse
+    break;
+  case Tag::RtsSshRequest:
+    result += this->_RtsSshRequest.Size(); // RtsSshRequest
+    break;
+  case Tag::RtsSshResponse:
+    result += this->_RtsSshResponse.Size(); // RtsSshResponse
+    break;
+  case Tag::RtsOtaCancelRequest:
+    result += this->_RtsOtaCancelRequest.Size(); // RtsOtaCancelRequest
+    break;
+  case Tag::RtsLogRequest:
+    result += this->_RtsLogRequest.Size(); // RtsLogRequest
+    break;
+  case Tag::RtsLogResponse:
+    result += this->_RtsLogResponse.Size(); // RtsLogResponse
+    break;
+  case Tag::RtsFileDownload:
+    result += this->_RtsFileDownload.Size(); // RtsFileDownload
+    break;
+  case Tag::RtsWifiForgetRequest:
+    result += this->_RtsWifiForgetRequest.Size(); // RtsWifiForgetRequest
+    break;
+  case Tag::RtsWifiForgetResponse:
+    result += this->_RtsWifiForgetResponse.Size(); // RtsWifiForgetResponse
+    break;
+  case Tag::RtsCloudSessionRequest:
+    result += this->_RtsCloudSessionRequest.Size(); // RtsCloudSessionRequest
+    break;
+  case Tag::RtsCloudSessionResponse:
+    result += this->_RtsCloudSessionResponse.Size(); // RtsCloudSessionResponse
     break;
   default:
     break;
@@ -5009,7 +8687,7 @@ size_t RtsConnection::Size() const
   return result;
 }
 
-bool RtsConnection::operator==(const RtsConnection& other) const
+bool RtsConnection_3::operator==(const RtsConnection_3& other) const
 {
   if (this->_tag != other._tag) {
     return false;
@@ -5017,26 +8695,171 @@ bool RtsConnection::operator==(const RtsConnection& other) const
   switch(GetTag()) {
   case Tag::Error:
     return this->_Error == other._Error;
-  case Tag::RtsConnection_2:
-    return this->_RtsConnection_2 == other._RtsConnection_2;
+  case Tag::RtsConnRequest:
+    return this->_RtsConnRequest == other._RtsConnRequest;
+  case Tag::RtsConnResponse:
+    return this->_RtsConnResponse == other._RtsConnResponse;
+  case Tag::RtsNonceMessage:
+    return this->_RtsNonceMessage == other._RtsNonceMessage;
+  case Tag::RtsChallengeMessage:
+    return this->_RtsChallengeMessage == other._RtsChallengeMessage;
+  case Tag::RtsChallengeSuccessMessage:
+    return this->_RtsChallengeSuccessMessage == other._RtsChallengeSuccessMessage;
+  case Tag::RtsWifiConnectRequest:
+    return this->_RtsWifiConnectRequest == other._RtsWifiConnectRequest;
+  case Tag::RtsWifiConnectResponse_3:
+    return this->_RtsWifiConnectResponse_3 == other._RtsWifiConnectResponse_3;
+  case Tag::RtsWifiIpRequest:
+    return this->_RtsWifiIpRequest == other._RtsWifiIpRequest;
+  case Tag::RtsWifiIpResponse:
+    return this->_RtsWifiIpResponse == other._RtsWifiIpResponse;
+  case Tag::RtsStatusRequest:
+    return this->_RtsStatusRequest == other._RtsStatusRequest;
+  case Tag::RtsStatusResponse_3:
+    return this->_RtsStatusResponse_3 == other._RtsStatusResponse_3;
+  case Tag::RtsWifiScanRequest:
+    return this->_RtsWifiScanRequest == other._RtsWifiScanRequest;
+  case Tag::RtsWifiScanResponse_3:
+    return this->_RtsWifiScanResponse_3 == other._RtsWifiScanResponse_3;
+  case Tag::RtsOtaUpdateRequest:
+    return this->_RtsOtaUpdateRequest == other._RtsOtaUpdateRequest;
+  case Tag::RtsOtaUpdateResponse:
+    return this->_RtsOtaUpdateResponse == other._RtsOtaUpdateResponse;
+  case Tag::RtsCancelPairing:
+    return this->_RtsCancelPairing == other._RtsCancelPairing;
+  case Tag::RtsForceDisconnect:
+    return this->_RtsForceDisconnect == other._RtsForceDisconnect;
+  case Tag::RtsAck:
+    return this->_RtsAck == other._RtsAck;
+  case Tag::RtsWifiAccessPointRequest:
+    return this->_RtsWifiAccessPointRequest == other._RtsWifiAccessPointRequest;
+  case Tag::RtsWifiAccessPointResponse:
+    return this->_RtsWifiAccessPointResponse == other._RtsWifiAccessPointResponse;
+  case Tag::RtsSshRequest:
+    return this->_RtsSshRequest == other._RtsSshRequest;
+  case Tag::RtsSshResponse:
+    return this->_RtsSshResponse == other._RtsSshResponse;
+  case Tag::RtsOtaCancelRequest:
+    return this->_RtsOtaCancelRequest == other._RtsOtaCancelRequest;
+  case Tag::RtsLogRequest:
+    return this->_RtsLogRequest == other._RtsLogRequest;
+  case Tag::RtsLogResponse:
+    return this->_RtsLogResponse == other._RtsLogResponse;
+  case Tag::RtsFileDownload:
+    return this->_RtsFileDownload == other._RtsFileDownload;
+  case Tag::RtsWifiForgetRequest:
+    return this->_RtsWifiForgetRequest == other._RtsWifiForgetRequest;
+  case Tag::RtsWifiForgetResponse:
+    return this->_RtsWifiForgetResponse == other._RtsWifiForgetResponse;
+  case Tag::RtsCloudSessionRequest:
+    return this->_RtsCloudSessionRequest == other._RtsCloudSessionRequest;
+  case Tag::RtsCloudSessionResponse:
+    return this->_RtsCloudSessionResponse == other._RtsCloudSessionResponse;
   default:
     return true;
   }
 }
 
-bool RtsConnection::operator!=(const RtsConnection& other) const
+bool RtsConnection_3::operator!=(const RtsConnection_3& other) const
 {
   return !(operator==(other));
 }
 
-void RtsConnection::ClearCurrent()
+void RtsConnection_3::ClearCurrent()
 {
   switch(GetTag()) {
   case Tag::Error:
     _Error.~Error();
     break;
-  case Tag::RtsConnection_2:
-    _RtsConnection_2.~RtsConnection_2();
+  case Tag::RtsConnRequest:
+    _RtsConnRequest.~RtsConnRequest();
+    break;
+  case Tag::RtsConnResponse:
+    _RtsConnResponse.~RtsConnResponse();
+    break;
+  case Tag::RtsNonceMessage:
+    _RtsNonceMessage.~RtsNonceMessage();
+    break;
+  case Tag::RtsChallengeMessage:
+    _RtsChallengeMessage.~RtsChallengeMessage();
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    _RtsChallengeSuccessMessage.~RtsChallengeSuccessMessage();
+    break;
+  case Tag::RtsWifiConnectRequest:
+    _RtsWifiConnectRequest.~RtsWifiConnectRequest();
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    _RtsWifiConnectResponse_3.~RtsWifiConnectResponse_3();
+    break;
+  case Tag::RtsWifiIpRequest:
+    _RtsWifiIpRequest.~RtsWifiIpRequest();
+    break;
+  case Tag::RtsWifiIpResponse:
+    _RtsWifiIpResponse.~RtsWifiIpResponse();
+    break;
+  case Tag::RtsStatusRequest:
+    _RtsStatusRequest.~RtsStatusRequest();
+    break;
+  case Tag::RtsStatusResponse_3:
+    _RtsStatusResponse_3.~RtsStatusResponse_3();
+    break;
+  case Tag::RtsWifiScanRequest:
+    _RtsWifiScanRequest.~RtsWifiScanRequest();
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    _RtsWifiScanResponse_3.~RtsWifiScanResponse_3();
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    _RtsOtaUpdateRequest.~RtsOtaUpdateRequest();
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    _RtsOtaUpdateResponse.~RtsOtaUpdateResponse();
+    break;
+  case Tag::RtsCancelPairing:
+    _RtsCancelPairing.~RtsCancelPairing();
+    break;
+  case Tag::RtsForceDisconnect:
+    _RtsForceDisconnect.~RtsForceDisconnect();
+    break;
+  case Tag::RtsAck:
+    _RtsAck.~RtsAck();
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    _RtsWifiAccessPointRequest.~RtsWifiAccessPointRequest();
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    _RtsWifiAccessPointResponse.~RtsWifiAccessPointResponse();
+    break;
+  case Tag::RtsSshRequest:
+    _RtsSshRequest.~RtsSshRequest();
+    break;
+  case Tag::RtsSshResponse:
+    _RtsSshResponse.~RtsSshResponse();
+    break;
+  case Tag::RtsOtaCancelRequest:
+    _RtsOtaCancelRequest.~RtsOtaCancelRequest();
+    break;
+  case Tag::RtsLogRequest:
+    _RtsLogRequest.~RtsLogRequest();
+    break;
+  case Tag::RtsLogResponse:
+    _RtsLogResponse.~RtsLogResponse();
+    break;
+  case Tag::RtsFileDownload:
+    _RtsFileDownload.~RtsFileDownload();
+    break;
+  case Tag::RtsWifiForgetRequest:
+    _RtsWifiForgetRequest.~RtsWifiForgetRequest();
+    break;
+  case Tag::RtsWifiForgetResponse:
+    _RtsWifiForgetResponse.~RtsWifiForgetResponse();
+    break;
+  case Tag::RtsCloudSessionRequest:
+    _RtsCloudSessionRequest.~RtsCloudSessionRequest();
+    break;
+  case Tag::RtsCloudSessionResponse:
+    _RtsCloudSessionResponse.~RtsCloudSessionResponse();
     break;
   default:
     break;
@@ -5044,21 +8867,6607 @@ void RtsConnection::ClearCurrent()
   _tag = Tag::INVALID;
 }
 
-const char* RtsConnectionTagToString(const RtsConnectionTag tag) {
+const char* RtsConnection_3TagToString(const RtsConnection_3Tag tag) {
   switch(tag) {
-  case RtsConnectionTag::Error:
+  case RtsConnection_3Tag::Error:
     return "Error";
-  case RtsConnectionTag::RtsConnection_2:
-    return "RtsConnection_2";
+  case RtsConnection_3Tag::RtsConnRequest:
+    return "RtsConnRequest";
+  case RtsConnection_3Tag::RtsConnResponse:
+    return "RtsConnResponse";
+  case RtsConnection_3Tag::RtsNonceMessage:
+    return "RtsNonceMessage";
+  case RtsConnection_3Tag::RtsChallengeMessage:
+    return "RtsChallengeMessage";
+  case RtsConnection_3Tag::RtsChallengeSuccessMessage:
+    return "RtsChallengeSuccessMessage";
+  case RtsConnection_3Tag::RtsWifiConnectRequest:
+    return "RtsWifiConnectRequest";
+  case RtsConnection_3Tag::RtsWifiConnectResponse_3:
+    return "RtsWifiConnectResponse_3";
+  case RtsConnection_3Tag::RtsWifiIpRequest:
+    return "RtsWifiIpRequest";
+  case RtsConnection_3Tag::RtsWifiIpResponse:
+    return "RtsWifiIpResponse";
+  case RtsConnection_3Tag::RtsStatusRequest:
+    return "RtsStatusRequest";
+  case RtsConnection_3Tag::RtsStatusResponse_3:
+    return "RtsStatusResponse_3";
+  case RtsConnection_3Tag::RtsWifiScanRequest:
+    return "RtsWifiScanRequest";
+  case RtsConnection_3Tag::RtsWifiScanResponse_3:
+    return "RtsWifiScanResponse_3";
+  case RtsConnection_3Tag::RtsOtaUpdateRequest:
+    return "RtsOtaUpdateRequest";
+  case RtsConnection_3Tag::RtsOtaUpdateResponse:
+    return "RtsOtaUpdateResponse";
+  case RtsConnection_3Tag::RtsCancelPairing:
+    return "RtsCancelPairing";
+  case RtsConnection_3Tag::RtsForceDisconnect:
+    return "RtsForceDisconnect";
+  case RtsConnection_3Tag::RtsAck:
+    return "RtsAck";
+  case RtsConnection_3Tag::RtsWifiAccessPointRequest:
+    return "RtsWifiAccessPointRequest";
+  case RtsConnection_3Tag::RtsWifiAccessPointResponse:
+    return "RtsWifiAccessPointResponse";
+  case RtsConnection_3Tag::RtsSshRequest:
+    return "RtsSshRequest";
+  case RtsConnection_3Tag::RtsSshResponse:
+    return "RtsSshResponse";
+  case RtsConnection_3Tag::RtsOtaCancelRequest:
+    return "RtsOtaCancelRequest";
+  case RtsConnection_3Tag::RtsLogRequest:
+    return "RtsLogRequest";
+  case RtsConnection_3Tag::RtsLogResponse:
+    return "RtsLogResponse";
+  case RtsConnection_3Tag::RtsFileDownload:
+    return "RtsFileDownload";
+  case RtsConnection_3Tag::RtsWifiForgetRequest:
+    return "RtsWifiForgetRequest";
+  case RtsConnection_3Tag::RtsWifiForgetResponse:
+    return "RtsWifiForgetResponse";
+  case RtsConnection_3Tag::RtsCloudSessionRequest:
+    return "RtsCloudSessionRequest";
+  case RtsConnection_3Tag::RtsCloudSessionResponse:
+    return "RtsCloudSessionResponse";
   default:
     return "INVALID";
   }
 }
 
-const char* RtsConnectionVersionHashStr = "afbbaa908573b2a7eafd12725f78d0a9";
+const char* RtsConnection_3VersionHashStr = "f59203c2e552ce18ff3179aa162b9e41";
 
-const uint8_t RtsConnectionVersionHash[16] = { 
-    0xaf, 0xbb, 0xaa, 0x90, 0x85, 0x73, 0xb2, 0xa7, 0xea, 0xfd, 0x12, 0x72, 0x5f, 0x78, 0xd0, 0xa9 
+const uint8_t RtsConnection_3VersionHash[16] = { 
+    0xf5, 0x92, 0x3, 0xc2, 0xe5, 0x52, 0xce, 0x18, 0xff, 0x31, 0x79, 0xaa, 0x16, 0x2b, 0x9e, 0x41 
+};
+
+// UNION RtsConnection_4
+
+RtsConnection_4::RtsConnection_4(const CLAD::SafeMessageBuffer& buff)
+: _tag(Tag::INVALID)
+{
+  Unpack(buff);
+}
+
+RtsConnection_4::RtsConnection_4(const uint8_t* buffer, size_t length)
+: _tag(Tag::INVALID)
+{
+  CLAD::SafeMessageBuffer buff(const_cast<uint8_t*>(buffer), length);
+  Unpack(buff);
+}
+
+RtsConnection_4::RtsConnection_4(const RtsConnection_4& other)
+: _tag(other._tag)
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_4:
+    new(&(this->_RtsStatusResponse_4)) Anki::Vector::ExternalComms::RtsStatusResponse_4(other._RtsStatusResponse_4);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(other._RtsCloudSessionRequest);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(other._RtsAppConnectionIdRequest);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(other._RtsAppConnectionIdResponse);
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(other._RtsResponse);
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+}
+
+RtsConnection_4::RtsConnection_4(RtsConnection_4&& other) noexcept
+: _tag(other._tag)
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_4:
+    new(&(this->_RtsStatusResponse_4)) Anki::Vector::ExternalComms::RtsStatusResponse_4(std::move(other._RtsStatusResponse_4));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(other._RtsCloudSessionRequest));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(other._RtsAppConnectionIdRequest));
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(other._RtsAppConnectionIdResponse));
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(std::move(other._RtsResponse));
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  other.ClearCurrent();
+}
+
+RtsConnection_4& RtsConnection_4::operator=(const RtsConnection_4& other)
+{
+  if(this == &other) { return *this; }
+  ClearCurrent();
+  _tag = other._tag;
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_4:
+    new(&(this->_RtsStatusResponse_4)) Anki::Vector::ExternalComms::RtsStatusResponse_4(other._RtsStatusResponse_4);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(other._RtsCloudSessionRequest);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(other._RtsAppConnectionIdRequest);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(other._RtsAppConnectionIdResponse);
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(other._RtsResponse);
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  return *this;
+}
+
+RtsConnection_4& RtsConnection_4::operator=(RtsConnection_4&& other) noexcept
+{
+  if(this == &other) { return *this; }
+  ClearCurrent();
+  _tag = other._tag;
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_4:
+    new(&(this->_RtsStatusResponse_4)) Anki::Vector::ExternalComms::RtsStatusResponse_4(std::move(other._RtsStatusResponse_4));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest:
+    new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(other._RtsCloudSessionRequest));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(other._RtsAppConnectionIdRequest));
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(other._RtsAppConnectionIdResponse));
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(std::move(other._RtsResponse));
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  other.ClearCurrent();
+  return *this;
+}
+
+RtsConnection_4 RtsConnection_4::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  RtsConnection_4 m;
+  m.Set_Error(new_Error);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
+  _tag = Tag::Error;
+}
+
+const Anki::Vector::ExternalComms::Error& RtsConnection_4::Get_Error() const
+{
+  assert(_tag == Tag::Error);
+  return this->_Error;
+}
+
+void RtsConnection_4::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
+{
+  if(this->_tag == Tag::Error) {
+    this->_Error = new_Error;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
+    _tag = Tag::Error;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::Error& RtsConnection_4::Get_<RtsConnection_4::Tag::Error>() const
+{
+  assert(_tag == Tag::Error);
+  return this->_Error;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::Error>(Anki::Vector::ExternalComms::Error member)
+{
+  return CreateError(std::move(member));
+}
+
+void RtsConnection_4::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  if (this->_tag == Tag::Error) {
+    this->_Error = std::move(new_Error);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
+    _tag = Tag::Error;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsConnRequest(new_RtsConnRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+  _tag = Tag::RtsConnRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_4::Get_RtsConnRequest() const
+{
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
+}
+
+void RtsConnection_4::Set_RtsConnRequest(const Anki::Vector::ExternalComms::RtsConnRequest& new_RtsConnRequest)
+{
+  if(this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = new_RtsConnRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(new_RtsConnRequest);
+    _tag = Tag::RtsConnRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsConnRequest>() const
+{
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsConnRequest>(Anki::Vector::ExternalComms::RtsConnRequest member)
+{
+  return CreateRtsConnRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  if (this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = std::move(new_RtsConnRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+    _tag = Tag::RtsConnRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsConnResponse(new_RtsConnResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+  _tag = Tag::RtsConnResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_4::Get_RtsConnResponse() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+void RtsConnection_4::Set_RtsConnResponse(const Anki::Vector::ExternalComms::RtsConnResponse& new_RtsConnResponse)
+{
+  if(this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = new_RtsConnResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(new_RtsConnResponse);
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsConnResponse>() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsConnResponse>(Anki::Vector::ExternalComms::RtsConnResponse member)
+{
+  return CreateRtsConnResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  if (this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = std::move(new_RtsConnResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  RtsConnection_4 m;
+  m.Set_RtsNonceMessage(new_RtsNonceMessage);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+  _tag = Tag::RtsNonceMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_4::Get_RtsNonceMessage() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+void RtsConnection_4::Set_RtsNonceMessage(const Anki::Vector::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
+{
+  if(this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = new_RtsNonceMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsNonceMessage>() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsNonceMessage>(Anki::Vector::ExternalComms::RtsNonceMessage member)
+{
+  return CreateRtsNonceMessage(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  if (this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = std::move(new_RtsNonceMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  RtsConnection_4 m;
+  m.Set_RtsChallengeMessage(new_RtsChallengeMessage);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+  _tag = Tag::RtsChallengeMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_4::Get_RtsChallengeMessage() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+void RtsConnection_4::Set_RtsChallengeMessage(const Anki::Vector::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
+{
+  if(this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = new_RtsChallengeMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsChallengeMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsChallengeMessage>(Anki::Vector::ExternalComms::RtsChallengeMessage member)
+{
+  return CreateRtsChallengeMessage(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  if (this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = std::move(new_RtsChallengeMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  RtsConnection_4 m;
+  m.Set_RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+  _tag = Tag::RtsChallengeSuccessMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_4::Get_RtsChallengeSuccessMessage() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+void RtsConnection_4::Set_RtsChallengeSuccessMessage(const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
+{
+  if(this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = new_RtsChallengeSuccessMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsChallengeSuccessMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsChallengeSuccessMessage>(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage member)
+{
+  return CreateRtsChallengeSuccessMessage(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  if (this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = std::move(new_RtsChallengeSuccessMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+  _tag = Tag::RtsWifiConnectRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_4::Get_RtsWifiConnectRequest() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+void RtsConnection_4::Set_RtsWifiConnectRequest(const Anki::Vector::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
+{
+  if(this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = new_RtsWifiConnectRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiConnectRequest>() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiConnectRequest>(Anki::Vector::ExternalComms::RtsWifiConnectRequest member)
+{
+  return CreateRtsWifiConnectRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  if (this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = std::move(new_RtsWifiConnectRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+  _tag = Tag::RtsWifiConnectResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_4::Get_RtsWifiConnectResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+void RtsConnection_4::Set_RtsWifiConnectResponse_3(const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& new_RtsWifiConnectResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = new_RtsWifiConnectResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiConnectResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiConnectResponse_3>(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3 member)
+{
+  return CreateRtsWifiConnectResponse_3(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = std::move(new_RtsWifiConnectResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiIpRequest(new_RtsWifiIpRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+  _tag = Tag::RtsWifiIpRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_4::Get_RtsWifiIpRequest() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+void RtsConnection_4::Set_RtsWifiIpRequest(const Anki::Vector::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
+{
+  if(this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = new_RtsWifiIpRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiIpRequest>() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiIpRequest>(Anki::Vector::ExternalComms::RtsWifiIpRequest member)
+{
+  return CreateRtsWifiIpRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  if (this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = std::move(new_RtsWifiIpRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiIpResponse(new_RtsWifiIpResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+  _tag = Tag::RtsWifiIpResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_4::Get_RtsWifiIpResponse() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+void RtsConnection_4::Set_RtsWifiIpResponse(const Anki::Vector::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
+{
+  if(this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = new_RtsWifiIpResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiIpResponse>() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiIpResponse>(Anki::Vector::ExternalComms::RtsWifiIpResponse member)
+{
+  return CreateRtsWifiIpResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  if (this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = std::move(new_RtsWifiIpResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsStatusRequest(new_RtsStatusRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+  _tag = Tag::RtsStatusRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_4::Get_RtsStatusRequest() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+void RtsConnection_4::Set_RtsStatusRequest(const Anki::Vector::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
+{
+  if(this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = new_RtsStatusRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsStatusRequest>() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsStatusRequest>(Anki::Vector::ExternalComms::RtsStatusRequest member)
+{
+  return CreateRtsStatusRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  if (this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = std::move(new_RtsStatusRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsStatusResponse_4(Anki::Vector::ExternalComms::RtsStatusResponse_4&& new_RtsStatusResponse_4)
+{
+  RtsConnection_4 m;
+  m.Set_RtsStatusResponse_4(new_RtsStatusResponse_4);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsStatusResponse_4&& new_RtsStatusResponse_4)
+{
+  new(&this->_RtsStatusResponse_4) Anki::Vector::ExternalComms::RtsStatusResponse_4(std::move(new_RtsStatusResponse_4));
+  _tag = Tag::RtsStatusResponse_4;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusResponse_4& RtsConnection_4::Get_RtsStatusResponse_4() const
+{
+  assert(_tag == Tag::RtsStatusResponse_4);
+  return this->_RtsStatusResponse_4;
+}
+
+void RtsConnection_4::Set_RtsStatusResponse_4(const Anki::Vector::ExternalComms::RtsStatusResponse_4& new_RtsStatusResponse_4)
+{
+  if(this->_tag == Tag::RtsStatusResponse_4) {
+    this->_RtsStatusResponse_4 = new_RtsStatusResponse_4;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_4) Anki::Vector::ExternalComms::RtsStatusResponse_4(new_RtsStatusResponse_4);
+    _tag = Tag::RtsStatusResponse_4;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusResponse_4& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsStatusResponse_4>() const
+{
+  assert(_tag == Tag::RtsStatusResponse_4);
+  return this->_RtsStatusResponse_4;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsStatusResponse_4>(Anki::Vector::ExternalComms::RtsStatusResponse_4 member)
+{
+  return CreateRtsStatusResponse_4(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsStatusResponse_4(Anki::Vector::ExternalComms::RtsStatusResponse_4&& new_RtsStatusResponse_4)
+{
+  if (this->_tag == Tag::RtsStatusResponse_4) {
+    this->_RtsStatusResponse_4 = std::move(new_RtsStatusResponse_4);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_4) Anki::Vector::ExternalComms::RtsStatusResponse_4(std::move(new_RtsStatusResponse_4));
+    _tag = Tag::RtsStatusResponse_4;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiScanRequest(new_RtsWifiScanRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+  _tag = Tag::RtsWifiScanRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_4::Get_RtsWifiScanRequest() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+void RtsConnection_4::Set_RtsWifiScanRequest(const Anki::Vector::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
+{
+  if(this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = new_RtsWifiScanRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiScanRequest>() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiScanRequest>(Anki::Vector::ExternalComms::RtsWifiScanRequest member)
+{
+  return CreateRtsWifiScanRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  if (this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = std::move(new_RtsWifiScanRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+  _tag = Tag::RtsWifiScanResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_4::Get_RtsWifiScanResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+void RtsConnection_4::Set_RtsWifiScanResponse_3(const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& new_RtsWifiScanResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = new_RtsWifiScanResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiScanResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiScanResponse_3>(Anki::Vector::ExternalComms::RtsWifiScanResponse_3 member)
+{
+  return CreateRtsWifiScanResponse_3(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = std::move(new_RtsWifiScanResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+  _tag = Tag::RtsOtaUpdateRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_4::Get_RtsOtaUpdateRequest() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+void RtsConnection_4::Set_RtsOtaUpdateRequest(const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
+{
+  if(this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = new_RtsOtaUpdateRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsOtaUpdateRequest>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsOtaUpdateRequest>(Anki::Vector::ExternalComms::RtsOtaUpdateRequest member)
+{
+  return CreateRtsOtaUpdateRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  if (this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = std::move(new_RtsOtaUpdateRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+  _tag = Tag::RtsOtaUpdateResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_4::Get_RtsOtaUpdateResponse() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+void RtsConnection_4::Set_RtsOtaUpdateResponse(const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
+{
+  if(this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = new_RtsOtaUpdateResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsOtaUpdateResponse>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsOtaUpdateResponse>(Anki::Vector::ExternalComms::RtsOtaUpdateResponse member)
+{
+  return CreateRtsOtaUpdateResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  if (this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = std::move(new_RtsOtaUpdateResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  RtsConnection_4 m;
+  m.Set_RtsCancelPairing(new_RtsCancelPairing);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+  _tag = Tag::RtsCancelPairing;
+}
+
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_4::Get_RtsCancelPairing() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+void RtsConnection_4::Set_RtsCancelPairing(const Anki::Vector::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
+{
+  if(this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = new_RtsCancelPairing;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsCancelPairing>() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsCancelPairing>(Anki::Vector::ExternalComms::RtsCancelPairing member)
+{
+  return CreateRtsCancelPairing(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  if (this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = std::move(new_RtsCancelPairing);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  RtsConnection_4 m;
+  m.Set_RtsForceDisconnect(new_RtsForceDisconnect);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+  _tag = Tag::RtsForceDisconnect;
+}
+
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_4::Get_RtsForceDisconnect() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+void RtsConnection_4::Set_RtsForceDisconnect(const Anki::Vector::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
+{
+  if(this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = new_RtsForceDisconnect;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsForceDisconnect>() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsForceDisconnect>(Anki::Vector::ExternalComms::RtsForceDisconnect member)
+{
+  return CreateRtsForceDisconnect(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  if (this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = std::move(new_RtsForceDisconnect);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  RtsConnection_4 m;
+  m.Set_RtsAck(new_RtsAck);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+  _tag = Tag::RtsAck;
+}
+
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_4::Get_RtsAck() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+void RtsConnection_4::Set_RtsAck(const Anki::Vector::ExternalComms::RtsAck& new_RtsAck)
+{
+  if(this->_tag == Tag::RtsAck) {
+    this->_RtsAck = new_RtsAck;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(new_RtsAck);
+    _tag = Tag::RtsAck;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsAck>() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsAck>(Anki::Vector::ExternalComms::RtsAck member)
+{
+  return CreateRtsAck(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  if (this->_tag == Tag::RtsAck) {
+    this->_RtsAck = std::move(new_RtsAck);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+    _tag = Tag::RtsAck;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+  _tag = Tag::RtsWifiAccessPointRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_4::Get_RtsWifiAccessPointRequest() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+void RtsConnection_4::Set_RtsWifiAccessPointRequest(const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = new_RtsWifiAccessPointRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiAccessPointRequest>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiAccessPointRequest>(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest member)
+{
+  return CreateRtsWifiAccessPointRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = std::move(new_RtsWifiAccessPointRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+  _tag = Tag::RtsWifiAccessPointResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_4::Get_RtsWifiAccessPointResponse() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+void RtsConnection_4::Set_RtsWifiAccessPointResponse(const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = new_RtsWifiAccessPointResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiAccessPointResponse>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiAccessPointResponse>(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse member)
+{
+  return CreateRtsWifiAccessPointResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = std::move(new_RtsWifiAccessPointResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsSshRequest(new_RtsSshRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+  _tag = Tag::RtsSshRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_4::Get_RtsSshRequest() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+void RtsConnection_4::Set_RtsSshRequest(const Anki::Vector::ExternalComms::RtsSshRequest& new_RtsSshRequest)
+{
+  if(this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = new_RtsSshRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(new_RtsSshRequest);
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsSshRequest>() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsSshRequest>(Anki::Vector::ExternalComms::RtsSshRequest member)
+{
+  return CreateRtsSshRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  if (this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = std::move(new_RtsSshRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsSshResponse(new_RtsSshResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+  _tag = Tag::RtsSshResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_4::Get_RtsSshResponse() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+void RtsConnection_4::Set_RtsSshResponse(const Anki::Vector::ExternalComms::RtsSshResponse& new_RtsSshResponse)
+{
+  if(this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = new_RtsSshResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(new_RtsSshResponse);
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsSshResponse>() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsSshResponse>(Anki::Vector::ExternalComms::RtsSshResponse member)
+{
+  return CreateRtsSshResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  if (this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = std::move(new_RtsSshResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+  _tag = Tag::RtsOtaCancelRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_4::Get_RtsOtaCancelRequest() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+void RtsConnection_4::Set_RtsOtaCancelRequest(const Anki::Vector::ExternalComms::RtsOtaCancelRequest& new_RtsOtaCancelRequest)
+{
+  if(this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = new_RtsOtaCancelRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsOtaCancelRequest>() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsOtaCancelRequest>(Anki::Vector::ExternalComms::RtsOtaCancelRequest member)
+{
+  return CreateRtsOtaCancelRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  if (this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = std::move(new_RtsOtaCancelRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsLogRequest(new_RtsLogRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+  _tag = Tag::RtsLogRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_4::Get_RtsLogRequest() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+void RtsConnection_4::Set_RtsLogRequest(const Anki::Vector::ExternalComms::RtsLogRequest& new_RtsLogRequest)
+{
+  if(this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = new_RtsLogRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(new_RtsLogRequest);
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsLogRequest>() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsLogRequest>(Anki::Vector::ExternalComms::RtsLogRequest member)
+{
+  return CreateRtsLogRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  if (this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = std::move(new_RtsLogRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsLogResponse(new_RtsLogResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+  _tag = Tag::RtsLogResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_4::Get_RtsLogResponse() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+void RtsConnection_4::Set_RtsLogResponse(const Anki::Vector::ExternalComms::RtsLogResponse& new_RtsLogResponse)
+{
+  if(this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = new_RtsLogResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(new_RtsLogResponse);
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsLogResponse>() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsLogResponse>(Anki::Vector::ExternalComms::RtsLogResponse member)
+{
+  return CreateRtsLogResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  if (this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = std::move(new_RtsLogResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  RtsConnection_4 m;
+  m.Set_RtsFileDownload(new_RtsFileDownload);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+  _tag = Tag::RtsFileDownload;
+}
+
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_4::Get_RtsFileDownload() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+void RtsConnection_4::Set_RtsFileDownload(const Anki::Vector::ExternalComms::RtsFileDownload& new_RtsFileDownload)
+{
+  if(this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = new_RtsFileDownload;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(new_RtsFileDownload);
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsFileDownload>() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsFileDownload>(Anki::Vector::ExternalComms::RtsFileDownload member)
+{
+  return CreateRtsFileDownload(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  if (this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = std::move(new_RtsFileDownload);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+  _tag = Tag::RtsWifiForgetRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_4::Get_RtsWifiForgetRequest() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+void RtsConnection_4::Set_RtsWifiForgetRequest(const Anki::Vector::ExternalComms::RtsWifiForgetRequest& new_RtsWifiForgetRequest)
+{
+  if(this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = new_RtsWifiForgetRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiForgetRequest>() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiForgetRequest>(Anki::Vector::ExternalComms::RtsWifiForgetRequest member)
+{
+  return CreateRtsWifiForgetRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  if (this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = std::move(new_RtsWifiForgetRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+  _tag = Tag::RtsWifiForgetResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_4::Get_RtsWifiForgetResponse() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+void RtsConnection_4::Set_RtsWifiForgetResponse(const Anki::Vector::ExternalComms::RtsWifiForgetResponse& new_RtsWifiForgetResponse)
+{
+  if(this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = new_RtsWifiForgetResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsWifiForgetResponse>() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsWifiForgetResponse>(Anki::Vector::ExternalComms::RtsWifiForgetResponse member)
+{
+  return CreateRtsWifiForgetResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  if (this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = std::move(new_RtsWifiForgetResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsCloudSessionRequest(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsCloudSessionRequest(new_RtsCloudSessionRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(new_RtsCloudSessionRequest));
+  _tag = Tag::RtsCloudSessionRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest& RtsConnection_4::Get_RtsCloudSessionRequest() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest);
+  return this->_RtsCloudSessionRequest;
+}
+
+void RtsConnection_4::Set_RtsCloudSessionRequest(const Anki::Vector::ExternalComms::RtsCloudSessionRequest& new_RtsCloudSessionRequest)
+{
+  if(this->_tag == Tag::RtsCloudSessionRequest) {
+    this->_RtsCloudSessionRequest = new_RtsCloudSessionRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(new_RtsCloudSessionRequest);
+    _tag = Tag::RtsCloudSessionRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsCloudSessionRequest>() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest);
+  return this->_RtsCloudSessionRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsCloudSessionRequest>(Anki::Vector::ExternalComms::RtsCloudSessionRequest member)
+{
+  return CreateRtsCloudSessionRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsCloudSessionRequest(Anki::Vector::ExternalComms::RtsCloudSessionRequest&& new_RtsCloudSessionRequest)
+{
+  if (this->_tag == Tag::RtsCloudSessionRequest) {
+    this->_RtsCloudSessionRequest = std::move(new_RtsCloudSessionRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest) Anki::Vector::ExternalComms::RtsCloudSessionRequest(std::move(new_RtsCloudSessionRequest));
+    _tag = Tag::RtsCloudSessionRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+  _tag = Tag::RtsCloudSessionResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_4::Get_RtsCloudSessionResponse() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+void RtsConnection_4::Set_RtsCloudSessionResponse(const Anki::Vector::ExternalComms::RtsCloudSessionResponse& new_RtsCloudSessionResponse)
+{
+  if(this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = new_RtsCloudSessionResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsCloudSessionResponse>() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsCloudSessionResponse>(Anki::Vector::ExternalComms::RtsCloudSessionResponse member)
+{
+  return CreateRtsCloudSessionResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  if (this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = std::move(new_RtsCloudSessionResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsAppConnectionIdRequest(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  RtsConnection_4 m;
+  m.Set_RtsAppConnectionIdRequest(new_RtsAppConnectionIdRequest);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(new_RtsAppConnectionIdRequest));
+  _tag = Tag::RtsAppConnectionIdRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& RtsConnection_4::Get_RtsAppConnectionIdRequest() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdRequest);
+  return this->_RtsAppConnectionIdRequest;
+}
+
+void RtsConnection_4::Set_RtsAppConnectionIdRequest(const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& new_RtsAppConnectionIdRequest)
+{
+  if(this->_tag == Tag::RtsAppConnectionIdRequest) {
+    this->_RtsAppConnectionIdRequest = new_RtsAppConnectionIdRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(new_RtsAppConnectionIdRequest);
+    _tag = Tag::RtsAppConnectionIdRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsAppConnectionIdRequest>() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdRequest);
+  return this->_RtsAppConnectionIdRequest;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsAppConnectionIdRequest>(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest member)
+{
+  return CreateRtsAppConnectionIdRequest(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsAppConnectionIdRequest(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  if (this->_tag == Tag::RtsAppConnectionIdRequest) {
+    this->_RtsAppConnectionIdRequest = std::move(new_RtsAppConnectionIdRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(new_RtsAppConnectionIdRequest));
+    _tag = Tag::RtsAppConnectionIdRequest;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsAppConnectionIdResponse(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsAppConnectionIdResponse(new_RtsAppConnectionIdResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(new_RtsAppConnectionIdResponse));
+  _tag = Tag::RtsAppConnectionIdResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& RtsConnection_4::Get_RtsAppConnectionIdResponse() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdResponse);
+  return this->_RtsAppConnectionIdResponse;
+}
+
+void RtsConnection_4::Set_RtsAppConnectionIdResponse(const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& new_RtsAppConnectionIdResponse)
+{
+  if(this->_tag == Tag::RtsAppConnectionIdResponse) {
+    this->_RtsAppConnectionIdResponse = new_RtsAppConnectionIdResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(new_RtsAppConnectionIdResponse);
+    _tag = Tag::RtsAppConnectionIdResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsAppConnectionIdResponse>() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdResponse);
+  return this->_RtsAppConnectionIdResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsAppConnectionIdResponse>(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse member)
+{
+  return CreateRtsAppConnectionIdResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsAppConnectionIdResponse(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  if (this->_tag == Tag::RtsAppConnectionIdResponse) {
+    this->_RtsAppConnectionIdResponse = std::move(new_RtsAppConnectionIdResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(new_RtsAppConnectionIdResponse));
+    _tag = Tag::RtsAppConnectionIdResponse;
+  }
+}
+
+RtsConnection_4 RtsConnection_4::CreateRtsResponse(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  RtsConnection_4 m;
+  m.Set_RtsResponse(new_RtsResponse);
+  return m;
+}
+
+RtsConnection_4::RtsConnection_4(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(std::move(new_RtsResponse));
+  _tag = Tag::RtsResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsResponse& RtsConnection_4::Get_RtsResponse() const
+{
+  assert(_tag == Tag::RtsResponse);
+  return this->_RtsResponse;
+}
+
+void RtsConnection_4::Set_RtsResponse(const Anki::Vector::ExternalComms::RtsResponse& new_RtsResponse)
+{
+  if(this->_tag == Tag::RtsResponse) {
+    this->_RtsResponse = new_RtsResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(new_RtsResponse);
+    _tag = Tag::RtsResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsResponse& RtsConnection_4::Get_<RtsConnection_4::Tag::RtsResponse>() const
+{
+  assert(_tag == Tag::RtsResponse);
+  return this->_RtsResponse;
+}
+
+template<>
+RtsConnection_4 RtsConnection_4::Create_<RtsConnection_4::Tag::RtsResponse>(Anki::Vector::ExternalComms::RtsResponse member)
+{
+  return CreateRtsResponse(std::move(member));
+}
+
+void RtsConnection_4::Set_RtsResponse(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  if (this->_tag == Tag::RtsResponse) {
+    this->_RtsResponse = std::move(new_RtsResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(std::move(new_RtsResponse));
+    _tag = Tag::RtsResponse;
+  }
+}
+
+size_t RtsConnection_4::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsConnection_4::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  Tag newTag {Tag::INVALID};
+  const Tag oldTag {GetTag()};
+  buffer.Read(newTag);
+  if (newTag != oldTag) {
+    ClearCurrent();
+  }
+  switch(newTag) {
+  case Tag::Error:
+    if (newTag != oldTag) {
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
+    }
+    else {
+      this->_Error.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(buffer);
+    }
+    else {
+      this->_RtsConnRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(buffer);
+    }
+    else {
+      this->_RtsConnResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsNonceMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(buffer);
+    }
+    else {
+      this->_RtsNonceMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeSuccessMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(buffer);
+    }
+    else {
+      this->_RtsWifiConnectRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiConnectResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(buffer);
+    }
+    else {
+      this->_RtsWifiIpRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(buffer);
+    }
+    else {
+      this->_RtsWifiIpResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(buffer);
+    }
+    else {
+      this->_RtsStatusRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusResponse_4:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusResponse_4)) Anki::Vector::ExternalComms::RtsStatusResponse_4(buffer);
+    }
+    else {
+      this->_RtsStatusResponse_4.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(buffer);
+    }
+    else {
+      this->_RtsWifiScanRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiScanResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCancelPairing:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(buffer);
+    }
+    else {
+      this->_RtsCancelPairing.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsForceDisconnect:
+    if (newTag != oldTag) {
+      new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(buffer);
+    }
+    else {
+      this->_RtsForceDisconnect.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAck:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(buffer);
+    }
+    else {
+      this->_RtsAck.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(buffer);
+    }
+    else {
+      this->_RtsSshRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(buffer);
+    }
+    else {
+      this->_RtsSshResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaCancelRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(buffer);
+    }
+    else {
+      this->_RtsOtaCancelRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(buffer);
+    }
+    else {
+      this->_RtsLogRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(buffer);
+    }
+    else {
+      this->_RtsLogResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsFileDownload:
+    if (newTag != oldTag) {
+      new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(buffer);
+    }
+    else {
+      this->_RtsFileDownload.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(buffer);
+    }
+    else {
+      this->_RtsWifiForgetRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(buffer);
+    }
+    else {
+      this->_RtsWifiForgetResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionRequest)) Anki::Vector::ExternalComms::RtsCloudSessionRequest(buffer);
+    }
+    else {
+      this->_RtsCloudSessionRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(buffer);
+    }
+    else {
+      this->_RtsCloudSessionResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(buffer);
+    }
+    else {
+      this->_RtsAppConnectionIdRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(buffer);
+    }
+    else {
+      this->_RtsAppConnectionIdResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(buffer);
+    }
+    else {
+      this->_RtsResponse.Unpack(buffer);
+    }
+    break;
+  default:
+    break;
+  }
+  _tag = newTag;
+  return buffer.GetBytesRead();
+}
+
+size_t RtsConnection_4::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsConnection_4::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(_tag);
+  switch(GetTag()) {
+  case Tag::Error:
+    this->_Error.Pack(buffer);
+    break;
+  case Tag::RtsConnRequest:
+    this->_RtsConnRequest.Pack(buffer);
+    break;
+  case Tag::RtsConnResponse:
+    this->_RtsConnResponse.Pack(buffer);
+    break;
+  case Tag::RtsNonceMessage:
+    this->_RtsNonceMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeMessage:
+    this->_RtsChallengeMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    this->_RtsChallengeSuccessMessage.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    this->_RtsWifiConnectRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    this->_RtsWifiConnectResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpRequest:
+    this->_RtsWifiIpRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpResponse:
+    this->_RtsWifiIpResponse.Pack(buffer);
+    break;
+  case Tag::RtsStatusRequest:
+    this->_RtsStatusRequest.Pack(buffer);
+    break;
+  case Tag::RtsStatusResponse_4:
+    this->_RtsStatusResponse_4.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanRequest:
+    this->_RtsWifiScanRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    this->_RtsWifiScanResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    this->_RtsOtaUpdateRequest.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    this->_RtsOtaUpdateResponse.Pack(buffer);
+    break;
+  case Tag::RtsCancelPairing:
+    this->_RtsCancelPairing.Pack(buffer);
+    break;
+  case Tag::RtsForceDisconnect:
+    this->_RtsForceDisconnect.Pack(buffer);
+    break;
+  case Tag::RtsAck:
+    this->_RtsAck.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    this->_RtsWifiAccessPointRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    this->_RtsWifiAccessPointResponse.Pack(buffer);
+    break;
+  case Tag::RtsSshRequest:
+    this->_RtsSshRequest.Pack(buffer);
+    break;
+  case Tag::RtsSshResponse:
+    this->_RtsSshResponse.Pack(buffer);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    this->_RtsOtaCancelRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogRequest:
+    this->_RtsLogRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogResponse:
+    this->_RtsLogResponse.Pack(buffer);
+    break;
+  case Tag::RtsFileDownload:
+    this->_RtsFileDownload.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    this->_RtsWifiForgetRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    this->_RtsWifiForgetResponse.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionRequest:
+    this->_RtsCloudSessionRequest.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    this->_RtsCloudSessionResponse.Pack(buffer);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    this->_RtsAppConnectionIdRequest.Pack(buffer);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    this->_RtsAppConnectionIdResponse.Pack(buffer);
+    break;
+  case Tag::RtsResponse:
+    this->_RtsResponse.Pack(buffer);
+    break;
+  default:
+    break;
+  }
+  return buffer.GetBytesWritten();
+}
+
+size_t RtsConnection_4::Size() const
+{
+  size_t result {1}; // tag = uint_8
+  switch(GetTag()) {
+  case Tag::Error:
+    result += this->_Error.Size(); // Error
+    break;
+  case Tag::RtsConnRequest:
+    result += this->_RtsConnRequest.Size(); // RtsConnRequest
+    break;
+  case Tag::RtsConnResponse:
+    result += this->_RtsConnResponse.Size(); // RtsConnResponse
+    break;
+  case Tag::RtsNonceMessage:
+    result += this->_RtsNonceMessage.Size(); // RtsNonceMessage
+    break;
+  case Tag::RtsChallengeMessage:
+    result += this->_RtsChallengeMessage.Size(); // RtsChallengeMessage
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    result += this->_RtsChallengeSuccessMessage.Size(); // RtsChallengeSuccessMessage
+    break;
+  case Tag::RtsWifiConnectRequest:
+    result += this->_RtsWifiConnectRequest.Size(); // RtsWifiConnectRequest
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    result += this->_RtsWifiConnectResponse_3.Size(); // RtsWifiConnectResponse_3
+    break;
+  case Tag::RtsWifiIpRequest:
+    result += this->_RtsWifiIpRequest.Size(); // RtsWifiIpRequest
+    break;
+  case Tag::RtsWifiIpResponse:
+    result += this->_RtsWifiIpResponse.Size(); // RtsWifiIpResponse
+    break;
+  case Tag::RtsStatusRequest:
+    result += this->_RtsStatusRequest.Size(); // RtsStatusRequest
+    break;
+  case Tag::RtsStatusResponse_4:
+    result += this->_RtsStatusResponse_4.Size(); // RtsStatusResponse_4
+    break;
+  case Tag::RtsWifiScanRequest:
+    result += this->_RtsWifiScanRequest.Size(); // RtsWifiScanRequest
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    result += this->_RtsWifiScanResponse_3.Size(); // RtsWifiScanResponse_3
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    result += this->_RtsOtaUpdateRequest.Size(); // RtsOtaUpdateRequest
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    result += this->_RtsOtaUpdateResponse.Size(); // RtsOtaUpdateResponse
+    break;
+  case Tag::RtsCancelPairing:
+    result += this->_RtsCancelPairing.Size(); // RtsCancelPairing
+    break;
+  case Tag::RtsForceDisconnect:
+    result += this->_RtsForceDisconnect.Size(); // RtsForceDisconnect
+    break;
+  case Tag::RtsAck:
+    result += this->_RtsAck.Size(); // RtsAck
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    result += this->_RtsWifiAccessPointRequest.Size(); // RtsWifiAccessPointRequest
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    result += this->_RtsWifiAccessPointResponse.Size(); // RtsWifiAccessPointResponse
+    break;
+  case Tag::RtsSshRequest:
+    result += this->_RtsSshRequest.Size(); // RtsSshRequest
+    break;
+  case Tag::RtsSshResponse:
+    result += this->_RtsSshResponse.Size(); // RtsSshResponse
+    break;
+  case Tag::RtsOtaCancelRequest:
+    result += this->_RtsOtaCancelRequest.Size(); // RtsOtaCancelRequest
+    break;
+  case Tag::RtsLogRequest:
+    result += this->_RtsLogRequest.Size(); // RtsLogRequest
+    break;
+  case Tag::RtsLogResponse:
+    result += this->_RtsLogResponse.Size(); // RtsLogResponse
+    break;
+  case Tag::RtsFileDownload:
+    result += this->_RtsFileDownload.Size(); // RtsFileDownload
+    break;
+  case Tag::RtsWifiForgetRequest:
+    result += this->_RtsWifiForgetRequest.Size(); // RtsWifiForgetRequest
+    break;
+  case Tag::RtsWifiForgetResponse:
+    result += this->_RtsWifiForgetResponse.Size(); // RtsWifiForgetResponse
+    break;
+  case Tag::RtsCloudSessionRequest:
+    result += this->_RtsCloudSessionRequest.Size(); // RtsCloudSessionRequest
+    break;
+  case Tag::RtsCloudSessionResponse:
+    result += this->_RtsCloudSessionResponse.Size(); // RtsCloudSessionResponse
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    result += this->_RtsAppConnectionIdRequest.Size(); // RtsAppConnectionIdRequest
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    result += this->_RtsAppConnectionIdResponse.Size(); // RtsAppConnectionIdResponse
+    break;
+  case Tag::RtsResponse:
+    result += this->_RtsResponse.Size(); // RtsResponse
+    break;
+  default:
+    break;
+  }
+  return result;
+}
+
+bool RtsConnection_4::operator==(const RtsConnection_4& other) const
+{
+  if (this->_tag != other._tag) {
+    return false;
+  }
+  switch(GetTag()) {
+  case Tag::Error:
+    return this->_Error == other._Error;
+  case Tag::RtsConnRequest:
+    return this->_RtsConnRequest == other._RtsConnRequest;
+  case Tag::RtsConnResponse:
+    return this->_RtsConnResponse == other._RtsConnResponse;
+  case Tag::RtsNonceMessage:
+    return this->_RtsNonceMessage == other._RtsNonceMessage;
+  case Tag::RtsChallengeMessage:
+    return this->_RtsChallengeMessage == other._RtsChallengeMessage;
+  case Tag::RtsChallengeSuccessMessage:
+    return this->_RtsChallengeSuccessMessage == other._RtsChallengeSuccessMessage;
+  case Tag::RtsWifiConnectRequest:
+    return this->_RtsWifiConnectRequest == other._RtsWifiConnectRequest;
+  case Tag::RtsWifiConnectResponse_3:
+    return this->_RtsWifiConnectResponse_3 == other._RtsWifiConnectResponse_3;
+  case Tag::RtsWifiIpRequest:
+    return this->_RtsWifiIpRequest == other._RtsWifiIpRequest;
+  case Tag::RtsWifiIpResponse:
+    return this->_RtsWifiIpResponse == other._RtsWifiIpResponse;
+  case Tag::RtsStatusRequest:
+    return this->_RtsStatusRequest == other._RtsStatusRequest;
+  case Tag::RtsStatusResponse_4:
+    return this->_RtsStatusResponse_4 == other._RtsStatusResponse_4;
+  case Tag::RtsWifiScanRequest:
+    return this->_RtsWifiScanRequest == other._RtsWifiScanRequest;
+  case Tag::RtsWifiScanResponse_3:
+    return this->_RtsWifiScanResponse_3 == other._RtsWifiScanResponse_3;
+  case Tag::RtsOtaUpdateRequest:
+    return this->_RtsOtaUpdateRequest == other._RtsOtaUpdateRequest;
+  case Tag::RtsOtaUpdateResponse:
+    return this->_RtsOtaUpdateResponse == other._RtsOtaUpdateResponse;
+  case Tag::RtsCancelPairing:
+    return this->_RtsCancelPairing == other._RtsCancelPairing;
+  case Tag::RtsForceDisconnect:
+    return this->_RtsForceDisconnect == other._RtsForceDisconnect;
+  case Tag::RtsAck:
+    return this->_RtsAck == other._RtsAck;
+  case Tag::RtsWifiAccessPointRequest:
+    return this->_RtsWifiAccessPointRequest == other._RtsWifiAccessPointRequest;
+  case Tag::RtsWifiAccessPointResponse:
+    return this->_RtsWifiAccessPointResponse == other._RtsWifiAccessPointResponse;
+  case Tag::RtsSshRequest:
+    return this->_RtsSshRequest == other._RtsSshRequest;
+  case Tag::RtsSshResponse:
+    return this->_RtsSshResponse == other._RtsSshResponse;
+  case Tag::RtsOtaCancelRequest:
+    return this->_RtsOtaCancelRequest == other._RtsOtaCancelRequest;
+  case Tag::RtsLogRequest:
+    return this->_RtsLogRequest == other._RtsLogRequest;
+  case Tag::RtsLogResponse:
+    return this->_RtsLogResponse == other._RtsLogResponse;
+  case Tag::RtsFileDownload:
+    return this->_RtsFileDownload == other._RtsFileDownload;
+  case Tag::RtsWifiForgetRequest:
+    return this->_RtsWifiForgetRequest == other._RtsWifiForgetRequest;
+  case Tag::RtsWifiForgetResponse:
+    return this->_RtsWifiForgetResponse == other._RtsWifiForgetResponse;
+  case Tag::RtsCloudSessionRequest:
+    return this->_RtsCloudSessionRequest == other._RtsCloudSessionRequest;
+  case Tag::RtsCloudSessionResponse:
+    return this->_RtsCloudSessionResponse == other._RtsCloudSessionResponse;
+  case Tag::RtsAppConnectionIdRequest:
+    return this->_RtsAppConnectionIdRequest == other._RtsAppConnectionIdRequest;
+  case Tag::RtsAppConnectionIdResponse:
+    return this->_RtsAppConnectionIdResponse == other._RtsAppConnectionIdResponse;
+  case Tag::RtsResponse:
+    return this->_RtsResponse == other._RtsResponse;
+  default:
+    return true;
+  }
+}
+
+bool RtsConnection_4::operator!=(const RtsConnection_4& other) const
+{
+  return !(operator==(other));
+}
+
+void RtsConnection_4::ClearCurrent()
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    _Error.~Error();
+    break;
+  case Tag::RtsConnRequest:
+    _RtsConnRequest.~RtsConnRequest();
+    break;
+  case Tag::RtsConnResponse:
+    _RtsConnResponse.~RtsConnResponse();
+    break;
+  case Tag::RtsNonceMessage:
+    _RtsNonceMessage.~RtsNonceMessage();
+    break;
+  case Tag::RtsChallengeMessage:
+    _RtsChallengeMessage.~RtsChallengeMessage();
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    _RtsChallengeSuccessMessage.~RtsChallengeSuccessMessage();
+    break;
+  case Tag::RtsWifiConnectRequest:
+    _RtsWifiConnectRequest.~RtsWifiConnectRequest();
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    _RtsWifiConnectResponse_3.~RtsWifiConnectResponse_3();
+    break;
+  case Tag::RtsWifiIpRequest:
+    _RtsWifiIpRequest.~RtsWifiIpRequest();
+    break;
+  case Tag::RtsWifiIpResponse:
+    _RtsWifiIpResponse.~RtsWifiIpResponse();
+    break;
+  case Tag::RtsStatusRequest:
+    _RtsStatusRequest.~RtsStatusRequest();
+    break;
+  case Tag::RtsStatusResponse_4:
+    _RtsStatusResponse_4.~RtsStatusResponse_4();
+    break;
+  case Tag::RtsWifiScanRequest:
+    _RtsWifiScanRequest.~RtsWifiScanRequest();
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    _RtsWifiScanResponse_3.~RtsWifiScanResponse_3();
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    _RtsOtaUpdateRequest.~RtsOtaUpdateRequest();
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    _RtsOtaUpdateResponse.~RtsOtaUpdateResponse();
+    break;
+  case Tag::RtsCancelPairing:
+    _RtsCancelPairing.~RtsCancelPairing();
+    break;
+  case Tag::RtsForceDisconnect:
+    _RtsForceDisconnect.~RtsForceDisconnect();
+    break;
+  case Tag::RtsAck:
+    _RtsAck.~RtsAck();
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    _RtsWifiAccessPointRequest.~RtsWifiAccessPointRequest();
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    _RtsWifiAccessPointResponse.~RtsWifiAccessPointResponse();
+    break;
+  case Tag::RtsSshRequest:
+    _RtsSshRequest.~RtsSshRequest();
+    break;
+  case Tag::RtsSshResponse:
+    _RtsSshResponse.~RtsSshResponse();
+    break;
+  case Tag::RtsOtaCancelRequest:
+    _RtsOtaCancelRequest.~RtsOtaCancelRequest();
+    break;
+  case Tag::RtsLogRequest:
+    _RtsLogRequest.~RtsLogRequest();
+    break;
+  case Tag::RtsLogResponse:
+    _RtsLogResponse.~RtsLogResponse();
+    break;
+  case Tag::RtsFileDownload:
+    _RtsFileDownload.~RtsFileDownload();
+    break;
+  case Tag::RtsWifiForgetRequest:
+    _RtsWifiForgetRequest.~RtsWifiForgetRequest();
+    break;
+  case Tag::RtsWifiForgetResponse:
+    _RtsWifiForgetResponse.~RtsWifiForgetResponse();
+    break;
+  case Tag::RtsCloudSessionRequest:
+    _RtsCloudSessionRequest.~RtsCloudSessionRequest();
+    break;
+  case Tag::RtsCloudSessionResponse:
+    _RtsCloudSessionResponse.~RtsCloudSessionResponse();
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    _RtsAppConnectionIdRequest.~RtsAppConnectionIdRequest();
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    _RtsAppConnectionIdResponse.~RtsAppConnectionIdResponse();
+    break;
+  case Tag::RtsResponse:
+    _RtsResponse.~RtsResponse();
+    break;
+  default:
+    break;
+  }
+  _tag = Tag::INVALID;
+}
+
+const char* RtsConnection_4TagToString(const RtsConnection_4Tag tag) {
+  switch(tag) {
+  case RtsConnection_4Tag::Error:
+    return "Error";
+  case RtsConnection_4Tag::RtsConnRequest:
+    return "RtsConnRequest";
+  case RtsConnection_4Tag::RtsConnResponse:
+    return "RtsConnResponse";
+  case RtsConnection_4Tag::RtsNonceMessage:
+    return "RtsNonceMessage";
+  case RtsConnection_4Tag::RtsChallengeMessage:
+    return "RtsChallengeMessage";
+  case RtsConnection_4Tag::RtsChallengeSuccessMessage:
+    return "RtsChallengeSuccessMessage";
+  case RtsConnection_4Tag::RtsWifiConnectRequest:
+    return "RtsWifiConnectRequest";
+  case RtsConnection_4Tag::RtsWifiConnectResponse_3:
+    return "RtsWifiConnectResponse_3";
+  case RtsConnection_4Tag::RtsWifiIpRequest:
+    return "RtsWifiIpRequest";
+  case RtsConnection_4Tag::RtsWifiIpResponse:
+    return "RtsWifiIpResponse";
+  case RtsConnection_4Tag::RtsStatusRequest:
+    return "RtsStatusRequest";
+  case RtsConnection_4Tag::RtsStatusResponse_4:
+    return "RtsStatusResponse_4";
+  case RtsConnection_4Tag::RtsWifiScanRequest:
+    return "RtsWifiScanRequest";
+  case RtsConnection_4Tag::RtsWifiScanResponse_3:
+    return "RtsWifiScanResponse_3";
+  case RtsConnection_4Tag::RtsOtaUpdateRequest:
+    return "RtsOtaUpdateRequest";
+  case RtsConnection_4Tag::RtsOtaUpdateResponse:
+    return "RtsOtaUpdateResponse";
+  case RtsConnection_4Tag::RtsCancelPairing:
+    return "RtsCancelPairing";
+  case RtsConnection_4Tag::RtsForceDisconnect:
+    return "RtsForceDisconnect";
+  case RtsConnection_4Tag::RtsAck:
+    return "RtsAck";
+  case RtsConnection_4Tag::RtsWifiAccessPointRequest:
+    return "RtsWifiAccessPointRequest";
+  case RtsConnection_4Tag::RtsWifiAccessPointResponse:
+    return "RtsWifiAccessPointResponse";
+  case RtsConnection_4Tag::RtsSshRequest:
+    return "RtsSshRequest";
+  case RtsConnection_4Tag::RtsSshResponse:
+    return "RtsSshResponse";
+  case RtsConnection_4Tag::RtsOtaCancelRequest:
+    return "RtsOtaCancelRequest";
+  case RtsConnection_4Tag::RtsLogRequest:
+    return "RtsLogRequest";
+  case RtsConnection_4Tag::RtsLogResponse:
+    return "RtsLogResponse";
+  case RtsConnection_4Tag::RtsFileDownload:
+    return "RtsFileDownload";
+  case RtsConnection_4Tag::RtsWifiForgetRequest:
+    return "RtsWifiForgetRequest";
+  case RtsConnection_4Tag::RtsWifiForgetResponse:
+    return "RtsWifiForgetResponse";
+  case RtsConnection_4Tag::RtsCloudSessionRequest:
+    return "RtsCloudSessionRequest";
+  case RtsConnection_4Tag::RtsCloudSessionResponse:
+    return "RtsCloudSessionResponse";
+  case RtsConnection_4Tag::RtsAppConnectionIdRequest:
+    return "RtsAppConnectionIdRequest";
+  case RtsConnection_4Tag::RtsAppConnectionIdResponse:
+    return "RtsAppConnectionIdResponse";
+  case RtsConnection_4Tag::RtsResponse:
+    return "RtsResponse";
+  default:
+    return "INVALID";
+  }
+}
+
+const char* RtsConnection_4VersionHashStr = "63d392bed59b5e66be87740b304580f1";
+
+const uint8_t RtsConnection_4VersionHash[16] = { 
+    0x63, 0xd3, 0x92, 0xbe, 0xd5, 0x9b, 0x5e, 0x66, 0xbe, 0x87, 0x74, 0xb, 0x30, 0x45, 0x80, 0xf1 
+};
+
+// UNION RtsConnection_5
+
+RtsConnection_5::RtsConnection_5(const CLAD::SafeMessageBuffer& buff)
+: _tag(Tag::INVALID)
+{
+  Unpack(buff);
+}
+
+RtsConnection_5::RtsConnection_5(const uint8_t* buffer, size_t length)
+: _tag(Tag::INVALID)
+{
+  CLAD::SafeMessageBuffer buff(const_cast<uint8_t*>(buffer), length);
+  Unpack(buff);
+}
+
+RtsConnection_5::RtsConnection_5(const RtsConnection_5& other)
+: _tag(other._tag)
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_5:
+    new(&(this->_RtsStatusResponse_5)) Anki::Vector::ExternalComms::RtsStatusResponse_5(other._RtsStatusResponse_5);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    new(&(this->_RtsCloudSessionRequest_2)) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(other._RtsCloudSessionRequest_2);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(other._RtsAppConnectionIdRequest);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(other._RtsAppConnectionIdResponse);
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(other._RtsResponse);
+    break;
+  case Tag::RtsSdkProxyRequest:
+    new(&(this->_RtsSdkProxyRequest)) Anki::Vector::ExternalComms::RtsSdkProxyRequest(other._RtsSdkProxyRequest);
+    break;
+  case Tag::RtsSdkProxyResponse:
+    new(&(this->_RtsSdkProxyResponse)) Anki::Vector::ExternalComms::RtsSdkProxyResponse(other._RtsSdkProxyResponse);
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+}
+
+RtsConnection_5::RtsConnection_5(RtsConnection_5&& other) noexcept
+: _tag(other._tag)
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_5:
+    new(&(this->_RtsStatusResponse_5)) Anki::Vector::ExternalComms::RtsStatusResponse_5(std::move(other._RtsStatusResponse_5));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    new(&(this->_RtsCloudSessionRequest_2)) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(std::move(other._RtsCloudSessionRequest_2));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(other._RtsAppConnectionIdRequest));
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(other._RtsAppConnectionIdResponse));
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(std::move(other._RtsResponse));
+    break;
+  case Tag::RtsSdkProxyRequest:
+    new(&(this->_RtsSdkProxyRequest)) Anki::Vector::ExternalComms::RtsSdkProxyRequest(std::move(other._RtsSdkProxyRequest));
+    break;
+  case Tag::RtsSdkProxyResponse:
+    new(&(this->_RtsSdkProxyResponse)) Anki::Vector::ExternalComms::RtsSdkProxyResponse(std::move(other._RtsSdkProxyResponse));
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  other.ClearCurrent();
+}
+
+RtsConnection_5& RtsConnection_5::operator=(const RtsConnection_5& other)
+{
+  if(this == &other) { return *this; }
+  ClearCurrent();
+  _tag = other._tag;
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(other._RtsWifiConnectResponse_3);
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    break;
+  case Tag::RtsStatusResponse_5:
+    new(&(this->_RtsStatusResponse_5)) Anki::Vector::ExternalComms::RtsStatusResponse_5(other._RtsStatusResponse_5);
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(other._RtsWifiScanResponse_3);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(other._RtsOtaCancelRequest);
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(other._RtsLogRequest);
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(other._RtsLogResponse);
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(other._RtsFileDownload);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(other._RtsWifiForgetRequest);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(other._RtsWifiForgetResponse);
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    new(&(this->_RtsCloudSessionRequest_2)) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(other._RtsCloudSessionRequest_2);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(other._RtsCloudSessionResponse);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(other._RtsAppConnectionIdRequest);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(other._RtsAppConnectionIdResponse);
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(other._RtsResponse);
+    break;
+  case Tag::RtsSdkProxyRequest:
+    new(&(this->_RtsSdkProxyRequest)) Anki::Vector::ExternalComms::RtsSdkProxyRequest(other._RtsSdkProxyRequest);
+    break;
+  case Tag::RtsSdkProxyResponse:
+    new(&(this->_RtsSdkProxyResponse)) Anki::Vector::ExternalComms::RtsSdkProxyResponse(other._RtsSdkProxyResponse);
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  return *this;
+}
+
+RtsConnection_5& RtsConnection_5::operator=(RtsConnection_5&& other) noexcept
+{
+  if(this == &other) { return *this; }
+  ClearCurrent();
+  _tag = other._tag;
+  switch(GetTag()) {
+  case Tag::Error:
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
+    break;
+  case Tag::RtsConnRequest:
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    break;
+  case Tag::RtsConnResponse:
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    break;
+  case Tag::RtsNonceMessage:
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    break;
+  case Tag::RtsChallengeMessage:
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    break;
+  case Tag::RtsWifiConnectRequest:
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(other._RtsWifiConnectResponse_3));
+    break;
+  case Tag::RtsWifiIpRequest:
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    break;
+  case Tag::RtsWifiIpResponse:
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    break;
+  case Tag::RtsStatusRequest:
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    break;
+  case Tag::RtsStatusResponse_5:
+    new(&(this->_RtsStatusResponse_5)) Anki::Vector::ExternalComms::RtsStatusResponse_5(std::move(other._RtsStatusResponse_5));
+    break;
+  case Tag::RtsWifiScanRequest:
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(other._RtsWifiScanResponse_3));
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    break;
+  case Tag::RtsCancelPairing:
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    break;
+  case Tag::RtsForceDisconnect:
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    break;
+  case Tag::RtsAck:
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    break;
+  case Tag::RtsSshRequest:
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    break;
+  case Tag::RtsSshResponse:
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    break;
+  case Tag::RtsOtaCancelRequest:
+    new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(other._RtsOtaCancelRequest));
+    break;
+  case Tag::RtsLogRequest:
+    new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(std::move(other._RtsLogRequest));
+    break;
+  case Tag::RtsLogResponse:
+    new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(std::move(other._RtsLogResponse));
+    break;
+  case Tag::RtsFileDownload:
+    new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(std::move(other._RtsFileDownload));
+    break;
+  case Tag::RtsWifiForgetRequest:
+    new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(other._RtsWifiForgetRequest));
+    break;
+  case Tag::RtsWifiForgetResponse:
+    new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(other._RtsWifiForgetResponse));
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    new(&(this->_RtsCloudSessionRequest_2)) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(std::move(other._RtsCloudSessionRequest_2));
+    break;
+  case Tag::RtsCloudSessionResponse:
+    new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(other._RtsCloudSessionResponse));
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(other._RtsAppConnectionIdRequest));
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(other._RtsAppConnectionIdResponse));
+    break;
+  case Tag::RtsResponse:
+    new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(std::move(other._RtsResponse));
+    break;
+  case Tag::RtsSdkProxyRequest:
+    new(&(this->_RtsSdkProxyRequest)) Anki::Vector::ExternalComms::RtsSdkProxyRequest(std::move(other._RtsSdkProxyRequest));
+    break;
+  case Tag::RtsSdkProxyResponse:
+    new(&(this->_RtsSdkProxyResponse)) Anki::Vector::ExternalComms::RtsSdkProxyResponse(std::move(other._RtsSdkProxyResponse));
+    break;
+  default:
+    _tag = Tag::INVALID;
+    break;
+  }
+  other.ClearCurrent();
+  return *this;
+}
+
+RtsConnection_5 RtsConnection_5::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  RtsConnection_5 m;
+  m.Set_Error(new_Error);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
+  _tag = Tag::Error;
+}
+
+const Anki::Vector::ExternalComms::Error& RtsConnection_5::Get_Error() const
+{
+  assert(_tag == Tag::Error);
+  return this->_Error;
+}
+
+void RtsConnection_5::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
+{
+  if(this->_tag == Tag::Error) {
+    this->_Error = new_Error;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
+    _tag = Tag::Error;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::Error& RtsConnection_5::Get_<RtsConnection_5::Tag::Error>() const
+{
+  assert(_tag == Tag::Error);
+  return this->_Error;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::Error>(Anki::Vector::ExternalComms::Error member)
+{
+  return CreateError(std::move(member));
+}
+
+void RtsConnection_5::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
+{
+  if (this->_tag == Tag::Error) {
+    this->_Error = std::move(new_Error);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
+    _tag = Tag::Error;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsConnRequest(new_RtsConnRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+  _tag = Tag::RtsConnRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_5::Get_RtsConnRequest() const
+{
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
+}
+
+void RtsConnection_5::Set_RtsConnRequest(const Anki::Vector::ExternalComms::RtsConnRequest& new_RtsConnRequest)
+{
+  if(this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = new_RtsConnRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(new_RtsConnRequest);
+    _tag = Tag::RtsConnRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsConnRequest>() const
+{
+  assert(_tag == Tag::RtsConnRequest);
+  return this->_RtsConnRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsConnRequest>(Anki::Vector::ExternalComms::RtsConnRequest member)
+{
+  return CreateRtsConnRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+{
+  if (this->_tag == Tag::RtsConnRequest) {
+    this->_RtsConnRequest = std::move(new_RtsConnRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+    _tag = Tag::RtsConnRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsConnResponse(new_RtsConnResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+  _tag = Tag::RtsConnResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_5::Get_RtsConnResponse() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+void RtsConnection_5::Set_RtsConnResponse(const Anki::Vector::ExternalComms::RtsConnResponse& new_RtsConnResponse)
+{
+  if(this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = new_RtsConnResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(new_RtsConnResponse);
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsConnResponse>() const
+{
+  assert(_tag == Tag::RtsConnResponse);
+  return this->_RtsConnResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsConnResponse>(Anki::Vector::ExternalComms::RtsConnResponse member)
+{
+  return CreateRtsConnResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+{
+  if (this->_tag == Tag::RtsConnResponse) {
+    this->_RtsConnResponse = std::move(new_RtsConnResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+    _tag = Tag::RtsConnResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  RtsConnection_5 m;
+  m.Set_RtsNonceMessage(new_RtsNonceMessage);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+  _tag = Tag::RtsNonceMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_5::Get_RtsNonceMessage() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+void RtsConnection_5::Set_RtsNonceMessage(const Anki::Vector::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
+{
+  if(this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = new_RtsNonceMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsNonceMessage>() const
+{
+  assert(_tag == Tag::RtsNonceMessage);
+  return this->_RtsNonceMessage;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsNonceMessage>(Anki::Vector::ExternalComms::RtsNonceMessage member)
+{
+  return CreateRtsNonceMessage(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+{
+  if (this->_tag == Tag::RtsNonceMessage) {
+    this->_RtsNonceMessage = std::move(new_RtsNonceMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+    _tag = Tag::RtsNonceMessage;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  RtsConnection_5 m;
+  m.Set_RtsChallengeMessage(new_RtsChallengeMessage);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+  _tag = Tag::RtsChallengeMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_5::Get_RtsChallengeMessage() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+void RtsConnection_5::Set_RtsChallengeMessage(const Anki::Vector::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
+{
+  if(this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = new_RtsChallengeMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsChallengeMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeMessage);
+  return this->_RtsChallengeMessage;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsChallengeMessage>(Anki::Vector::ExternalComms::RtsChallengeMessage member)
+{
+  return CreateRtsChallengeMessage(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+{
+  if (this->_tag == Tag::RtsChallengeMessage) {
+    this->_RtsChallengeMessage = std::move(new_RtsChallengeMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+    _tag = Tag::RtsChallengeMessage;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  RtsConnection_5 m;
+  m.Set_RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+  _tag = Tag::RtsChallengeSuccessMessage;
+}
+
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_5::Get_RtsChallengeSuccessMessage() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+void RtsConnection_5::Set_RtsChallengeSuccessMessage(const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
+{
+  if(this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = new_RtsChallengeSuccessMessage;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsChallengeSuccessMessage>() const
+{
+  assert(_tag == Tag::RtsChallengeSuccessMessage);
+  return this->_RtsChallengeSuccessMessage;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsChallengeSuccessMessage>(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage member)
+{
+  return CreateRtsChallengeSuccessMessage(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+{
+  if (this->_tag == Tag::RtsChallengeSuccessMessage) {
+    this->_RtsChallengeSuccessMessage = std::move(new_RtsChallengeSuccessMessage);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+    _tag = Tag::RtsChallengeSuccessMessage;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+  _tag = Tag::RtsWifiConnectRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_5::Get_RtsWifiConnectRequest() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+void RtsConnection_5::Set_RtsWifiConnectRequest(const Anki::Vector::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
+{
+  if(this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = new_RtsWifiConnectRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiConnectRequest>() const
+{
+  assert(_tag == Tag::RtsWifiConnectRequest);
+  return this->_RtsWifiConnectRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiConnectRequest>(Anki::Vector::ExternalComms::RtsWifiConnectRequest member)
+{
+  return CreateRtsWifiConnectRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+{
+  if (this->_tag == Tag::RtsWifiConnectRequest) {
+    this->_RtsWifiConnectRequest = std::move(new_RtsWifiConnectRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+    _tag = Tag::RtsWifiConnectRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+  _tag = Tag::RtsWifiConnectResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_5::Get_RtsWifiConnectResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+void RtsConnection_5::Set_RtsWifiConnectResponse_3(const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& new_RtsWifiConnectResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = new_RtsWifiConnectResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(new_RtsWifiConnectResponse_3);
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse_3& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiConnectResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiConnectResponse_3);
+  return this->_RtsWifiConnectResponse_3;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiConnectResponse_3>(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3 member)
+{
+  return CreateRtsWifiConnectResponse_3(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiConnectResponse_3(Anki::Vector::ExternalComms::RtsWifiConnectResponse_3&& new_RtsWifiConnectResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiConnectResponse_3) {
+    this->_RtsWifiConnectResponse_3 = std::move(new_RtsWifiConnectResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiConnectResponse_3) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(std::move(new_RtsWifiConnectResponse_3));
+    _tag = Tag::RtsWifiConnectResponse_3;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiIpRequest(new_RtsWifiIpRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+  _tag = Tag::RtsWifiIpRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_5::Get_RtsWifiIpRequest() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+void RtsConnection_5::Set_RtsWifiIpRequest(const Anki::Vector::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
+{
+  if(this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = new_RtsWifiIpRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiIpRequest>() const
+{
+  assert(_tag == Tag::RtsWifiIpRequest);
+  return this->_RtsWifiIpRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiIpRequest>(Anki::Vector::ExternalComms::RtsWifiIpRequest member)
+{
+  return CreateRtsWifiIpRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+{
+  if (this->_tag == Tag::RtsWifiIpRequest) {
+    this->_RtsWifiIpRequest = std::move(new_RtsWifiIpRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+    _tag = Tag::RtsWifiIpRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiIpResponse(new_RtsWifiIpResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+  _tag = Tag::RtsWifiIpResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_5::Get_RtsWifiIpResponse() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+void RtsConnection_5::Set_RtsWifiIpResponse(const Anki::Vector::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
+{
+  if(this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = new_RtsWifiIpResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiIpResponse>() const
+{
+  assert(_tag == Tag::RtsWifiIpResponse);
+  return this->_RtsWifiIpResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiIpResponse>(Anki::Vector::ExternalComms::RtsWifiIpResponse member)
+{
+  return CreateRtsWifiIpResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+{
+  if (this->_tag == Tag::RtsWifiIpResponse) {
+    this->_RtsWifiIpResponse = std::move(new_RtsWifiIpResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+    _tag = Tag::RtsWifiIpResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsStatusRequest(new_RtsStatusRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+  _tag = Tag::RtsStatusRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_5::Get_RtsStatusRequest() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+void RtsConnection_5::Set_RtsStatusRequest(const Anki::Vector::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
+{
+  if(this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = new_RtsStatusRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsStatusRequest>() const
+{
+  assert(_tag == Tag::RtsStatusRequest);
+  return this->_RtsStatusRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsStatusRequest>(Anki::Vector::ExternalComms::RtsStatusRequest member)
+{
+  return CreateRtsStatusRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+{
+  if (this->_tag == Tag::RtsStatusRequest) {
+    this->_RtsStatusRequest = std::move(new_RtsStatusRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+    _tag = Tag::RtsStatusRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsStatusResponse_5(Anki::Vector::ExternalComms::RtsStatusResponse_5&& new_RtsStatusResponse_5)
+{
+  RtsConnection_5 m;
+  m.Set_RtsStatusResponse_5(new_RtsStatusResponse_5);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsStatusResponse_5&& new_RtsStatusResponse_5)
+{
+  new(&this->_RtsStatusResponse_5) Anki::Vector::ExternalComms::RtsStatusResponse_5(std::move(new_RtsStatusResponse_5));
+  _tag = Tag::RtsStatusResponse_5;
+}
+
+const Anki::Vector::ExternalComms::RtsStatusResponse_5& RtsConnection_5::Get_RtsStatusResponse_5() const
+{
+  assert(_tag == Tag::RtsStatusResponse_5);
+  return this->_RtsStatusResponse_5;
+}
+
+void RtsConnection_5::Set_RtsStatusResponse_5(const Anki::Vector::ExternalComms::RtsStatusResponse_5& new_RtsStatusResponse_5)
+{
+  if(this->_tag == Tag::RtsStatusResponse_5) {
+    this->_RtsStatusResponse_5 = new_RtsStatusResponse_5;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_5) Anki::Vector::ExternalComms::RtsStatusResponse_5(new_RtsStatusResponse_5);
+    _tag = Tag::RtsStatusResponse_5;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsStatusResponse_5& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsStatusResponse_5>() const
+{
+  assert(_tag == Tag::RtsStatusResponse_5);
+  return this->_RtsStatusResponse_5;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsStatusResponse_5>(Anki::Vector::ExternalComms::RtsStatusResponse_5 member)
+{
+  return CreateRtsStatusResponse_5(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsStatusResponse_5(Anki::Vector::ExternalComms::RtsStatusResponse_5&& new_RtsStatusResponse_5)
+{
+  if (this->_tag == Tag::RtsStatusResponse_5) {
+    this->_RtsStatusResponse_5 = std::move(new_RtsStatusResponse_5);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsStatusResponse_5) Anki::Vector::ExternalComms::RtsStatusResponse_5(std::move(new_RtsStatusResponse_5));
+    _tag = Tag::RtsStatusResponse_5;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiScanRequest(new_RtsWifiScanRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+  _tag = Tag::RtsWifiScanRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_5::Get_RtsWifiScanRequest() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+void RtsConnection_5::Set_RtsWifiScanRequest(const Anki::Vector::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
+{
+  if(this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = new_RtsWifiScanRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiScanRequest>() const
+{
+  assert(_tag == Tag::RtsWifiScanRequest);
+  return this->_RtsWifiScanRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiScanRequest>(Anki::Vector::ExternalComms::RtsWifiScanRequest member)
+{
+  return CreateRtsWifiScanRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+{
+  if (this->_tag == Tag::RtsWifiScanRequest) {
+    this->_RtsWifiScanRequest = std::move(new_RtsWifiScanRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+    _tag = Tag::RtsWifiScanRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+  _tag = Tag::RtsWifiScanResponse_3;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_5::Get_RtsWifiScanResponse_3() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+void RtsConnection_5::Set_RtsWifiScanResponse_3(const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& new_RtsWifiScanResponse_3)
+{
+  if(this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = new_RtsWifiScanResponse_3;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(new_RtsWifiScanResponse_3);
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiScanResponse_3& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiScanResponse_3>() const
+{
+  assert(_tag == Tag::RtsWifiScanResponse_3);
+  return this->_RtsWifiScanResponse_3;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiScanResponse_3>(Anki::Vector::ExternalComms::RtsWifiScanResponse_3 member)
+{
+  return CreateRtsWifiScanResponse_3(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiScanResponse_3(Anki::Vector::ExternalComms::RtsWifiScanResponse_3&& new_RtsWifiScanResponse_3)
+{
+  if (this->_tag == Tag::RtsWifiScanResponse_3) {
+    this->_RtsWifiScanResponse_3 = std::move(new_RtsWifiScanResponse_3);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiScanResponse_3) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(std::move(new_RtsWifiScanResponse_3));
+    _tag = Tag::RtsWifiScanResponse_3;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+  _tag = Tag::RtsOtaUpdateRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_5::Get_RtsOtaUpdateRequest() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+void RtsConnection_5::Set_RtsOtaUpdateRequest(const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
+{
+  if(this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = new_RtsOtaUpdateRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsOtaUpdateRequest>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateRequest);
+  return this->_RtsOtaUpdateRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsOtaUpdateRequest>(Anki::Vector::ExternalComms::RtsOtaUpdateRequest member)
+{
+  return CreateRtsOtaUpdateRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+{
+  if (this->_tag == Tag::RtsOtaUpdateRequest) {
+    this->_RtsOtaUpdateRequest = std::move(new_RtsOtaUpdateRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+    _tag = Tag::RtsOtaUpdateRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+  _tag = Tag::RtsOtaUpdateResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_5::Get_RtsOtaUpdateResponse() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+void RtsConnection_5::Set_RtsOtaUpdateResponse(const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
+{
+  if(this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = new_RtsOtaUpdateResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsOtaUpdateResponse>() const
+{
+  assert(_tag == Tag::RtsOtaUpdateResponse);
+  return this->_RtsOtaUpdateResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsOtaUpdateResponse>(Anki::Vector::ExternalComms::RtsOtaUpdateResponse member)
+{
+  return CreateRtsOtaUpdateResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+{
+  if (this->_tag == Tag::RtsOtaUpdateResponse) {
+    this->_RtsOtaUpdateResponse = std::move(new_RtsOtaUpdateResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+    _tag = Tag::RtsOtaUpdateResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  RtsConnection_5 m;
+  m.Set_RtsCancelPairing(new_RtsCancelPairing);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+  _tag = Tag::RtsCancelPairing;
+}
+
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_5::Get_RtsCancelPairing() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+void RtsConnection_5::Set_RtsCancelPairing(const Anki::Vector::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
+{
+  if(this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = new_RtsCancelPairing;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsCancelPairing>() const
+{
+  assert(_tag == Tag::RtsCancelPairing);
+  return this->_RtsCancelPairing;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsCancelPairing>(Anki::Vector::ExternalComms::RtsCancelPairing member)
+{
+  return CreateRtsCancelPairing(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+{
+  if (this->_tag == Tag::RtsCancelPairing) {
+    this->_RtsCancelPairing = std::move(new_RtsCancelPairing);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+    _tag = Tag::RtsCancelPairing;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  RtsConnection_5 m;
+  m.Set_RtsForceDisconnect(new_RtsForceDisconnect);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+  _tag = Tag::RtsForceDisconnect;
+}
+
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_5::Get_RtsForceDisconnect() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+void RtsConnection_5::Set_RtsForceDisconnect(const Anki::Vector::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
+{
+  if(this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = new_RtsForceDisconnect;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsForceDisconnect>() const
+{
+  assert(_tag == Tag::RtsForceDisconnect);
+  return this->_RtsForceDisconnect;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsForceDisconnect>(Anki::Vector::ExternalComms::RtsForceDisconnect member)
+{
+  return CreateRtsForceDisconnect(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+{
+  if (this->_tag == Tag::RtsForceDisconnect) {
+    this->_RtsForceDisconnect = std::move(new_RtsForceDisconnect);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+    _tag = Tag::RtsForceDisconnect;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  RtsConnection_5 m;
+  m.Set_RtsAck(new_RtsAck);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+  _tag = Tag::RtsAck;
+}
+
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_5::Get_RtsAck() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+void RtsConnection_5::Set_RtsAck(const Anki::Vector::ExternalComms::RtsAck& new_RtsAck)
+{
+  if(this->_tag == Tag::RtsAck) {
+    this->_RtsAck = new_RtsAck;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(new_RtsAck);
+    _tag = Tag::RtsAck;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsAck>() const
+{
+  assert(_tag == Tag::RtsAck);
+  return this->_RtsAck;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsAck>(Anki::Vector::ExternalComms::RtsAck member)
+{
+  return CreateRtsAck(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
+{
+  if (this->_tag == Tag::RtsAck) {
+    this->_RtsAck = std::move(new_RtsAck);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
+    _tag = Tag::RtsAck;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+  _tag = Tag::RtsWifiAccessPointRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_5::Get_RtsWifiAccessPointRequest() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+void RtsConnection_5::Set_RtsWifiAccessPointRequest(const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = new_RtsWifiAccessPointRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiAccessPointRequest>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointRequest);
+  return this->_RtsWifiAccessPointRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiAccessPointRequest>(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest member)
+{
+  return CreateRtsWifiAccessPointRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointRequest) {
+    this->_RtsWifiAccessPointRequest = std::move(new_RtsWifiAccessPointRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+    _tag = Tag::RtsWifiAccessPointRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+  _tag = Tag::RtsWifiAccessPointResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_5::Get_RtsWifiAccessPointResponse() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+void RtsConnection_5::Set_RtsWifiAccessPointResponse(const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
+{
+  if(this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = new_RtsWifiAccessPointResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiAccessPointResponse>() const
+{
+  assert(_tag == Tag::RtsWifiAccessPointResponse);
+  return this->_RtsWifiAccessPointResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiAccessPointResponse>(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse member)
+{
+  return CreateRtsWifiAccessPointResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+{
+  if (this->_tag == Tag::RtsWifiAccessPointResponse) {
+    this->_RtsWifiAccessPointResponse = std::move(new_RtsWifiAccessPointResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+    _tag = Tag::RtsWifiAccessPointResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsSshRequest(new_RtsSshRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+  _tag = Tag::RtsSshRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_5::Get_RtsSshRequest() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+void RtsConnection_5::Set_RtsSshRequest(const Anki::Vector::ExternalComms::RtsSshRequest& new_RtsSshRequest)
+{
+  if(this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = new_RtsSshRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(new_RtsSshRequest);
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsSshRequest>() const
+{
+  assert(_tag == Tag::RtsSshRequest);
+  return this->_RtsSshRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsSshRequest>(Anki::Vector::ExternalComms::RtsSshRequest member)
+{
+  return CreateRtsSshRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+{
+  if (this->_tag == Tag::RtsSshRequest) {
+    this->_RtsSshRequest = std::move(new_RtsSshRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+    _tag = Tag::RtsSshRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsSshResponse(new_RtsSshResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+  _tag = Tag::RtsSshResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_5::Get_RtsSshResponse() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+void RtsConnection_5::Set_RtsSshResponse(const Anki::Vector::ExternalComms::RtsSshResponse& new_RtsSshResponse)
+{
+  if(this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = new_RtsSshResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(new_RtsSshResponse);
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsSshResponse>() const
+{
+  assert(_tag == Tag::RtsSshResponse);
+  return this->_RtsSshResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsSshResponse>(Anki::Vector::ExternalComms::RtsSshResponse member)
+{
+  return CreateRtsSshResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+{
+  if (this->_tag == Tag::RtsSshResponse) {
+    this->_RtsSshResponse = std::move(new_RtsSshResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+    _tag = Tag::RtsSshResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+  _tag = Tag::RtsOtaCancelRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_5::Get_RtsOtaCancelRequest() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+void RtsConnection_5::Set_RtsOtaCancelRequest(const Anki::Vector::ExternalComms::RtsOtaCancelRequest& new_RtsOtaCancelRequest)
+{
+  if(this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = new_RtsOtaCancelRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(new_RtsOtaCancelRequest);
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsOtaCancelRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsOtaCancelRequest>() const
+{
+  assert(_tag == Tag::RtsOtaCancelRequest);
+  return this->_RtsOtaCancelRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsOtaCancelRequest>(Anki::Vector::ExternalComms::RtsOtaCancelRequest member)
+{
+  return CreateRtsOtaCancelRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsOtaCancelRequest(Anki::Vector::ExternalComms::RtsOtaCancelRequest&& new_RtsOtaCancelRequest)
+{
+  if (this->_tag == Tag::RtsOtaCancelRequest) {
+    this->_RtsOtaCancelRequest = std::move(new_RtsOtaCancelRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsOtaCancelRequest) Anki::Vector::ExternalComms::RtsOtaCancelRequest(std::move(new_RtsOtaCancelRequest));
+    _tag = Tag::RtsOtaCancelRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsLogRequest(new_RtsLogRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+  _tag = Tag::RtsLogRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_5::Get_RtsLogRequest() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+void RtsConnection_5::Set_RtsLogRequest(const Anki::Vector::ExternalComms::RtsLogRequest& new_RtsLogRequest)
+{
+  if(this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = new_RtsLogRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(new_RtsLogRequest);
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsLogRequest>() const
+{
+  assert(_tag == Tag::RtsLogRequest);
+  return this->_RtsLogRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsLogRequest>(Anki::Vector::ExternalComms::RtsLogRequest member)
+{
+  return CreateRtsLogRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsLogRequest(Anki::Vector::ExternalComms::RtsLogRequest&& new_RtsLogRequest)
+{
+  if (this->_tag == Tag::RtsLogRequest) {
+    this->_RtsLogRequest = std::move(new_RtsLogRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogRequest) Anki::Vector::ExternalComms::RtsLogRequest(std::move(new_RtsLogRequest));
+    _tag = Tag::RtsLogRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsLogResponse(new_RtsLogResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+  _tag = Tag::RtsLogResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_5::Get_RtsLogResponse() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+void RtsConnection_5::Set_RtsLogResponse(const Anki::Vector::ExternalComms::RtsLogResponse& new_RtsLogResponse)
+{
+  if(this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = new_RtsLogResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(new_RtsLogResponse);
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsLogResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsLogResponse>() const
+{
+  assert(_tag == Tag::RtsLogResponse);
+  return this->_RtsLogResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsLogResponse>(Anki::Vector::ExternalComms::RtsLogResponse member)
+{
+  return CreateRtsLogResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsLogResponse(Anki::Vector::ExternalComms::RtsLogResponse&& new_RtsLogResponse)
+{
+  if (this->_tag == Tag::RtsLogResponse) {
+    this->_RtsLogResponse = std::move(new_RtsLogResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsLogResponse) Anki::Vector::ExternalComms::RtsLogResponse(std::move(new_RtsLogResponse));
+    _tag = Tag::RtsLogResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  RtsConnection_5 m;
+  m.Set_RtsFileDownload(new_RtsFileDownload);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+  _tag = Tag::RtsFileDownload;
+}
+
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_5::Get_RtsFileDownload() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+void RtsConnection_5::Set_RtsFileDownload(const Anki::Vector::ExternalComms::RtsFileDownload& new_RtsFileDownload)
+{
+  if(this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = new_RtsFileDownload;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(new_RtsFileDownload);
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsFileDownload& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsFileDownload>() const
+{
+  assert(_tag == Tag::RtsFileDownload);
+  return this->_RtsFileDownload;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsFileDownload>(Anki::Vector::ExternalComms::RtsFileDownload member)
+{
+  return CreateRtsFileDownload(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsFileDownload(Anki::Vector::ExternalComms::RtsFileDownload&& new_RtsFileDownload)
+{
+  if (this->_tag == Tag::RtsFileDownload) {
+    this->_RtsFileDownload = std::move(new_RtsFileDownload);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsFileDownload) Anki::Vector::ExternalComms::RtsFileDownload(std::move(new_RtsFileDownload));
+    _tag = Tag::RtsFileDownload;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+  _tag = Tag::RtsWifiForgetRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_5::Get_RtsWifiForgetRequest() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+void RtsConnection_5::Set_RtsWifiForgetRequest(const Anki::Vector::ExternalComms::RtsWifiForgetRequest& new_RtsWifiForgetRequest)
+{
+  if(this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = new_RtsWifiForgetRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(new_RtsWifiForgetRequest);
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiForgetRequest>() const
+{
+  assert(_tag == Tag::RtsWifiForgetRequest);
+  return this->_RtsWifiForgetRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiForgetRequest>(Anki::Vector::ExternalComms::RtsWifiForgetRequest member)
+{
+  return CreateRtsWifiForgetRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiForgetRequest(Anki::Vector::ExternalComms::RtsWifiForgetRequest&& new_RtsWifiForgetRequest)
+{
+  if (this->_tag == Tag::RtsWifiForgetRequest) {
+    this->_RtsWifiForgetRequest = std::move(new_RtsWifiForgetRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetRequest) Anki::Vector::ExternalComms::RtsWifiForgetRequest(std::move(new_RtsWifiForgetRequest));
+    _tag = Tag::RtsWifiForgetRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+  _tag = Tag::RtsWifiForgetResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_5::Get_RtsWifiForgetResponse() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+void RtsConnection_5::Set_RtsWifiForgetResponse(const Anki::Vector::ExternalComms::RtsWifiForgetResponse& new_RtsWifiForgetResponse)
+{
+  if(this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = new_RtsWifiForgetResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(new_RtsWifiForgetResponse);
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsWifiForgetResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsWifiForgetResponse>() const
+{
+  assert(_tag == Tag::RtsWifiForgetResponse);
+  return this->_RtsWifiForgetResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsWifiForgetResponse>(Anki::Vector::ExternalComms::RtsWifiForgetResponse member)
+{
+  return CreateRtsWifiForgetResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsWifiForgetResponse(Anki::Vector::ExternalComms::RtsWifiForgetResponse&& new_RtsWifiForgetResponse)
+{
+  if (this->_tag == Tag::RtsWifiForgetResponse) {
+    this->_RtsWifiForgetResponse = std::move(new_RtsWifiForgetResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsWifiForgetResponse) Anki::Vector::ExternalComms::RtsWifiForgetResponse(std::move(new_RtsWifiForgetResponse));
+    _tag = Tag::RtsWifiForgetResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsCloudSessionRequest_2(Anki::Vector::ExternalComms::RtsCloudSessionRequest_2&& new_RtsCloudSessionRequest_2)
+{
+  RtsConnection_5 m;
+  m.Set_RtsCloudSessionRequest_2(new_RtsCloudSessionRequest_2);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsCloudSessionRequest_2&& new_RtsCloudSessionRequest_2)
+{
+  new(&this->_RtsCloudSessionRequest_2) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(std::move(new_RtsCloudSessionRequest_2));
+  _tag = Tag::RtsCloudSessionRequest_2;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest_2& RtsConnection_5::Get_RtsCloudSessionRequest_2() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest_2);
+  return this->_RtsCloudSessionRequest_2;
+}
+
+void RtsConnection_5::Set_RtsCloudSessionRequest_2(const Anki::Vector::ExternalComms::RtsCloudSessionRequest_2& new_RtsCloudSessionRequest_2)
+{
+  if(this->_tag == Tag::RtsCloudSessionRequest_2) {
+    this->_RtsCloudSessionRequest_2 = new_RtsCloudSessionRequest_2;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest_2) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(new_RtsCloudSessionRequest_2);
+    _tag = Tag::RtsCloudSessionRequest_2;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionRequest_2& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsCloudSessionRequest_2>() const
+{
+  assert(_tag == Tag::RtsCloudSessionRequest_2);
+  return this->_RtsCloudSessionRequest_2;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsCloudSessionRequest_2>(Anki::Vector::ExternalComms::RtsCloudSessionRequest_2 member)
+{
+  return CreateRtsCloudSessionRequest_2(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsCloudSessionRequest_2(Anki::Vector::ExternalComms::RtsCloudSessionRequest_2&& new_RtsCloudSessionRequest_2)
+{
+  if (this->_tag == Tag::RtsCloudSessionRequest_2) {
+    this->_RtsCloudSessionRequest_2 = std::move(new_RtsCloudSessionRequest_2);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionRequest_2) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(std::move(new_RtsCloudSessionRequest_2));
+    _tag = Tag::RtsCloudSessionRequest_2;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+  _tag = Tag::RtsCloudSessionResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_5::Get_RtsCloudSessionResponse() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+void RtsConnection_5::Set_RtsCloudSessionResponse(const Anki::Vector::ExternalComms::RtsCloudSessionResponse& new_RtsCloudSessionResponse)
+{
+  if(this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = new_RtsCloudSessionResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(new_RtsCloudSessionResponse);
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsCloudSessionResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsCloudSessionResponse>() const
+{
+  assert(_tag == Tag::RtsCloudSessionResponse);
+  return this->_RtsCloudSessionResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsCloudSessionResponse>(Anki::Vector::ExternalComms::RtsCloudSessionResponse member)
+{
+  return CreateRtsCloudSessionResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsCloudSessionResponse(Anki::Vector::ExternalComms::RtsCloudSessionResponse&& new_RtsCloudSessionResponse)
+{
+  if (this->_tag == Tag::RtsCloudSessionResponse) {
+    this->_RtsCloudSessionResponse = std::move(new_RtsCloudSessionResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsCloudSessionResponse) Anki::Vector::ExternalComms::RtsCloudSessionResponse(std::move(new_RtsCloudSessionResponse));
+    _tag = Tag::RtsCloudSessionResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsAppConnectionIdRequest(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsAppConnectionIdRequest(new_RtsAppConnectionIdRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(new_RtsAppConnectionIdRequest));
+  _tag = Tag::RtsAppConnectionIdRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& RtsConnection_5::Get_RtsAppConnectionIdRequest() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdRequest);
+  return this->_RtsAppConnectionIdRequest;
+}
+
+void RtsConnection_5::Set_RtsAppConnectionIdRequest(const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& new_RtsAppConnectionIdRequest)
+{
+  if(this->_tag == Tag::RtsAppConnectionIdRequest) {
+    this->_RtsAppConnectionIdRequest = new_RtsAppConnectionIdRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(new_RtsAppConnectionIdRequest);
+    _tag = Tag::RtsAppConnectionIdRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAppConnectionIdRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsAppConnectionIdRequest>() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdRequest);
+  return this->_RtsAppConnectionIdRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsAppConnectionIdRequest>(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest member)
+{
+  return CreateRtsAppConnectionIdRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsAppConnectionIdRequest(Anki::Vector::ExternalComms::RtsAppConnectionIdRequest&& new_RtsAppConnectionIdRequest)
+{
+  if (this->_tag == Tag::RtsAppConnectionIdRequest) {
+    this->_RtsAppConnectionIdRequest = std::move(new_RtsAppConnectionIdRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdRequest) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(std::move(new_RtsAppConnectionIdRequest));
+    _tag = Tag::RtsAppConnectionIdRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsAppConnectionIdResponse(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsAppConnectionIdResponse(new_RtsAppConnectionIdResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(new_RtsAppConnectionIdResponse));
+  _tag = Tag::RtsAppConnectionIdResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& RtsConnection_5::Get_RtsAppConnectionIdResponse() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdResponse);
+  return this->_RtsAppConnectionIdResponse;
+}
+
+void RtsConnection_5::Set_RtsAppConnectionIdResponse(const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& new_RtsAppConnectionIdResponse)
+{
+  if(this->_tag == Tag::RtsAppConnectionIdResponse) {
+    this->_RtsAppConnectionIdResponse = new_RtsAppConnectionIdResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(new_RtsAppConnectionIdResponse);
+    _tag = Tag::RtsAppConnectionIdResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsAppConnectionIdResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsAppConnectionIdResponse>() const
+{
+  assert(_tag == Tag::RtsAppConnectionIdResponse);
+  return this->_RtsAppConnectionIdResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsAppConnectionIdResponse>(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse member)
+{
+  return CreateRtsAppConnectionIdResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsAppConnectionIdResponse(Anki::Vector::ExternalComms::RtsAppConnectionIdResponse&& new_RtsAppConnectionIdResponse)
+{
+  if (this->_tag == Tag::RtsAppConnectionIdResponse) {
+    this->_RtsAppConnectionIdResponse = std::move(new_RtsAppConnectionIdResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsAppConnectionIdResponse) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(std::move(new_RtsAppConnectionIdResponse));
+    _tag = Tag::RtsAppConnectionIdResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsResponse(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsResponse(new_RtsResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(std::move(new_RtsResponse));
+  _tag = Tag::RtsResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsResponse& RtsConnection_5::Get_RtsResponse() const
+{
+  assert(_tag == Tag::RtsResponse);
+  return this->_RtsResponse;
+}
+
+void RtsConnection_5::Set_RtsResponse(const Anki::Vector::ExternalComms::RtsResponse& new_RtsResponse)
+{
+  if(this->_tag == Tag::RtsResponse) {
+    this->_RtsResponse = new_RtsResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(new_RtsResponse);
+    _tag = Tag::RtsResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsResponse>() const
+{
+  assert(_tag == Tag::RtsResponse);
+  return this->_RtsResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsResponse>(Anki::Vector::ExternalComms::RtsResponse member)
+{
+  return CreateRtsResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsResponse(Anki::Vector::ExternalComms::RtsResponse&& new_RtsResponse)
+{
+  if (this->_tag == Tag::RtsResponse) {
+    this->_RtsResponse = std::move(new_RtsResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsResponse) Anki::Vector::ExternalComms::RtsResponse(std::move(new_RtsResponse));
+    _tag = Tag::RtsResponse;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsSdkProxyRequest(Anki::Vector::ExternalComms::RtsSdkProxyRequest&& new_RtsSdkProxyRequest)
+{
+  RtsConnection_5 m;
+  m.Set_RtsSdkProxyRequest(new_RtsSdkProxyRequest);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsSdkProxyRequest&& new_RtsSdkProxyRequest)
+{
+  new(&this->_RtsSdkProxyRequest) Anki::Vector::ExternalComms::RtsSdkProxyRequest(std::move(new_RtsSdkProxyRequest));
+  _tag = Tag::RtsSdkProxyRequest;
+}
+
+const Anki::Vector::ExternalComms::RtsSdkProxyRequest& RtsConnection_5::Get_RtsSdkProxyRequest() const
+{
+  assert(_tag == Tag::RtsSdkProxyRequest);
+  return this->_RtsSdkProxyRequest;
+}
+
+void RtsConnection_5::Set_RtsSdkProxyRequest(const Anki::Vector::ExternalComms::RtsSdkProxyRequest& new_RtsSdkProxyRequest)
+{
+  if(this->_tag == Tag::RtsSdkProxyRequest) {
+    this->_RtsSdkProxyRequest = new_RtsSdkProxyRequest;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSdkProxyRequest) Anki::Vector::ExternalComms::RtsSdkProxyRequest(new_RtsSdkProxyRequest);
+    _tag = Tag::RtsSdkProxyRequest;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSdkProxyRequest& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsSdkProxyRequest>() const
+{
+  assert(_tag == Tag::RtsSdkProxyRequest);
+  return this->_RtsSdkProxyRequest;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsSdkProxyRequest>(Anki::Vector::ExternalComms::RtsSdkProxyRequest member)
+{
+  return CreateRtsSdkProxyRequest(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsSdkProxyRequest(Anki::Vector::ExternalComms::RtsSdkProxyRequest&& new_RtsSdkProxyRequest)
+{
+  if (this->_tag == Tag::RtsSdkProxyRequest) {
+    this->_RtsSdkProxyRequest = std::move(new_RtsSdkProxyRequest);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSdkProxyRequest) Anki::Vector::ExternalComms::RtsSdkProxyRequest(std::move(new_RtsSdkProxyRequest));
+    _tag = Tag::RtsSdkProxyRequest;
+  }
+}
+
+RtsConnection_5 RtsConnection_5::CreateRtsSdkProxyResponse(Anki::Vector::ExternalComms::RtsSdkProxyResponse&& new_RtsSdkProxyResponse)
+{
+  RtsConnection_5 m;
+  m.Set_RtsSdkProxyResponse(new_RtsSdkProxyResponse);
+  return m;
+}
+
+RtsConnection_5::RtsConnection_5(Anki::Vector::ExternalComms::RtsSdkProxyResponse&& new_RtsSdkProxyResponse)
+{
+  new(&this->_RtsSdkProxyResponse) Anki::Vector::ExternalComms::RtsSdkProxyResponse(std::move(new_RtsSdkProxyResponse));
+  _tag = Tag::RtsSdkProxyResponse;
+}
+
+const Anki::Vector::ExternalComms::RtsSdkProxyResponse& RtsConnection_5::Get_RtsSdkProxyResponse() const
+{
+  assert(_tag == Tag::RtsSdkProxyResponse);
+  return this->_RtsSdkProxyResponse;
+}
+
+void RtsConnection_5::Set_RtsSdkProxyResponse(const Anki::Vector::ExternalComms::RtsSdkProxyResponse& new_RtsSdkProxyResponse)
+{
+  if(this->_tag == Tag::RtsSdkProxyResponse) {
+    this->_RtsSdkProxyResponse = new_RtsSdkProxyResponse;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSdkProxyResponse) Anki::Vector::ExternalComms::RtsSdkProxyResponse(new_RtsSdkProxyResponse);
+    _tag = Tag::RtsSdkProxyResponse;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsSdkProxyResponse& RtsConnection_5::Get_<RtsConnection_5::Tag::RtsSdkProxyResponse>() const
+{
+  assert(_tag == Tag::RtsSdkProxyResponse);
+  return this->_RtsSdkProxyResponse;
+}
+
+template<>
+RtsConnection_5 RtsConnection_5::Create_<RtsConnection_5::Tag::RtsSdkProxyResponse>(Anki::Vector::ExternalComms::RtsSdkProxyResponse member)
+{
+  return CreateRtsSdkProxyResponse(std::move(member));
+}
+
+void RtsConnection_5::Set_RtsSdkProxyResponse(Anki::Vector::ExternalComms::RtsSdkProxyResponse&& new_RtsSdkProxyResponse)
+{
+  if (this->_tag == Tag::RtsSdkProxyResponse) {
+    this->_RtsSdkProxyResponse = std::move(new_RtsSdkProxyResponse);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsSdkProxyResponse) Anki::Vector::ExternalComms::RtsSdkProxyResponse(std::move(new_RtsSdkProxyResponse));
+    _tag = Tag::RtsSdkProxyResponse;
+  }
+}
+
+size_t RtsConnection_5::Unpack(const uint8_t* buff, const size_t len)
+{
+  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
+  return Unpack(buffer);
+}
+
+size_t RtsConnection_5::Unpack(const CLAD::SafeMessageBuffer& buffer)
+{
+  Tag newTag {Tag::INVALID};
+  const Tag oldTag {GetTag()};
+  buffer.Read(newTag);
+  if (newTag != oldTag) {
+    ClearCurrent();
+  }
+  switch(newTag) {
+  case Tag::Error:
+    if (newTag != oldTag) {
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
+    }
+    else {
+      this->_Error.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(buffer);
+    }
+    else {
+      this->_RtsConnRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(buffer);
+    }
+    else {
+      this->_RtsConnResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsNonceMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(buffer);
+    }
+    else {
+      this->_RtsNonceMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    if (newTag != oldTag) {
+      new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(buffer);
+    }
+    else {
+      this->_RtsChallengeSuccessMessage.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(buffer);
+    }
+    else {
+      this->_RtsWifiConnectRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiConnectResponse_3)) Anki::Vector::ExternalComms::RtsWifiConnectResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiConnectResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(buffer);
+    }
+    else {
+      this->_RtsWifiIpRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiIpResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(buffer);
+    }
+    else {
+      this->_RtsWifiIpResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(buffer);
+    }
+    else {
+      this->_RtsStatusRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsStatusResponse_5:
+    if (newTag != oldTag) {
+      new(&(this->_RtsStatusResponse_5)) Anki::Vector::ExternalComms::RtsStatusResponse_5(buffer);
+    }
+    else {
+      this->_RtsStatusResponse_5.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(buffer);
+    }
+    else {
+      this->_RtsWifiScanRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiScanResponse_3)) Anki::Vector::ExternalComms::RtsWifiScanResponse_3(buffer);
+    }
+    else {
+      this->_RtsWifiScanResponse_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(buffer);
+    }
+    else {
+      this->_RtsOtaUpdateResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCancelPairing:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(buffer);
+    }
+    else {
+      this->_RtsCancelPairing.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsForceDisconnect:
+    if (newTag != oldTag) {
+      new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(buffer);
+    }
+    else {
+      this->_RtsForceDisconnect.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAck:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(buffer);
+    }
+    else {
+      this->_RtsAck.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(buffer);
+    }
+    else {
+      this->_RtsWifiAccessPointResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(buffer);
+    }
+    else {
+      this->_RtsSshRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSshResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(buffer);
+    }
+    else {
+      this->_RtsSshResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsOtaCancelRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsOtaCancelRequest)) Anki::Vector::ExternalComms::RtsOtaCancelRequest(buffer);
+    }
+    else {
+      this->_RtsOtaCancelRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogRequest)) Anki::Vector::ExternalComms::RtsLogRequest(buffer);
+    }
+    else {
+      this->_RtsLogRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsLogResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsLogResponse)) Anki::Vector::ExternalComms::RtsLogResponse(buffer);
+    }
+    else {
+      this->_RtsLogResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsFileDownload:
+    if (newTag != oldTag) {
+      new(&(this->_RtsFileDownload)) Anki::Vector::ExternalComms::RtsFileDownload(buffer);
+    }
+    else {
+      this->_RtsFileDownload.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetRequest)) Anki::Vector::ExternalComms::RtsWifiForgetRequest(buffer);
+    }
+    else {
+      this->_RtsWifiForgetRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsWifiForgetResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsWifiForgetResponse)) Anki::Vector::ExternalComms::RtsWifiForgetResponse(buffer);
+    }
+    else {
+      this->_RtsWifiForgetResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionRequest_2)) Anki::Vector::ExternalComms::RtsCloudSessionRequest_2(buffer);
+    }
+    else {
+      this->_RtsCloudSessionRequest_2.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsCloudSessionResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsCloudSessionResponse)) Anki::Vector::ExternalComms::RtsCloudSessionResponse(buffer);
+    }
+    else {
+      this->_RtsCloudSessionResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAppConnectionIdRequest)) Anki::Vector::ExternalComms::RtsAppConnectionIdRequest(buffer);
+    }
+    else {
+      this->_RtsAppConnectionIdRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsAppConnectionIdResponse)) Anki::Vector::ExternalComms::RtsAppConnectionIdResponse(buffer);
+    }
+    else {
+      this->_RtsAppConnectionIdResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsResponse)) Anki::Vector::ExternalComms::RtsResponse(buffer);
+    }
+    else {
+      this->_RtsResponse.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSdkProxyRequest:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSdkProxyRequest)) Anki::Vector::ExternalComms::RtsSdkProxyRequest(buffer);
+    }
+    else {
+      this->_RtsSdkProxyRequest.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsSdkProxyResponse:
+    if (newTag != oldTag) {
+      new(&(this->_RtsSdkProxyResponse)) Anki::Vector::ExternalComms::RtsSdkProxyResponse(buffer);
+    }
+    else {
+      this->_RtsSdkProxyResponse.Unpack(buffer);
+    }
+    break;
+  default:
+    break;
+  }
+  _tag = newTag;
+  return buffer.GetBytesRead();
+}
+
+size_t RtsConnection_5::Pack(uint8_t* buff, size_t len) const
+{
+  CLAD::SafeMessageBuffer buffer(buff, len, false);
+  return Pack(buffer);
+}
+
+size_t RtsConnection_5::Pack(CLAD::SafeMessageBuffer& buffer) const
+{
+  buffer.Write(_tag);
+  switch(GetTag()) {
+  case Tag::Error:
+    this->_Error.Pack(buffer);
+    break;
+  case Tag::RtsConnRequest:
+    this->_RtsConnRequest.Pack(buffer);
+    break;
+  case Tag::RtsConnResponse:
+    this->_RtsConnResponse.Pack(buffer);
+    break;
+  case Tag::RtsNonceMessage:
+    this->_RtsNonceMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeMessage:
+    this->_RtsChallengeMessage.Pack(buffer);
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    this->_RtsChallengeSuccessMessage.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectRequest:
+    this->_RtsWifiConnectRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    this->_RtsWifiConnectResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpRequest:
+    this->_RtsWifiIpRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiIpResponse:
+    this->_RtsWifiIpResponse.Pack(buffer);
+    break;
+  case Tag::RtsStatusRequest:
+    this->_RtsStatusRequest.Pack(buffer);
+    break;
+  case Tag::RtsStatusResponse_5:
+    this->_RtsStatusResponse_5.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanRequest:
+    this->_RtsWifiScanRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    this->_RtsWifiScanResponse_3.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    this->_RtsOtaUpdateRequest.Pack(buffer);
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    this->_RtsOtaUpdateResponse.Pack(buffer);
+    break;
+  case Tag::RtsCancelPairing:
+    this->_RtsCancelPairing.Pack(buffer);
+    break;
+  case Tag::RtsForceDisconnect:
+    this->_RtsForceDisconnect.Pack(buffer);
+    break;
+  case Tag::RtsAck:
+    this->_RtsAck.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    this->_RtsWifiAccessPointRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    this->_RtsWifiAccessPointResponse.Pack(buffer);
+    break;
+  case Tag::RtsSshRequest:
+    this->_RtsSshRequest.Pack(buffer);
+    break;
+  case Tag::RtsSshResponse:
+    this->_RtsSshResponse.Pack(buffer);
+    break;
+  case Tag::RtsOtaCancelRequest:
+    this->_RtsOtaCancelRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogRequest:
+    this->_RtsLogRequest.Pack(buffer);
+    break;
+  case Tag::RtsLogResponse:
+    this->_RtsLogResponse.Pack(buffer);
+    break;
+  case Tag::RtsFileDownload:
+    this->_RtsFileDownload.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetRequest:
+    this->_RtsWifiForgetRequest.Pack(buffer);
+    break;
+  case Tag::RtsWifiForgetResponse:
+    this->_RtsWifiForgetResponse.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    this->_RtsCloudSessionRequest_2.Pack(buffer);
+    break;
+  case Tag::RtsCloudSessionResponse:
+    this->_RtsCloudSessionResponse.Pack(buffer);
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    this->_RtsAppConnectionIdRequest.Pack(buffer);
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    this->_RtsAppConnectionIdResponse.Pack(buffer);
+    break;
+  case Tag::RtsResponse:
+    this->_RtsResponse.Pack(buffer);
+    break;
+  case Tag::RtsSdkProxyRequest:
+    this->_RtsSdkProxyRequest.Pack(buffer);
+    break;
+  case Tag::RtsSdkProxyResponse:
+    this->_RtsSdkProxyResponse.Pack(buffer);
+    break;
+  default:
+    break;
+  }
+  return buffer.GetBytesWritten();
+}
+
+size_t RtsConnection_5::Size() const
+{
+  size_t result {1}; // tag = uint_8
+  switch(GetTag()) {
+  case Tag::Error:
+    result += this->_Error.Size(); // Error
+    break;
+  case Tag::RtsConnRequest:
+    result += this->_RtsConnRequest.Size(); // RtsConnRequest
+    break;
+  case Tag::RtsConnResponse:
+    result += this->_RtsConnResponse.Size(); // RtsConnResponse
+    break;
+  case Tag::RtsNonceMessage:
+    result += this->_RtsNonceMessage.Size(); // RtsNonceMessage
+    break;
+  case Tag::RtsChallengeMessage:
+    result += this->_RtsChallengeMessage.Size(); // RtsChallengeMessage
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    result += this->_RtsChallengeSuccessMessage.Size(); // RtsChallengeSuccessMessage
+    break;
+  case Tag::RtsWifiConnectRequest:
+    result += this->_RtsWifiConnectRequest.Size(); // RtsWifiConnectRequest
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    result += this->_RtsWifiConnectResponse_3.Size(); // RtsWifiConnectResponse_3
+    break;
+  case Tag::RtsWifiIpRequest:
+    result += this->_RtsWifiIpRequest.Size(); // RtsWifiIpRequest
+    break;
+  case Tag::RtsWifiIpResponse:
+    result += this->_RtsWifiIpResponse.Size(); // RtsWifiIpResponse
+    break;
+  case Tag::RtsStatusRequest:
+    result += this->_RtsStatusRequest.Size(); // RtsStatusRequest
+    break;
+  case Tag::RtsStatusResponse_5:
+    result += this->_RtsStatusResponse_5.Size(); // RtsStatusResponse_5
+    break;
+  case Tag::RtsWifiScanRequest:
+    result += this->_RtsWifiScanRequest.Size(); // RtsWifiScanRequest
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    result += this->_RtsWifiScanResponse_3.Size(); // RtsWifiScanResponse_3
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    result += this->_RtsOtaUpdateRequest.Size(); // RtsOtaUpdateRequest
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    result += this->_RtsOtaUpdateResponse.Size(); // RtsOtaUpdateResponse
+    break;
+  case Tag::RtsCancelPairing:
+    result += this->_RtsCancelPairing.Size(); // RtsCancelPairing
+    break;
+  case Tag::RtsForceDisconnect:
+    result += this->_RtsForceDisconnect.Size(); // RtsForceDisconnect
+    break;
+  case Tag::RtsAck:
+    result += this->_RtsAck.Size(); // RtsAck
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    result += this->_RtsWifiAccessPointRequest.Size(); // RtsWifiAccessPointRequest
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    result += this->_RtsWifiAccessPointResponse.Size(); // RtsWifiAccessPointResponse
+    break;
+  case Tag::RtsSshRequest:
+    result += this->_RtsSshRequest.Size(); // RtsSshRequest
+    break;
+  case Tag::RtsSshResponse:
+    result += this->_RtsSshResponse.Size(); // RtsSshResponse
+    break;
+  case Tag::RtsOtaCancelRequest:
+    result += this->_RtsOtaCancelRequest.Size(); // RtsOtaCancelRequest
+    break;
+  case Tag::RtsLogRequest:
+    result += this->_RtsLogRequest.Size(); // RtsLogRequest
+    break;
+  case Tag::RtsLogResponse:
+    result += this->_RtsLogResponse.Size(); // RtsLogResponse
+    break;
+  case Tag::RtsFileDownload:
+    result += this->_RtsFileDownload.Size(); // RtsFileDownload
+    break;
+  case Tag::RtsWifiForgetRequest:
+    result += this->_RtsWifiForgetRequest.Size(); // RtsWifiForgetRequest
+    break;
+  case Tag::RtsWifiForgetResponse:
+    result += this->_RtsWifiForgetResponse.Size(); // RtsWifiForgetResponse
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    result += this->_RtsCloudSessionRequest_2.Size(); // RtsCloudSessionRequest_2
+    break;
+  case Tag::RtsCloudSessionResponse:
+    result += this->_RtsCloudSessionResponse.Size(); // RtsCloudSessionResponse
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    result += this->_RtsAppConnectionIdRequest.Size(); // RtsAppConnectionIdRequest
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    result += this->_RtsAppConnectionIdResponse.Size(); // RtsAppConnectionIdResponse
+    break;
+  case Tag::RtsResponse:
+    result += this->_RtsResponse.Size(); // RtsResponse
+    break;
+  case Tag::RtsSdkProxyRequest:
+    result += this->_RtsSdkProxyRequest.Size(); // RtsSdkProxyRequest
+    break;
+  case Tag::RtsSdkProxyResponse:
+    result += this->_RtsSdkProxyResponse.Size(); // RtsSdkProxyResponse
+    break;
+  default:
+    break;
+  }
+  return result;
+}
+
+bool RtsConnection_5::operator==(const RtsConnection_5& other) const
+{
+  if (this->_tag != other._tag) {
+    return false;
+  }
+  switch(GetTag()) {
+  case Tag::Error:
+    return this->_Error == other._Error;
+  case Tag::RtsConnRequest:
+    return this->_RtsConnRequest == other._RtsConnRequest;
+  case Tag::RtsConnResponse:
+    return this->_RtsConnResponse == other._RtsConnResponse;
+  case Tag::RtsNonceMessage:
+    return this->_RtsNonceMessage == other._RtsNonceMessage;
+  case Tag::RtsChallengeMessage:
+    return this->_RtsChallengeMessage == other._RtsChallengeMessage;
+  case Tag::RtsChallengeSuccessMessage:
+    return this->_RtsChallengeSuccessMessage == other._RtsChallengeSuccessMessage;
+  case Tag::RtsWifiConnectRequest:
+    return this->_RtsWifiConnectRequest == other._RtsWifiConnectRequest;
+  case Tag::RtsWifiConnectResponse_3:
+    return this->_RtsWifiConnectResponse_3 == other._RtsWifiConnectResponse_3;
+  case Tag::RtsWifiIpRequest:
+    return this->_RtsWifiIpRequest == other._RtsWifiIpRequest;
+  case Tag::RtsWifiIpResponse:
+    return this->_RtsWifiIpResponse == other._RtsWifiIpResponse;
+  case Tag::RtsStatusRequest:
+    return this->_RtsStatusRequest == other._RtsStatusRequest;
+  case Tag::RtsStatusResponse_5:
+    return this->_RtsStatusResponse_5 == other._RtsStatusResponse_5;
+  case Tag::RtsWifiScanRequest:
+    return this->_RtsWifiScanRequest == other._RtsWifiScanRequest;
+  case Tag::RtsWifiScanResponse_3:
+    return this->_RtsWifiScanResponse_3 == other._RtsWifiScanResponse_3;
+  case Tag::RtsOtaUpdateRequest:
+    return this->_RtsOtaUpdateRequest == other._RtsOtaUpdateRequest;
+  case Tag::RtsOtaUpdateResponse:
+    return this->_RtsOtaUpdateResponse == other._RtsOtaUpdateResponse;
+  case Tag::RtsCancelPairing:
+    return this->_RtsCancelPairing == other._RtsCancelPairing;
+  case Tag::RtsForceDisconnect:
+    return this->_RtsForceDisconnect == other._RtsForceDisconnect;
+  case Tag::RtsAck:
+    return this->_RtsAck == other._RtsAck;
+  case Tag::RtsWifiAccessPointRequest:
+    return this->_RtsWifiAccessPointRequest == other._RtsWifiAccessPointRequest;
+  case Tag::RtsWifiAccessPointResponse:
+    return this->_RtsWifiAccessPointResponse == other._RtsWifiAccessPointResponse;
+  case Tag::RtsSshRequest:
+    return this->_RtsSshRequest == other._RtsSshRequest;
+  case Tag::RtsSshResponse:
+    return this->_RtsSshResponse == other._RtsSshResponse;
+  case Tag::RtsOtaCancelRequest:
+    return this->_RtsOtaCancelRequest == other._RtsOtaCancelRequest;
+  case Tag::RtsLogRequest:
+    return this->_RtsLogRequest == other._RtsLogRequest;
+  case Tag::RtsLogResponse:
+    return this->_RtsLogResponse == other._RtsLogResponse;
+  case Tag::RtsFileDownload:
+    return this->_RtsFileDownload == other._RtsFileDownload;
+  case Tag::RtsWifiForgetRequest:
+    return this->_RtsWifiForgetRequest == other._RtsWifiForgetRequest;
+  case Tag::RtsWifiForgetResponse:
+    return this->_RtsWifiForgetResponse == other._RtsWifiForgetResponse;
+  case Tag::RtsCloudSessionRequest_2:
+    return this->_RtsCloudSessionRequest_2 == other._RtsCloudSessionRequest_2;
+  case Tag::RtsCloudSessionResponse:
+    return this->_RtsCloudSessionResponse == other._RtsCloudSessionResponse;
+  case Tag::RtsAppConnectionIdRequest:
+    return this->_RtsAppConnectionIdRequest == other._RtsAppConnectionIdRequest;
+  case Tag::RtsAppConnectionIdResponse:
+    return this->_RtsAppConnectionIdResponse == other._RtsAppConnectionIdResponse;
+  case Tag::RtsResponse:
+    return this->_RtsResponse == other._RtsResponse;
+  case Tag::RtsSdkProxyRequest:
+    return this->_RtsSdkProxyRequest == other._RtsSdkProxyRequest;
+  case Tag::RtsSdkProxyResponse:
+    return this->_RtsSdkProxyResponse == other._RtsSdkProxyResponse;
+  default:
+    return true;
+  }
+}
+
+bool RtsConnection_5::operator!=(const RtsConnection_5& other) const
+{
+  return !(operator==(other));
+}
+
+void RtsConnection_5::ClearCurrent()
+{
+  switch(GetTag()) {
+  case Tag::Error:
+    _Error.~Error();
+    break;
+  case Tag::RtsConnRequest:
+    _RtsConnRequest.~RtsConnRequest();
+    break;
+  case Tag::RtsConnResponse:
+    _RtsConnResponse.~RtsConnResponse();
+    break;
+  case Tag::RtsNonceMessage:
+    _RtsNonceMessage.~RtsNonceMessage();
+    break;
+  case Tag::RtsChallengeMessage:
+    _RtsChallengeMessage.~RtsChallengeMessage();
+    break;
+  case Tag::RtsChallengeSuccessMessage:
+    _RtsChallengeSuccessMessage.~RtsChallengeSuccessMessage();
+    break;
+  case Tag::RtsWifiConnectRequest:
+    _RtsWifiConnectRequest.~RtsWifiConnectRequest();
+    break;
+  case Tag::RtsWifiConnectResponse_3:
+    _RtsWifiConnectResponse_3.~RtsWifiConnectResponse_3();
+    break;
+  case Tag::RtsWifiIpRequest:
+    _RtsWifiIpRequest.~RtsWifiIpRequest();
+    break;
+  case Tag::RtsWifiIpResponse:
+    _RtsWifiIpResponse.~RtsWifiIpResponse();
+    break;
+  case Tag::RtsStatusRequest:
+    _RtsStatusRequest.~RtsStatusRequest();
+    break;
+  case Tag::RtsStatusResponse_5:
+    _RtsStatusResponse_5.~RtsStatusResponse_5();
+    break;
+  case Tag::RtsWifiScanRequest:
+    _RtsWifiScanRequest.~RtsWifiScanRequest();
+    break;
+  case Tag::RtsWifiScanResponse_3:
+    _RtsWifiScanResponse_3.~RtsWifiScanResponse_3();
+    break;
+  case Tag::RtsOtaUpdateRequest:
+    _RtsOtaUpdateRequest.~RtsOtaUpdateRequest();
+    break;
+  case Tag::RtsOtaUpdateResponse:
+    _RtsOtaUpdateResponse.~RtsOtaUpdateResponse();
+    break;
+  case Tag::RtsCancelPairing:
+    _RtsCancelPairing.~RtsCancelPairing();
+    break;
+  case Tag::RtsForceDisconnect:
+    _RtsForceDisconnect.~RtsForceDisconnect();
+    break;
+  case Tag::RtsAck:
+    _RtsAck.~RtsAck();
+    break;
+  case Tag::RtsWifiAccessPointRequest:
+    _RtsWifiAccessPointRequest.~RtsWifiAccessPointRequest();
+    break;
+  case Tag::RtsWifiAccessPointResponse:
+    _RtsWifiAccessPointResponse.~RtsWifiAccessPointResponse();
+    break;
+  case Tag::RtsSshRequest:
+    _RtsSshRequest.~RtsSshRequest();
+    break;
+  case Tag::RtsSshResponse:
+    _RtsSshResponse.~RtsSshResponse();
+    break;
+  case Tag::RtsOtaCancelRequest:
+    _RtsOtaCancelRequest.~RtsOtaCancelRequest();
+    break;
+  case Tag::RtsLogRequest:
+    _RtsLogRequest.~RtsLogRequest();
+    break;
+  case Tag::RtsLogResponse:
+    _RtsLogResponse.~RtsLogResponse();
+    break;
+  case Tag::RtsFileDownload:
+    _RtsFileDownload.~RtsFileDownload();
+    break;
+  case Tag::RtsWifiForgetRequest:
+    _RtsWifiForgetRequest.~RtsWifiForgetRequest();
+    break;
+  case Tag::RtsWifiForgetResponse:
+    _RtsWifiForgetResponse.~RtsWifiForgetResponse();
+    break;
+  case Tag::RtsCloudSessionRequest_2:
+    _RtsCloudSessionRequest_2.~RtsCloudSessionRequest_2();
+    break;
+  case Tag::RtsCloudSessionResponse:
+    _RtsCloudSessionResponse.~RtsCloudSessionResponse();
+    break;
+  case Tag::RtsAppConnectionIdRequest:
+    _RtsAppConnectionIdRequest.~RtsAppConnectionIdRequest();
+    break;
+  case Tag::RtsAppConnectionIdResponse:
+    _RtsAppConnectionIdResponse.~RtsAppConnectionIdResponse();
+    break;
+  case Tag::RtsResponse:
+    _RtsResponse.~RtsResponse();
+    break;
+  case Tag::RtsSdkProxyRequest:
+    _RtsSdkProxyRequest.~RtsSdkProxyRequest();
+    break;
+  case Tag::RtsSdkProxyResponse:
+    _RtsSdkProxyResponse.~RtsSdkProxyResponse();
+    break;
+  default:
+    break;
+  }
+  _tag = Tag::INVALID;
+}
+
+const char* RtsConnection_5TagToString(const RtsConnection_5Tag tag) {
+  switch(tag) {
+  case RtsConnection_5Tag::Error:
+    return "Error";
+  case RtsConnection_5Tag::RtsConnRequest:
+    return "RtsConnRequest";
+  case RtsConnection_5Tag::RtsConnResponse:
+    return "RtsConnResponse";
+  case RtsConnection_5Tag::RtsNonceMessage:
+    return "RtsNonceMessage";
+  case RtsConnection_5Tag::RtsChallengeMessage:
+    return "RtsChallengeMessage";
+  case RtsConnection_5Tag::RtsChallengeSuccessMessage:
+    return "RtsChallengeSuccessMessage";
+  case RtsConnection_5Tag::RtsWifiConnectRequest:
+    return "RtsWifiConnectRequest";
+  case RtsConnection_5Tag::RtsWifiConnectResponse_3:
+    return "RtsWifiConnectResponse_3";
+  case RtsConnection_5Tag::RtsWifiIpRequest:
+    return "RtsWifiIpRequest";
+  case RtsConnection_5Tag::RtsWifiIpResponse:
+    return "RtsWifiIpResponse";
+  case RtsConnection_5Tag::RtsStatusRequest:
+    return "RtsStatusRequest";
+  case RtsConnection_5Tag::RtsStatusResponse_5:
+    return "RtsStatusResponse_5";
+  case RtsConnection_5Tag::RtsWifiScanRequest:
+    return "RtsWifiScanRequest";
+  case RtsConnection_5Tag::RtsWifiScanResponse_3:
+    return "RtsWifiScanResponse_3";
+  case RtsConnection_5Tag::RtsOtaUpdateRequest:
+    return "RtsOtaUpdateRequest";
+  case RtsConnection_5Tag::RtsOtaUpdateResponse:
+    return "RtsOtaUpdateResponse";
+  case RtsConnection_5Tag::RtsCancelPairing:
+    return "RtsCancelPairing";
+  case RtsConnection_5Tag::RtsForceDisconnect:
+    return "RtsForceDisconnect";
+  case RtsConnection_5Tag::RtsAck:
+    return "RtsAck";
+  case RtsConnection_5Tag::RtsWifiAccessPointRequest:
+    return "RtsWifiAccessPointRequest";
+  case RtsConnection_5Tag::RtsWifiAccessPointResponse:
+    return "RtsWifiAccessPointResponse";
+  case RtsConnection_5Tag::RtsSshRequest:
+    return "RtsSshRequest";
+  case RtsConnection_5Tag::RtsSshResponse:
+    return "RtsSshResponse";
+  case RtsConnection_5Tag::RtsOtaCancelRequest:
+    return "RtsOtaCancelRequest";
+  case RtsConnection_5Tag::RtsLogRequest:
+    return "RtsLogRequest";
+  case RtsConnection_5Tag::RtsLogResponse:
+    return "RtsLogResponse";
+  case RtsConnection_5Tag::RtsFileDownload:
+    return "RtsFileDownload";
+  case RtsConnection_5Tag::RtsWifiForgetRequest:
+    return "RtsWifiForgetRequest";
+  case RtsConnection_5Tag::RtsWifiForgetResponse:
+    return "RtsWifiForgetResponse";
+  case RtsConnection_5Tag::RtsCloudSessionRequest_2:
+    return "RtsCloudSessionRequest_2";
+  case RtsConnection_5Tag::RtsCloudSessionResponse:
+    return "RtsCloudSessionResponse";
+  case RtsConnection_5Tag::RtsAppConnectionIdRequest:
+    return "RtsAppConnectionIdRequest";
+  case RtsConnection_5Tag::RtsAppConnectionIdResponse:
+    return "RtsAppConnectionIdResponse";
+  case RtsConnection_5Tag::RtsResponse:
+    return "RtsResponse";
+  case RtsConnection_5Tag::RtsSdkProxyRequest:
+    return "RtsSdkProxyRequest";
+  case RtsConnection_5Tag::RtsSdkProxyResponse:
+    return "RtsSdkProxyResponse";
+  default:
+    return "INVALID";
+  }
+}
+
+const char* RtsConnection_5VersionHashStr = "4618409280669547ce2a1e664f8ae2fe";
+
+const uint8_t RtsConnection_5VersionHash[16] = { 
+    0x46, 0x18, 0x40, 0x92, 0x80, 0x66, 0x95, 0x47, 0xce, 0x2a, 0x1e, 0x66, 0x4f, 0x8a, 0xe2, 0xfe 
 };
 
 // UNION RtsConnection_1
@@ -5081,73 +15490,73 @@ RtsConnection_1::RtsConnection_1(const RtsConnection_1& other)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
     break;
   case Tag::RtsStatusResponse:
-    new(&(this->_RtsStatusResponse)) Anki::Victor::ExternalComms::RtsStatusResponse(other._RtsStatusResponse);
+    new(&(this->_RtsStatusResponse)) Anki::Vector::ExternalComms::RtsStatusResponse(other._RtsStatusResponse);
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
     break;
   case Tag::RtsWifiScanResponse:
-    new(&(this->_RtsWifiScanResponse)) Anki::Victor::ExternalComms::RtsWifiScanResponse(other._RtsWifiScanResponse);
+    new(&(this->_RtsWifiScanResponse)) Anki::Vector::ExternalComms::RtsWifiScanResponse(other._RtsWifiScanResponse);
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(other._RtsAck);
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
     break;
   default:
     _tag = Tag::INVALID;
@@ -5160,73 +15569,73 @@ RtsConnection_1::RtsConnection_1(RtsConnection_1&& other) noexcept
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
     break;
   case Tag::RtsStatusResponse:
-    new(&(this->_RtsStatusResponse)) Anki::Victor::ExternalComms::RtsStatusResponse(std::move(other._RtsStatusResponse));
+    new(&(this->_RtsStatusResponse)) Anki::Vector::ExternalComms::RtsStatusResponse(std::move(other._RtsStatusResponse));
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
     break;
   case Tag::RtsWifiScanResponse:
-    new(&(this->_RtsWifiScanResponse)) Anki::Victor::ExternalComms::RtsWifiScanResponse(std::move(other._RtsWifiScanResponse));
+    new(&(this->_RtsWifiScanResponse)) Anki::Vector::ExternalComms::RtsWifiScanResponse(std::move(other._RtsWifiScanResponse));
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(std::move(other._RtsAck));
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
     break;
   default:
     _tag = Tag::INVALID;
@@ -5242,73 +15651,73 @@ RtsConnection_1& RtsConnection_1::operator=(const RtsConnection_1& other)
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(other._RtsConnRequest);
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(other._RtsConnRequest);
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(other._RtsConnResponse);
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(other._RtsConnResponse);
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(other._RtsNonceMessage);
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(other._RtsChallengeMessage);
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(other._RtsChallengeSuccessMessage);
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(other._RtsWifiConnectRequest);
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(other._RtsWifiConnectResponse);
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(other._RtsWifiIpRequest);
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(other._RtsWifiIpResponse);
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(other._RtsStatusRequest);
     break;
   case Tag::RtsStatusResponse:
-    new(&(this->_RtsStatusResponse)) Anki::Victor::ExternalComms::RtsStatusResponse(other._RtsStatusResponse);
+    new(&(this->_RtsStatusResponse)) Anki::Vector::ExternalComms::RtsStatusResponse(other._RtsStatusResponse);
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(other._RtsWifiScanRequest);
     break;
   case Tag::RtsWifiScanResponse:
-    new(&(this->_RtsWifiScanResponse)) Anki::Victor::ExternalComms::RtsWifiScanResponse(other._RtsWifiScanResponse);
+    new(&(this->_RtsWifiScanResponse)) Anki::Vector::ExternalComms::RtsWifiScanResponse(other._RtsWifiScanResponse);
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(other._RtsOtaUpdateRequest);
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(other._RtsOtaUpdateResponse);
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(other._RtsCancelPairing);
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(other._RtsForceDisconnect);
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(other._RtsAck);
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(other._RtsAck);
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(other._RtsWifiAccessPointRequest);
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(other._RtsWifiAccessPointResponse);
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(other._RtsSshRequest);
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(other._RtsSshRequest);
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(other._RtsSshResponse);
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(other._RtsSshResponse);
     break;
   default:
     _tag = Tag::INVALID;
@@ -5324,73 +15733,73 @@ RtsConnection_1& RtsConnection_1::operator=(RtsConnection_1&& other) noexcept
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnRequest:
-    new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
+    new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(std::move(other._RtsConnRequest));
     break;
   case Tag::RtsConnResponse:
-    new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
+    new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(std::move(other._RtsConnResponse));
     break;
   case Tag::RtsNonceMessage:
-    new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
+    new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(other._RtsNonceMessage));
     break;
   case Tag::RtsChallengeMessage:
-    new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
+    new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(other._RtsChallengeMessage));
     break;
   case Tag::RtsChallengeSuccessMessage:
-    new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
+    new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(other._RtsChallengeSuccessMessage));
     break;
   case Tag::RtsWifiConnectRequest:
-    new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
+    new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(other._RtsWifiConnectRequest));
     break;
   case Tag::RtsWifiConnectResponse:
-    new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
+    new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(other._RtsWifiConnectResponse));
     break;
   case Tag::RtsWifiIpRequest:
-    new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
+    new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(other._RtsWifiIpRequest));
     break;
   case Tag::RtsWifiIpResponse:
-    new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
+    new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(other._RtsWifiIpResponse));
     break;
   case Tag::RtsStatusRequest:
-    new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
+    new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(other._RtsStatusRequest));
     break;
   case Tag::RtsStatusResponse:
-    new(&(this->_RtsStatusResponse)) Anki::Victor::ExternalComms::RtsStatusResponse(std::move(other._RtsStatusResponse));
+    new(&(this->_RtsStatusResponse)) Anki::Vector::ExternalComms::RtsStatusResponse(std::move(other._RtsStatusResponse));
     break;
   case Tag::RtsWifiScanRequest:
-    new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
+    new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(other._RtsWifiScanRequest));
     break;
   case Tag::RtsWifiScanResponse:
-    new(&(this->_RtsWifiScanResponse)) Anki::Victor::ExternalComms::RtsWifiScanResponse(std::move(other._RtsWifiScanResponse));
+    new(&(this->_RtsWifiScanResponse)) Anki::Vector::ExternalComms::RtsWifiScanResponse(std::move(other._RtsWifiScanResponse));
     break;
   case Tag::RtsOtaUpdateRequest:
-    new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
+    new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(other._RtsOtaUpdateRequest));
     break;
   case Tag::RtsOtaUpdateResponse:
-    new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
+    new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(other._RtsOtaUpdateResponse));
     break;
   case Tag::RtsCancelPairing:
-    new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
+    new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(other._RtsCancelPairing));
     break;
   case Tag::RtsForceDisconnect:
-    new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
+    new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(other._RtsForceDisconnect));
     break;
   case Tag::RtsAck:
-    new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(std::move(other._RtsAck));
+    new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(std::move(other._RtsAck));
     break;
   case Tag::RtsWifiAccessPointRequest:
-    new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
+    new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(other._RtsWifiAccessPointRequest));
     break;
   case Tag::RtsWifiAccessPointResponse:
-    new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
+    new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(other._RtsWifiAccessPointResponse));
     break;
   case Tag::RtsSshRequest:
-    new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
+    new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(std::move(other._RtsSshRequest));
     break;
   case Tag::RtsSshResponse:
-    new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
+    new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(std::move(other._RtsSshResponse));
     break;
   default:
     _tag = Tag::INVALID;
@@ -5400,1290 +15809,1290 @@ RtsConnection_1& RtsConnection_1::operator=(RtsConnection_1&& other) noexcept
   return *this;
 }
 
-RtsConnection_1 RtsConnection_1::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_1 RtsConnection_1::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   RtsConnection_1 m;
   m.Set_Error(new_Error);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
   _tag = Tag::Error;
 }
 
-const Anki::Victor::ExternalComms::Error& RtsConnection_1::Get_Error() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_1::Get_Error() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
-void RtsConnection_1::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
+void RtsConnection_1::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
 {
   if(this->_tag == Tag::Error) {
     this->_Error = new_Error;
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
     _tag = Tag::Error;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::Error& RtsConnection_1::Get_<RtsConnection_1::Tag::Error>() const
+const Anki::Vector::ExternalComms::Error& RtsConnection_1::Get_<RtsConnection_1::Tag::Error>() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::Error>(Anki::Victor::ExternalComms::Error member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::Error>(Anki::Vector::ExternalComms::Error member)
 {
   return CreateError(std::move(member));
 }
 
-void RtsConnection_1::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
+void RtsConnection_1::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   if (this->_tag == Tag::Error) {
     this->_Error = std::move(new_Error);
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
     _tag = Tag::Error;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsConnRequest(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsConnRequest(new_RtsConnRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
-  new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+  new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
   _tag = Tag::RtsConnRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsConnRequest& RtsConnection_1::Get_RtsConnRequest() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_1::Get_RtsConnRequest() const
 {
   assert(_tag == Tag::RtsConnRequest);
   return this->_RtsConnRequest;
 }
 
-void RtsConnection_1::Set_RtsConnRequest(const Anki::Victor::ExternalComms::RtsConnRequest& new_RtsConnRequest)
+void RtsConnection_1::Set_RtsConnRequest(const Anki::Vector::ExternalComms::RtsConnRequest& new_RtsConnRequest)
 {
   if(this->_tag == Tag::RtsConnRequest) {
     this->_RtsConnRequest = new_RtsConnRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(new_RtsConnRequest);
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(new_RtsConnRequest);
     _tag = Tag::RtsConnRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsConnRequest>() const
+const Anki::Vector::ExternalComms::RtsConnRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsConnRequest>() const
 {
   assert(_tag == Tag::RtsConnRequest);
   return this->_RtsConnRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsConnRequest>(Anki::Victor::ExternalComms::RtsConnRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsConnRequest>(Anki::Vector::ExternalComms::RtsConnRequest member)
 {
   return CreateRtsConnRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsConnRequest(Anki::Victor::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
+void RtsConnection_1::Set_RtsConnRequest(Anki::Vector::ExternalComms::RtsConnRequest&& new_RtsConnRequest)
 {
   if (this->_tag == Tag::RtsConnRequest) {
     this->_RtsConnRequest = std::move(new_RtsConnRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnRequest) Anki::Victor::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
+    new(&this->_RtsConnRequest) Anki::Vector::ExternalComms::RtsConnRequest(std::move(new_RtsConnRequest));
     _tag = Tag::RtsConnRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsConnResponse(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsConnResponse(new_RtsConnResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
-  new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+  new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
   _tag = Tag::RtsConnResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsConnResponse& RtsConnection_1::Get_RtsConnResponse() const
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_1::Get_RtsConnResponse() const
 {
   assert(_tag == Tag::RtsConnResponse);
   return this->_RtsConnResponse;
 }
 
-void RtsConnection_1::Set_RtsConnResponse(const Anki::Victor::ExternalComms::RtsConnResponse& new_RtsConnResponse)
+void RtsConnection_1::Set_RtsConnResponse(const Anki::Vector::ExternalComms::RtsConnResponse& new_RtsConnResponse)
 {
   if(this->_tag == Tag::RtsConnResponse) {
     this->_RtsConnResponse = new_RtsConnResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(new_RtsConnResponse);
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(new_RtsConnResponse);
     _tag = Tag::RtsConnResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsConnResponse>() const
+const Anki::Vector::ExternalComms::RtsConnResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsConnResponse>() const
 {
   assert(_tag == Tag::RtsConnResponse);
   return this->_RtsConnResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsConnResponse>(Anki::Victor::ExternalComms::RtsConnResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsConnResponse>(Anki::Vector::ExternalComms::RtsConnResponse member)
 {
   return CreateRtsConnResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsConnResponse(Anki::Victor::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
+void RtsConnection_1::Set_RtsConnResponse(Anki::Vector::ExternalComms::RtsConnResponse&& new_RtsConnResponse)
 {
   if (this->_tag == Tag::RtsConnResponse) {
     this->_RtsConnResponse = std::move(new_RtsConnResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnResponse) Anki::Victor::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
+    new(&this->_RtsConnResponse) Anki::Vector::ExternalComms::RtsConnResponse(std::move(new_RtsConnResponse));
     _tag = Tag::RtsConnResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsNonceMessage(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+RtsConnection_1 RtsConnection_1::CreateRtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
   RtsConnection_1 m;
   m.Set_RtsNonceMessage(new_RtsNonceMessage);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
-  new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+  new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
   _tag = Tag::RtsNonceMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsNonceMessage& RtsConnection_1::Get_RtsNonceMessage() const
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_1::Get_RtsNonceMessage() const
 {
   assert(_tag == Tag::RtsNonceMessage);
   return this->_RtsNonceMessage;
 }
 
-void RtsConnection_1::Set_RtsNonceMessage(const Anki::Victor::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
+void RtsConnection_1::Set_RtsNonceMessage(const Anki::Vector::ExternalComms::RtsNonceMessage& new_RtsNonceMessage)
 {
   if(this->_tag == Tag::RtsNonceMessage) {
     this->_RtsNonceMessage = new_RtsNonceMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(new_RtsNonceMessage);
     _tag = Tag::RtsNonceMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsNonceMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsNonceMessage>() const
+const Anki::Vector::ExternalComms::RtsNonceMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsNonceMessage>() const
 {
   assert(_tag == Tag::RtsNonceMessage);
   return this->_RtsNonceMessage;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsNonceMessage>(Anki::Victor::ExternalComms::RtsNonceMessage member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsNonceMessage>(Anki::Vector::ExternalComms::RtsNonceMessage member)
 {
   return CreateRtsNonceMessage(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsNonceMessage(Anki::Victor::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
+void RtsConnection_1::Set_RtsNonceMessage(Anki::Vector::ExternalComms::RtsNonceMessage&& new_RtsNonceMessage)
 {
   if (this->_tag == Tag::RtsNonceMessage) {
     this->_RtsNonceMessage = std::move(new_RtsNonceMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsNonceMessage) Anki::Victor::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
+    new(&this->_RtsNonceMessage) Anki::Vector::ExternalComms::RtsNonceMessage(std::move(new_RtsNonceMessage));
     _tag = Tag::RtsNonceMessage;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsChallengeMessage(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+RtsConnection_1 RtsConnection_1::CreateRtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
   RtsConnection_1 m;
   m.Set_RtsChallengeMessage(new_RtsChallengeMessage);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
-  new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+  new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
   _tag = Tag::RtsChallengeMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsChallengeMessage& RtsConnection_1::Get_RtsChallengeMessage() const
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_1::Get_RtsChallengeMessage() const
 {
   assert(_tag == Tag::RtsChallengeMessage);
   return this->_RtsChallengeMessage;
 }
 
-void RtsConnection_1::Set_RtsChallengeMessage(const Anki::Victor::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
+void RtsConnection_1::Set_RtsChallengeMessage(const Anki::Vector::ExternalComms::RtsChallengeMessage& new_RtsChallengeMessage)
 {
   if(this->_tag == Tag::RtsChallengeMessage) {
     this->_RtsChallengeMessage = new_RtsChallengeMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(new_RtsChallengeMessage);
     _tag = Tag::RtsChallengeMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsChallengeMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsChallengeMessage>() const
+const Anki::Vector::ExternalComms::RtsChallengeMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsChallengeMessage>() const
 {
   assert(_tag == Tag::RtsChallengeMessage);
   return this->_RtsChallengeMessage;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsChallengeMessage>(Anki::Victor::ExternalComms::RtsChallengeMessage member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsChallengeMessage>(Anki::Vector::ExternalComms::RtsChallengeMessage member)
 {
   return CreateRtsChallengeMessage(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsChallengeMessage(Anki::Victor::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
+void RtsConnection_1::Set_RtsChallengeMessage(Anki::Vector::ExternalComms::RtsChallengeMessage&& new_RtsChallengeMessage)
 {
   if (this->_tag == Tag::RtsChallengeMessage) {
     this->_RtsChallengeMessage = std::move(new_RtsChallengeMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeMessage) Anki::Victor::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
+    new(&this->_RtsChallengeMessage) Anki::Vector::ExternalComms::RtsChallengeMessage(std::move(new_RtsChallengeMessage));
     _tag = Tag::RtsChallengeMessage;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsChallengeSuccessMessage(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+RtsConnection_1 RtsConnection_1::CreateRtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
   RtsConnection_1 m;
   m.Set_RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
-  new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+  new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
   _tag = Tag::RtsChallengeSuccessMessage;
 }
 
-const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_1::Get_RtsChallengeSuccessMessage() const
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_1::Get_RtsChallengeSuccessMessage() const
 {
   assert(_tag == Tag::RtsChallengeSuccessMessage);
   return this->_RtsChallengeSuccessMessage;
 }
 
-void RtsConnection_1::Set_RtsChallengeSuccessMessage(const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
+void RtsConnection_1::Set_RtsChallengeSuccessMessage(const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& new_RtsChallengeSuccessMessage)
 {
   if(this->_tag == Tag::RtsChallengeSuccessMessage) {
     this->_RtsChallengeSuccessMessage = new_RtsChallengeSuccessMessage;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(new_RtsChallengeSuccessMessage);
     _tag = Tag::RtsChallengeSuccessMessage;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsChallengeSuccessMessage>() const
+const Anki::Vector::ExternalComms::RtsChallengeSuccessMessage& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsChallengeSuccessMessage>() const
 {
   assert(_tag == Tag::RtsChallengeSuccessMessage);
   return this->_RtsChallengeSuccessMessage;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsChallengeSuccessMessage>(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsChallengeSuccessMessage>(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage member)
 {
   return CreateRtsChallengeSuccessMessage(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsChallengeSuccessMessage(Anki::Victor::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
+void RtsConnection_1::Set_RtsChallengeSuccessMessage(Anki::Vector::ExternalComms::RtsChallengeSuccessMessage&& new_RtsChallengeSuccessMessage)
 {
   if (this->_tag == Tag::RtsChallengeSuccessMessage) {
     this->_RtsChallengeSuccessMessage = std::move(new_RtsChallengeSuccessMessage);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsChallengeSuccessMessage) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
+    new(&this->_RtsChallengeSuccessMessage) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(std::move(new_RtsChallengeSuccessMessage));
     _tag = Tag::RtsChallengeSuccessMessage;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiConnectRequest(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiConnectRequest(new_RtsWifiConnectRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
-  new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+  new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
   _tag = Tag::RtsWifiConnectRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiConnectRequest& RtsConnection_1::Get_RtsWifiConnectRequest() const
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_1::Get_RtsWifiConnectRequest() const
 {
   assert(_tag == Tag::RtsWifiConnectRequest);
   return this->_RtsWifiConnectRequest;
 }
 
-void RtsConnection_1::Set_RtsWifiConnectRequest(const Anki::Victor::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
+void RtsConnection_1::Set_RtsWifiConnectRequest(const Anki::Vector::ExternalComms::RtsWifiConnectRequest& new_RtsWifiConnectRequest)
 {
   if(this->_tag == Tag::RtsWifiConnectRequest) {
     this->_RtsWifiConnectRequest = new_RtsWifiConnectRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(new_RtsWifiConnectRequest);
     _tag = Tag::RtsWifiConnectRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiConnectRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiConnectRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiConnectRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiConnectRequest>() const
 {
   assert(_tag == Tag::RtsWifiConnectRequest);
   return this->_RtsWifiConnectRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiConnectRequest>(Anki::Victor::ExternalComms::RtsWifiConnectRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiConnectRequest>(Anki::Vector::ExternalComms::RtsWifiConnectRequest member)
 {
   return CreateRtsWifiConnectRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiConnectRequest(Anki::Victor::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
+void RtsConnection_1::Set_RtsWifiConnectRequest(Anki::Vector::ExternalComms::RtsWifiConnectRequest&& new_RtsWifiConnectRequest)
 {
   if (this->_tag == Tag::RtsWifiConnectRequest) {
     this->_RtsWifiConnectRequest = std::move(new_RtsWifiConnectRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectRequest) Anki::Victor::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
+    new(&this->_RtsWifiConnectRequest) Anki::Vector::ExternalComms::RtsWifiConnectRequest(std::move(new_RtsWifiConnectRequest));
     _tag = Tag::RtsWifiConnectRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiConnectResponse(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiConnectResponse(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiConnectResponse(new_RtsWifiConnectResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
-  new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
+  new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
   _tag = Tag::RtsWifiConnectResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiConnectResponse& RtsConnection_1::Get_RtsWifiConnectResponse() const
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse& RtsConnection_1::Get_RtsWifiConnectResponse() const
 {
   assert(_tag == Tag::RtsWifiConnectResponse);
   return this->_RtsWifiConnectResponse;
 }
 
-void RtsConnection_1::Set_RtsWifiConnectResponse(const Anki::Victor::ExternalComms::RtsWifiConnectResponse& new_RtsWifiConnectResponse)
+void RtsConnection_1::Set_RtsWifiConnectResponse(const Anki::Vector::ExternalComms::RtsWifiConnectResponse& new_RtsWifiConnectResponse)
 {
   if(this->_tag == Tag::RtsWifiConnectResponse) {
     this->_RtsWifiConnectResponse = new_RtsWifiConnectResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(new_RtsWifiConnectResponse);
+    new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(new_RtsWifiConnectResponse);
     _tag = Tag::RtsWifiConnectResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiConnectResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiConnectResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiConnectResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiConnectResponse>() const
 {
   assert(_tag == Tag::RtsWifiConnectResponse);
   return this->_RtsWifiConnectResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiConnectResponse>(Anki::Victor::ExternalComms::RtsWifiConnectResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiConnectResponse>(Anki::Vector::ExternalComms::RtsWifiConnectResponse member)
 {
   return CreateRtsWifiConnectResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiConnectResponse(Anki::Victor::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
+void RtsConnection_1::Set_RtsWifiConnectResponse(Anki::Vector::ExternalComms::RtsWifiConnectResponse&& new_RtsWifiConnectResponse)
 {
   if (this->_tag == Tag::RtsWifiConnectResponse) {
     this->_RtsWifiConnectResponse = std::move(new_RtsWifiConnectResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiConnectResponse) Anki::Victor::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
+    new(&this->_RtsWifiConnectResponse) Anki::Vector::ExternalComms::RtsWifiConnectResponse(std::move(new_RtsWifiConnectResponse));
     _tag = Tag::RtsWifiConnectResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiIpRequest(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiIpRequest(new_RtsWifiIpRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
-  new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+  new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
   _tag = Tag::RtsWifiIpRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiIpRequest& RtsConnection_1::Get_RtsWifiIpRequest() const
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_1::Get_RtsWifiIpRequest() const
 {
   assert(_tag == Tag::RtsWifiIpRequest);
   return this->_RtsWifiIpRequest;
 }
 
-void RtsConnection_1::Set_RtsWifiIpRequest(const Anki::Victor::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
+void RtsConnection_1::Set_RtsWifiIpRequest(const Anki::Vector::ExternalComms::RtsWifiIpRequest& new_RtsWifiIpRequest)
 {
   if(this->_tag == Tag::RtsWifiIpRequest) {
     this->_RtsWifiIpRequest = new_RtsWifiIpRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(new_RtsWifiIpRequest);
     _tag = Tag::RtsWifiIpRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiIpRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiIpRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiIpRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiIpRequest>() const
 {
   assert(_tag == Tag::RtsWifiIpRequest);
   return this->_RtsWifiIpRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiIpRequest>(Anki::Victor::ExternalComms::RtsWifiIpRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiIpRequest>(Anki::Vector::ExternalComms::RtsWifiIpRequest member)
 {
   return CreateRtsWifiIpRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiIpRequest(Anki::Victor::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
+void RtsConnection_1::Set_RtsWifiIpRequest(Anki::Vector::ExternalComms::RtsWifiIpRequest&& new_RtsWifiIpRequest)
 {
   if (this->_tag == Tag::RtsWifiIpRequest) {
     this->_RtsWifiIpRequest = std::move(new_RtsWifiIpRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpRequest) Anki::Victor::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
+    new(&this->_RtsWifiIpRequest) Anki::Vector::ExternalComms::RtsWifiIpRequest(std::move(new_RtsWifiIpRequest));
     _tag = Tag::RtsWifiIpRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiIpResponse(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiIpResponse(new_RtsWifiIpResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
-  new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+  new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
   _tag = Tag::RtsWifiIpResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiIpResponse& RtsConnection_1::Get_RtsWifiIpResponse() const
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_1::Get_RtsWifiIpResponse() const
 {
   assert(_tag == Tag::RtsWifiIpResponse);
   return this->_RtsWifiIpResponse;
 }
 
-void RtsConnection_1::Set_RtsWifiIpResponse(const Anki::Victor::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
+void RtsConnection_1::Set_RtsWifiIpResponse(const Anki::Vector::ExternalComms::RtsWifiIpResponse& new_RtsWifiIpResponse)
 {
   if(this->_tag == Tag::RtsWifiIpResponse) {
     this->_RtsWifiIpResponse = new_RtsWifiIpResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(new_RtsWifiIpResponse);
     _tag = Tag::RtsWifiIpResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiIpResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiIpResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiIpResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiIpResponse>() const
 {
   assert(_tag == Tag::RtsWifiIpResponse);
   return this->_RtsWifiIpResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiIpResponse>(Anki::Victor::ExternalComms::RtsWifiIpResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiIpResponse>(Anki::Vector::ExternalComms::RtsWifiIpResponse member)
 {
   return CreateRtsWifiIpResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiIpResponse(Anki::Victor::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
+void RtsConnection_1::Set_RtsWifiIpResponse(Anki::Vector::ExternalComms::RtsWifiIpResponse&& new_RtsWifiIpResponse)
 {
   if (this->_tag == Tag::RtsWifiIpResponse) {
     this->_RtsWifiIpResponse = std::move(new_RtsWifiIpResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiIpResponse) Anki::Victor::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
+    new(&this->_RtsWifiIpResponse) Anki::Vector::ExternalComms::RtsWifiIpResponse(std::move(new_RtsWifiIpResponse));
     _tag = Tag::RtsWifiIpResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsStatusRequest(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsStatusRequest(new_RtsStatusRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
-  new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+  new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
   _tag = Tag::RtsStatusRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsStatusRequest& RtsConnection_1::Get_RtsStatusRequest() const
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_1::Get_RtsStatusRequest() const
 {
   assert(_tag == Tag::RtsStatusRequest);
   return this->_RtsStatusRequest;
 }
 
-void RtsConnection_1::Set_RtsStatusRequest(const Anki::Victor::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
+void RtsConnection_1::Set_RtsStatusRequest(const Anki::Vector::ExternalComms::RtsStatusRequest& new_RtsStatusRequest)
 {
   if(this->_tag == Tag::RtsStatusRequest) {
     this->_RtsStatusRequest = new_RtsStatusRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(new_RtsStatusRequest);
     _tag = Tag::RtsStatusRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsStatusRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsStatusRequest>() const
+const Anki::Vector::ExternalComms::RtsStatusRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsStatusRequest>() const
 {
   assert(_tag == Tag::RtsStatusRequest);
   return this->_RtsStatusRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsStatusRequest>(Anki::Victor::ExternalComms::RtsStatusRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsStatusRequest>(Anki::Vector::ExternalComms::RtsStatusRequest member)
 {
   return CreateRtsStatusRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsStatusRequest(Anki::Victor::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
+void RtsConnection_1::Set_RtsStatusRequest(Anki::Vector::ExternalComms::RtsStatusRequest&& new_RtsStatusRequest)
 {
   if (this->_tag == Tag::RtsStatusRequest) {
     this->_RtsStatusRequest = std::move(new_RtsStatusRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusRequest) Anki::Victor::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
+    new(&this->_RtsStatusRequest) Anki::Vector::ExternalComms::RtsStatusRequest(std::move(new_RtsStatusRequest));
     _tag = Tag::RtsStatusRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsStatusResponse(Anki::Victor::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsStatusResponse(Anki::Vector::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsStatusResponse(new_RtsStatusResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
 {
-  new(&this->_RtsStatusResponse) Anki::Victor::ExternalComms::RtsStatusResponse(std::move(new_RtsStatusResponse));
+  new(&this->_RtsStatusResponse) Anki::Vector::ExternalComms::RtsStatusResponse(std::move(new_RtsStatusResponse));
   _tag = Tag::RtsStatusResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsStatusResponse& RtsConnection_1::Get_RtsStatusResponse() const
+const Anki::Vector::ExternalComms::RtsStatusResponse& RtsConnection_1::Get_RtsStatusResponse() const
 {
   assert(_tag == Tag::RtsStatusResponse);
   return this->_RtsStatusResponse;
 }
 
-void RtsConnection_1::Set_RtsStatusResponse(const Anki::Victor::ExternalComms::RtsStatusResponse& new_RtsStatusResponse)
+void RtsConnection_1::Set_RtsStatusResponse(const Anki::Vector::ExternalComms::RtsStatusResponse& new_RtsStatusResponse)
 {
   if(this->_tag == Tag::RtsStatusResponse) {
     this->_RtsStatusResponse = new_RtsStatusResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusResponse) Anki::Victor::ExternalComms::RtsStatusResponse(new_RtsStatusResponse);
+    new(&this->_RtsStatusResponse) Anki::Vector::ExternalComms::RtsStatusResponse(new_RtsStatusResponse);
     _tag = Tag::RtsStatusResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsStatusResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsStatusResponse>() const
+const Anki::Vector::ExternalComms::RtsStatusResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsStatusResponse>() const
 {
   assert(_tag == Tag::RtsStatusResponse);
   return this->_RtsStatusResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsStatusResponse>(Anki::Victor::ExternalComms::RtsStatusResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsStatusResponse>(Anki::Vector::ExternalComms::RtsStatusResponse member)
 {
   return CreateRtsStatusResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsStatusResponse(Anki::Victor::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
+void RtsConnection_1::Set_RtsStatusResponse(Anki::Vector::ExternalComms::RtsStatusResponse&& new_RtsStatusResponse)
 {
   if (this->_tag == Tag::RtsStatusResponse) {
     this->_RtsStatusResponse = std::move(new_RtsStatusResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsStatusResponse) Anki::Victor::ExternalComms::RtsStatusResponse(std::move(new_RtsStatusResponse));
+    new(&this->_RtsStatusResponse) Anki::Vector::ExternalComms::RtsStatusResponse(std::move(new_RtsStatusResponse));
     _tag = Tag::RtsStatusResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiScanRequest(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiScanRequest(new_RtsWifiScanRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
-  new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+  new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
   _tag = Tag::RtsWifiScanRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiScanRequest& RtsConnection_1::Get_RtsWifiScanRequest() const
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_1::Get_RtsWifiScanRequest() const
 {
   assert(_tag == Tag::RtsWifiScanRequest);
   return this->_RtsWifiScanRequest;
 }
 
-void RtsConnection_1::Set_RtsWifiScanRequest(const Anki::Victor::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
+void RtsConnection_1::Set_RtsWifiScanRequest(const Anki::Vector::ExternalComms::RtsWifiScanRequest& new_RtsWifiScanRequest)
 {
   if(this->_tag == Tag::RtsWifiScanRequest) {
     this->_RtsWifiScanRequest = new_RtsWifiScanRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(new_RtsWifiScanRequest);
     _tag = Tag::RtsWifiScanRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiScanRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiScanRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiScanRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiScanRequest>() const
 {
   assert(_tag == Tag::RtsWifiScanRequest);
   return this->_RtsWifiScanRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiScanRequest>(Anki::Victor::ExternalComms::RtsWifiScanRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiScanRequest>(Anki::Vector::ExternalComms::RtsWifiScanRequest member)
 {
   return CreateRtsWifiScanRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiScanRequest(Anki::Victor::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
+void RtsConnection_1::Set_RtsWifiScanRequest(Anki::Vector::ExternalComms::RtsWifiScanRequest&& new_RtsWifiScanRequest)
 {
   if (this->_tag == Tag::RtsWifiScanRequest) {
     this->_RtsWifiScanRequest = std::move(new_RtsWifiScanRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanRequest) Anki::Victor::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
+    new(&this->_RtsWifiScanRequest) Anki::Vector::ExternalComms::RtsWifiScanRequest(std::move(new_RtsWifiScanRequest));
     _tag = Tag::RtsWifiScanRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiScanResponse(Anki::Victor::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiScanResponse(Anki::Vector::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiScanResponse(new_RtsWifiScanResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
 {
-  new(&this->_RtsWifiScanResponse) Anki::Victor::ExternalComms::RtsWifiScanResponse(std::move(new_RtsWifiScanResponse));
+  new(&this->_RtsWifiScanResponse) Anki::Vector::ExternalComms::RtsWifiScanResponse(std::move(new_RtsWifiScanResponse));
   _tag = Tag::RtsWifiScanResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiScanResponse& RtsConnection_1::Get_RtsWifiScanResponse() const
+const Anki::Vector::ExternalComms::RtsWifiScanResponse& RtsConnection_1::Get_RtsWifiScanResponse() const
 {
   assert(_tag == Tag::RtsWifiScanResponse);
   return this->_RtsWifiScanResponse;
 }
 
-void RtsConnection_1::Set_RtsWifiScanResponse(const Anki::Victor::ExternalComms::RtsWifiScanResponse& new_RtsWifiScanResponse)
+void RtsConnection_1::Set_RtsWifiScanResponse(const Anki::Vector::ExternalComms::RtsWifiScanResponse& new_RtsWifiScanResponse)
 {
   if(this->_tag == Tag::RtsWifiScanResponse) {
     this->_RtsWifiScanResponse = new_RtsWifiScanResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanResponse) Anki::Victor::ExternalComms::RtsWifiScanResponse(new_RtsWifiScanResponse);
+    new(&this->_RtsWifiScanResponse) Anki::Vector::ExternalComms::RtsWifiScanResponse(new_RtsWifiScanResponse);
     _tag = Tag::RtsWifiScanResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiScanResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiScanResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiScanResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiScanResponse>() const
 {
   assert(_tag == Tag::RtsWifiScanResponse);
   return this->_RtsWifiScanResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiScanResponse>(Anki::Victor::ExternalComms::RtsWifiScanResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiScanResponse>(Anki::Vector::ExternalComms::RtsWifiScanResponse member)
 {
   return CreateRtsWifiScanResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiScanResponse(Anki::Victor::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
+void RtsConnection_1::Set_RtsWifiScanResponse(Anki::Vector::ExternalComms::RtsWifiScanResponse&& new_RtsWifiScanResponse)
 {
   if (this->_tag == Tag::RtsWifiScanResponse) {
     this->_RtsWifiScanResponse = std::move(new_RtsWifiScanResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiScanResponse) Anki::Victor::ExternalComms::RtsWifiScanResponse(std::move(new_RtsWifiScanResponse));
+    new(&this->_RtsWifiScanResponse) Anki::Vector::ExternalComms::RtsWifiScanResponse(std::move(new_RtsWifiScanResponse));
     _tag = Tag::RtsWifiScanResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsOtaUpdateRequest(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
-  new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+  new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
   _tag = Tag::RtsOtaUpdateRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& RtsConnection_1::Get_RtsOtaUpdateRequest() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_1::Get_RtsOtaUpdateRequest() const
 {
   assert(_tag == Tag::RtsOtaUpdateRequest);
   return this->_RtsOtaUpdateRequest;
 }
 
-void RtsConnection_1::Set_RtsOtaUpdateRequest(const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
+void RtsConnection_1::Set_RtsOtaUpdateRequest(const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& new_RtsOtaUpdateRequest)
 {
   if(this->_tag == Tag::RtsOtaUpdateRequest) {
     this->_RtsOtaUpdateRequest = new_RtsOtaUpdateRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(new_RtsOtaUpdateRequest);
     _tag = Tag::RtsOtaUpdateRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsOtaUpdateRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsOtaUpdateRequest>() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsOtaUpdateRequest>() const
 {
   assert(_tag == Tag::RtsOtaUpdateRequest);
   return this->_RtsOtaUpdateRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsOtaUpdateRequest>(Anki::Victor::ExternalComms::RtsOtaUpdateRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsOtaUpdateRequest>(Anki::Vector::ExternalComms::RtsOtaUpdateRequest member)
 {
   return CreateRtsOtaUpdateRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsOtaUpdateRequest(Anki::Victor::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
+void RtsConnection_1::Set_RtsOtaUpdateRequest(Anki::Vector::ExternalComms::RtsOtaUpdateRequest&& new_RtsOtaUpdateRequest)
 {
   if (this->_tag == Tag::RtsOtaUpdateRequest) {
     this->_RtsOtaUpdateRequest = std::move(new_RtsOtaUpdateRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateRequest) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
+    new(&this->_RtsOtaUpdateRequest) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(std::move(new_RtsOtaUpdateRequest));
     _tag = Tag::RtsOtaUpdateRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsOtaUpdateResponse(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
-  new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+  new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
   _tag = Tag::RtsOtaUpdateResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& RtsConnection_1::Get_RtsOtaUpdateResponse() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_1::Get_RtsOtaUpdateResponse() const
 {
   assert(_tag == Tag::RtsOtaUpdateResponse);
   return this->_RtsOtaUpdateResponse;
 }
 
-void RtsConnection_1::Set_RtsOtaUpdateResponse(const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
+void RtsConnection_1::Set_RtsOtaUpdateResponse(const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& new_RtsOtaUpdateResponse)
 {
   if(this->_tag == Tag::RtsOtaUpdateResponse) {
     this->_RtsOtaUpdateResponse = new_RtsOtaUpdateResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(new_RtsOtaUpdateResponse);
     _tag = Tag::RtsOtaUpdateResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsOtaUpdateResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsOtaUpdateResponse>() const
+const Anki::Vector::ExternalComms::RtsOtaUpdateResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsOtaUpdateResponse>() const
 {
   assert(_tag == Tag::RtsOtaUpdateResponse);
   return this->_RtsOtaUpdateResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsOtaUpdateResponse>(Anki::Victor::ExternalComms::RtsOtaUpdateResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsOtaUpdateResponse>(Anki::Vector::ExternalComms::RtsOtaUpdateResponse member)
 {
   return CreateRtsOtaUpdateResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsOtaUpdateResponse(Anki::Victor::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
+void RtsConnection_1::Set_RtsOtaUpdateResponse(Anki::Vector::ExternalComms::RtsOtaUpdateResponse&& new_RtsOtaUpdateResponse)
 {
   if (this->_tag == Tag::RtsOtaUpdateResponse) {
     this->_RtsOtaUpdateResponse = std::move(new_RtsOtaUpdateResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsOtaUpdateResponse) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
+    new(&this->_RtsOtaUpdateResponse) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(std::move(new_RtsOtaUpdateResponse));
     _tag = Tag::RtsOtaUpdateResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsCancelPairing(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+RtsConnection_1 RtsConnection_1::CreateRtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
   RtsConnection_1 m;
   m.Set_RtsCancelPairing(new_RtsCancelPairing);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
-  new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+  new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
   _tag = Tag::RtsCancelPairing;
 }
 
-const Anki::Victor::ExternalComms::RtsCancelPairing& RtsConnection_1::Get_RtsCancelPairing() const
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_1::Get_RtsCancelPairing() const
 {
   assert(_tag == Tag::RtsCancelPairing);
   return this->_RtsCancelPairing;
 }
 
-void RtsConnection_1::Set_RtsCancelPairing(const Anki::Victor::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
+void RtsConnection_1::Set_RtsCancelPairing(const Anki::Vector::ExternalComms::RtsCancelPairing& new_RtsCancelPairing)
 {
   if(this->_tag == Tag::RtsCancelPairing) {
     this->_RtsCancelPairing = new_RtsCancelPairing;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(new_RtsCancelPairing);
     _tag = Tag::RtsCancelPairing;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsCancelPairing& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsCancelPairing>() const
+const Anki::Vector::ExternalComms::RtsCancelPairing& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsCancelPairing>() const
 {
   assert(_tag == Tag::RtsCancelPairing);
   return this->_RtsCancelPairing;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsCancelPairing>(Anki::Victor::ExternalComms::RtsCancelPairing member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsCancelPairing>(Anki::Vector::ExternalComms::RtsCancelPairing member)
 {
   return CreateRtsCancelPairing(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsCancelPairing(Anki::Victor::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
+void RtsConnection_1::Set_RtsCancelPairing(Anki::Vector::ExternalComms::RtsCancelPairing&& new_RtsCancelPairing)
 {
   if (this->_tag == Tag::RtsCancelPairing) {
     this->_RtsCancelPairing = std::move(new_RtsCancelPairing);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsCancelPairing) Anki::Victor::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
+    new(&this->_RtsCancelPairing) Anki::Vector::ExternalComms::RtsCancelPairing(std::move(new_RtsCancelPairing));
     _tag = Tag::RtsCancelPairing;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsForceDisconnect(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+RtsConnection_1 RtsConnection_1::CreateRtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
   RtsConnection_1 m;
   m.Set_RtsForceDisconnect(new_RtsForceDisconnect);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
-  new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+  new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
   _tag = Tag::RtsForceDisconnect;
 }
 
-const Anki::Victor::ExternalComms::RtsForceDisconnect& RtsConnection_1::Get_RtsForceDisconnect() const
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_1::Get_RtsForceDisconnect() const
 {
   assert(_tag == Tag::RtsForceDisconnect);
   return this->_RtsForceDisconnect;
 }
 
-void RtsConnection_1::Set_RtsForceDisconnect(const Anki::Victor::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
+void RtsConnection_1::Set_RtsForceDisconnect(const Anki::Vector::ExternalComms::RtsForceDisconnect& new_RtsForceDisconnect)
 {
   if(this->_tag == Tag::RtsForceDisconnect) {
     this->_RtsForceDisconnect = new_RtsForceDisconnect;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(new_RtsForceDisconnect);
     _tag = Tag::RtsForceDisconnect;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsForceDisconnect& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsForceDisconnect>() const
+const Anki::Vector::ExternalComms::RtsForceDisconnect& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsForceDisconnect>() const
 {
   assert(_tag == Tag::RtsForceDisconnect);
   return this->_RtsForceDisconnect;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsForceDisconnect>(Anki::Victor::ExternalComms::RtsForceDisconnect member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsForceDisconnect>(Anki::Vector::ExternalComms::RtsForceDisconnect member)
 {
   return CreateRtsForceDisconnect(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsForceDisconnect(Anki::Victor::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
+void RtsConnection_1::Set_RtsForceDisconnect(Anki::Vector::ExternalComms::RtsForceDisconnect&& new_RtsForceDisconnect)
 {
   if (this->_tag == Tag::RtsForceDisconnect) {
     this->_RtsForceDisconnect = std::move(new_RtsForceDisconnect);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsForceDisconnect) Anki::Victor::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
+    new(&this->_RtsForceDisconnect) Anki::Vector::ExternalComms::RtsForceDisconnect(std::move(new_RtsForceDisconnect));
     _tag = Tag::RtsForceDisconnect;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsAck(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+RtsConnection_1 RtsConnection_1::CreateRtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
   RtsConnection_1 m;
   m.Set_RtsAck(new_RtsAck);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
-  new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(std::move(new_RtsAck));
+  new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
   _tag = Tag::RtsAck;
 }
 
-const Anki::Victor::ExternalComms::RtsAck& RtsConnection_1::Get_RtsAck() const
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_1::Get_RtsAck() const
 {
   assert(_tag == Tag::RtsAck);
   return this->_RtsAck;
 }
 
-void RtsConnection_1::Set_RtsAck(const Anki::Victor::ExternalComms::RtsAck& new_RtsAck)
+void RtsConnection_1::Set_RtsAck(const Anki::Vector::ExternalComms::RtsAck& new_RtsAck)
 {
   if(this->_tag == Tag::RtsAck) {
     this->_RtsAck = new_RtsAck;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(new_RtsAck);
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(new_RtsAck);
     _tag = Tag::RtsAck;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsAck& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsAck>() const
+const Anki::Vector::ExternalComms::RtsAck& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsAck>() const
 {
   assert(_tag == Tag::RtsAck);
   return this->_RtsAck;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsAck>(Anki::Victor::ExternalComms::RtsAck member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsAck>(Anki::Vector::ExternalComms::RtsAck member)
 {
   return CreateRtsAck(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsAck(Anki::Victor::ExternalComms::RtsAck&& new_RtsAck)
+void RtsConnection_1::Set_RtsAck(Anki::Vector::ExternalComms::RtsAck&& new_RtsAck)
 {
   if (this->_tag == Tag::RtsAck) {
     this->_RtsAck = std::move(new_RtsAck);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsAck) Anki::Victor::ExternalComms::RtsAck(std::move(new_RtsAck));
+    new(&this->_RtsAck) Anki::Vector::ExternalComms::RtsAck(std::move(new_RtsAck));
     _tag = Tag::RtsAck;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiAccessPointRequest(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
-  new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+  new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
   _tag = Tag::RtsWifiAccessPointRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_1::Get_RtsWifiAccessPointRequest() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_1::Get_RtsWifiAccessPointRequest() const
 {
   assert(_tag == Tag::RtsWifiAccessPointRequest);
   return this->_RtsWifiAccessPointRequest;
 }
 
-void RtsConnection_1::Set_RtsWifiAccessPointRequest(const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
+void RtsConnection_1::Set_RtsWifiAccessPointRequest(const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& new_RtsWifiAccessPointRequest)
 {
   if(this->_tag == Tag::RtsWifiAccessPointRequest) {
     this->_RtsWifiAccessPointRequest = new_RtsWifiAccessPointRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(new_RtsWifiAccessPointRequest);
     _tag = Tag::RtsWifiAccessPointRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiAccessPointRequest>() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiAccessPointRequest>() const
 {
   assert(_tag == Tag::RtsWifiAccessPointRequest);
   return this->_RtsWifiAccessPointRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiAccessPointRequest>(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiAccessPointRequest>(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest member)
 {
   return CreateRtsWifiAccessPointRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiAccessPointRequest(Anki::Victor::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
+void RtsConnection_1::Set_RtsWifiAccessPointRequest(Anki::Vector::ExternalComms::RtsWifiAccessPointRequest&& new_RtsWifiAccessPointRequest)
 {
   if (this->_tag == Tag::RtsWifiAccessPointRequest) {
     this->_RtsWifiAccessPointRequest = std::move(new_RtsWifiAccessPointRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointRequest) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
+    new(&this->_RtsWifiAccessPointRequest) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(std::move(new_RtsWifiAccessPointRequest));
     _tag = Tag::RtsWifiAccessPointRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsWifiAccessPointResponse(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
-  new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+  new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
   _tag = Tag::RtsWifiAccessPointResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_1::Get_RtsWifiAccessPointResponse() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_1::Get_RtsWifiAccessPointResponse() const
 {
   assert(_tag == Tag::RtsWifiAccessPointResponse);
   return this->_RtsWifiAccessPointResponse;
 }
 
-void RtsConnection_1::Set_RtsWifiAccessPointResponse(const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
+void RtsConnection_1::Set_RtsWifiAccessPointResponse(const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& new_RtsWifiAccessPointResponse)
 {
   if(this->_tag == Tag::RtsWifiAccessPointResponse) {
     this->_RtsWifiAccessPointResponse = new_RtsWifiAccessPointResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(new_RtsWifiAccessPointResponse);
     _tag = Tag::RtsWifiAccessPointResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiAccessPointResponse>() const
+const Anki::Vector::ExternalComms::RtsWifiAccessPointResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsWifiAccessPointResponse>() const
 {
   assert(_tag == Tag::RtsWifiAccessPointResponse);
   return this->_RtsWifiAccessPointResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiAccessPointResponse>(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsWifiAccessPointResponse>(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse member)
 {
   return CreateRtsWifiAccessPointResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsWifiAccessPointResponse(Anki::Victor::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
+void RtsConnection_1::Set_RtsWifiAccessPointResponse(Anki::Vector::ExternalComms::RtsWifiAccessPointResponse&& new_RtsWifiAccessPointResponse)
 {
   if (this->_tag == Tag::RtsWifiAccessPointResponse) {
     this->_RtsWifiAccessPointResponse = std::move(new_RtsWifiAccessPointResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsWifiAccessPointResponse) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
+    new(&this->_RtsWifiAccessPointResponse) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(std::move(new_RtsWifiAccessPointResponse));
     _tag = Tag::RtsWifiAccessPointResponse;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsSshRequest(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+RtsConnection_1 RtsConnection_1::CreateRtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
   RtsConnection_1 m;
   m.Set_RtsSshRequest(new_RtsSshRequest);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
-  new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+  new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
   _tag = Tag::RtsSshRequest;
 }
 
-const Anki::Victor::ExternalComms::RtsSshRequest& RtsConnection_1::Get_RtsSshRequest() const
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_1::Get_RtsSshRequest() const
 {
   assert(_tag == Tag::RtsSshRequest);
   return this->_RtsSshRequest;
 }
 
-void RtsConnection_1::Set_RtsSshRequest(const Anki::Victor::ExternalComms::RtsSshRequest& new_RtsSshRequest)
+void RtsConnection_1::Set_RtsSshRequest(const Anki::Vector::ExternalComms::RtsSshRequest& new_RtsSshRequest)
 {
   if(this->_tag == Tag::RtsSshRequest) {
     this->_RtsSshRequest = new_RtsSshRequest;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(new_RtsSshRequest);
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(new_RtsSshRequest);
     _tag = Tag::RtsSshRequest;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsSshRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsSshRequest>() const
+const Anki::Vector::ExternalComms::RtsSshRequest& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsSshRequest>() const
 {
   assert(_tag == Tag::RtsSshRequest);
   return this->_RtsSshRequest;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsSshRequest>(Anki::Victor::ExternalComms::RtsSshRequest member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsSshRequest>(Anki::Vector::ExternalComms::RtsSshRequest member)
 {
   return CreateRtsSshRequest(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsSshRequest(Anki::Victor::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
+void RtsConnection_1::Set_RtsSshRequest(Anki::Vector::ExternalComms::RtsSshRequest&& new_RtsSshRequest)
 {
   if (this->_tag == Tag::RtsSshRequest) {
     this->_RtsSshRequest = std::move(new_RtsSshRequest);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshRequest) Anki::Victor::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
+    new(&this->_RtsSshRequest) Anki::Vector::ExternalComms::RtsSshRequest(std::move(new_RtsSshRequest));
     _tag = Tag::RtsSshRequest;
   }
 }
 
-RtsConnection_1 RtsConnection_1::CreateRtsSshResponse(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+RtsConnection_1 RtsConnection_1::CreateRtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
   RtsConnection_1 m;
   m.Set_RtsSshResponse(new_RtsSshResponse);
   return m;
 }
 
-RtsConnection_1::RtsConnection_1(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+RtsConnection_1::RtsConnection_1(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
-  new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+  new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
   _tag = Tag::RtsSshResponse;
 }
 
-const Anki::Victor::ExternalComms::RtsSshResponse& RtsConnection_1::Get_RtsSshResponse() const
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_1::Get_RtsSshResponse() const
 {
   assert(_tag == Tag::RtsSshResponse);
   return this->_RtsSshResponse;
 }
 
-void RtsConnection_1::Set_RtsSshResponse(const Anki::Victor::ExternalComms::RtsSshResponse& new_RtsSshResponse)
+void RtsConnection_1::Set_RtsSshResponse(const Anki::Vector::ExternalComms::RtsSshResponse& new_RtsSshResponse)
 {
   if(this->_tag == Tag::RtsSshResponse) {
     this->_RtsSshResponse = new_RtsSshResponse;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(new_RtsSshResponse);
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(new_RtsSshResponse);
     _tag = Tag::RtsSshResponse;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsSshResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsSshResponse>() const
+const Anki::Vector::ExternalComms::RtsSshResponse& RtsConnection_1::Get_<RtsConnection_1::Tag::RtsSshResponse>() const
 {
   assert(_tag == Tag::RtsSshResponse);
   return this->_RtsSshResponse;
 }
 
 template<>
-RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsSshResponse>(Anki::Victor::ExternalComms::RtsSshResponse member)
+RtsConnection_1 RtsConnection_1::Create_<RtsConnection_1::Tag::RtsSshResponse>(Anki::Vector::ExternalComms::RtsSshResponse member)
 {
   return CreateRtsSshResponse(std::move(member));
 }
 
-void RtsConnection_1::Set_RtsSshResponse(Anki::Victor::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
+void RtsConnection_1::Set_RtsSshResponse(Anki::Vector::ExternalComms::RtsSshResponse&& new_RtsSshResponse)
 {
   if (this->_tag == Tag::RtsSshResponse) {
     this->_RtsSshResponse = std::move(new_RtsSshResponse);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsSshResponse) Anki::Victor::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
+    new(&this->_RtsSshResponse) Anki::Vector::ExternalComms::RtsSshResponse(std::move(new_RtsSshResponse));
     _tag = Tag::RtsSshResponse;
   }
 }
@@ -6705,7 +17114,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
   switch(newTag) {
   case Tag::Error:
     if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
     }
     else {
       this->_Error.Unpack(buffer);
@@ -6713,7 +17122,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnRequest)) Anki::Victor::ExternalComms::RtsConnRequest(buffer);
+      new(&(this->_RtsConnRequest)) Anki::Vector::ExternalComms::RtsConnRequest(buffer);
     }
     else {
       this->_RtsConnRequest.Unpack(buffer);
@@ -6721,7 +17130,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnResponse)) Anki::Victor::ExternalComms::RtsConnResponse(buffer);
+      new(&(this->_RtsConnResponse)) Anki::Vector::ExternalComms::RtsConnResponse(buffer);
     }
     else {
       this->_RtsConnResponse.Unpack(buffer);
@@ -6729,7 +17138,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsNonceMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsNonceMessage)) Anki::Victor::ExternalComms::RtsNonceMessage(buffer);
+      new(&(this->_RtsNonceMessage)) Anki::Vector::ExternalComms::RtsNonceMessage(buffer);
     }
     else {
       this->_RtsNonceMessage.Unpack(buffer);
@@ -6737,7 +17146,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsChallengeMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsChallengeMessage)) Anki::Victor::ExternalComms::RtsChallengeMessage(buffer);
+      new(&(this->_RtsChallengeMessage)) Anki::Vector::ExternalComms::RtsChallengeMessage(buffer);
     }
     else {
       this->_RtsChallengeMessage.Unpack(buffer);
@@ -6745,7 +17154,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsChallengeSuccessMessage:
     if (newTag != oldTag) {
-      new(&(this->_RtsChallengeSuccessMessage)) Anki::Victor::ExternalComms::RtsChallengeSuccessMessage(buffer);
+      new(&(this->_RtsChallengeSuccessMessage)) Anki::Vector::ExternalComms::RtsChallengeSuccessMessage(buffer);
     }
     else {
       this->_RtsChallengeSuccessMessage.Unpack(buffer);
@@ -6753,7 +17162,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiConnectRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiConnectRequest)) Anki::Victor::ExternalComms::RtsWifiConnectRequest(buffer);
+      new(&(this->_RtsWifiConnectRequest)) Anki::Vector::ExternalComms::RtsWifiConnectRequest(buffer);
     }
     else {
       this->_RtsWifiConnectRequest.Unpack(buffer);
@@ -6761,7 +17170,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiConnectResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiConnectResponse)) Anki::Victor::ExternalComms::RtsWifiConnectResponse(buffer);
+      new(&(this->_RtsWifiConnectResponse)) Anki::Vector::ExternalComms::RtsWifiConnectResponse(buffer);
     }
     else {
       this->_RtsWifiConnectResponse.Unpack(buffer);
@@ -6769,7 +17178,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiIpRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiIpRequest)) Anki::Victor::ExternalComms::RtsWifiIpRequest(buffer);
+      new(&(this->_RtsWifiIpRequest)) Anki::Vector::ExternalComms::RtsWifiIpRequest(buffer);
     }
     else {
       this->_RtsWifiIpRequest.Unpack(buffer);
@@ -6777,7 +17186,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiIpResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiIpResponse)) Anki::Victor::ExternalComms::RtsWifiIpResponse(buffer);
+      new(&(this->_RtsWifiIpResponse)) Anki::Vector::ExternalComms::RtsWifiIpResponse(buffer);
     }
     else {
       this->_RtsWifiIpResponse.Unpack(buffer);
@@ -6785,7 +17194,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsStatusRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsStatusRequest)) Anki::Victor::ExternalComms::RtsStatusRequest(buffer);
+      new(&(this->_RtsStatusRequest)) Anki::Vector::ExternalComms::RtsStatusRequest(buffer);
     }
     else {
       this->_RtsStatusRequest.Unpack(buffer);
@@ -6793,7 +17202,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsStatusResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsStatusResponse)) Anki::Victor::ExternalComms::RtsStatusResponse(buffer);
+      new(&(this->_RtsStatusResponse)) Anki::Vector::ExternalComms::RtsStatusResponse(buffer);
     }
     else {
       this->_RtsStatusResponse.Unpack(buffer);
@@ -6801,7 +17210,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiScanRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiScanRequest)) Anki::Victor::ExternalComms::RtsWifiScanRequest(buffer);
+      new(&(this->_RtsWifiScanRequest)) Anki::Vector::ExternalComms::RtsWifiScanRequest(buffer);
     }
     else {
       this->_RtsWifiScanRequest.Unpack(buffer);
@@ -6809,7 +17218,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiScanResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiScanResponse)) Anki::Victor::ExternalComms::RtsWifiScanResponse(buffer);
+      new(&(this->_RtsWifiScanResponse)) Anki::Vector::ExternalComms::RtsWifiScanResponse(buffer);
     }
     else {
       this->_RtsWifiScanResponse.Unpack(buffer);
@@ -6817,7 +17226,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsOtaUpdateRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsOtaUpdateRequest)) Anki::Victor::ExternalComms::RtsOtaUpdateRequest(buffer);
+      new(&(this->_RtsOtaUpdateRequest)) Anki::Vector::ExternalComms::RtsOtaUpdateRequest(buffer);
     }
     else {
       this->_RtsOtaUpdateRequest.Unpack(buffer);
@@ -6825,7 +17234,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsOtaUpdateResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsOtaUpdateResponse)) Anki::Victor::ExternalComms::RtsOtaUpdateResponse(buffer);
+      new(&(this->_RtsOtaUpdateResponse)) Anki::Vector::ExternalComms::RtsOtaUpdateResponse(buffer);
     }
     else {
       this->_RtsOtaUpdateResponse.Unpack(buffer);
@@ -6833,7 +17242,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsCancelPairing:
     if (newTag != oldTag) {
-      new(&(this->_RtsCancelPairing)) Anki::Victor::ExternalComms::RtsCancelPairing(buffer);
+      new(&(this->_RtsCancelPairing)) Anki::Vector::ExternalComms::RtsCancelPairing(buffer);
     }
     else {
       this->_RtsCancelPairing.Unpack(buffer);
@@ -6841,7 +17250,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsForceDisconnect:
     if (newTag != oldTag) {
-      new(&(this->_RtsForceDisconnect)) Anki::Victor::ExternalComms::RtsForceDisconnect(buffer);
+      new(&(this->_RtsForceDisconnect)) Anki::Vector::ExternalComms::RtsForceDisconnect(buffer);
     }
     else {
       this->_RtsForceDisconnect.Unpack(buffer);
@@ -6849,7 +17258,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsAck:
     if (newTag != oldTag) {
-      new(&(this->_RtsAck)) Anki::Victor::ExternalComms::RtsAck(buffer);
+      new(&(this->_RtsAck)) Anki::Vector::ExternalComms::RtsAck(buffer);
     }
     else {
       this->_RtsAck.Unpack(buffer);
@@ -6857,7 +17266,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiAccessPointRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiAccessPointRequest)) Anki::Victor::ExternalComms::RtsWifiAccessPointRequest(buffer);
+      new(&(this->_RtsWifiAccessPointRequest)) Anki::Vector::ExternalComms::RtsWifiAccessPointRequest(buffer);
     }
     else {
       this->_RtsWifiAccessPointRequest.Unpack(buffer);
@@ -6865,7 +17274,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsWifiAccessPointResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsWifiAccessPointResponse)) Anki::Victor::ExternalComms::RtsWifiAccessPointResponse(buffer);
+      new(&(this->_RtsWifiAccessPointResponse)) Anki::Vector::ExternalComms::RtsWifiAccessPointResponse(buffer);
     }
     else {
       this->_RtsWifiAccessPointResponse.Unpack(buffer);
@@ -6873,7 +17282,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsSshRequest:
     if (newTag != oldTag) {
-      new(&(this->_RtsSshRequest)) Anki::Victor::ExternalComms::RtsSshRequest(buffer);
+      new(&(this->_RtsSshRequest)) Anki::Vector::ExternalComms::RtsSshRequest(buffer);
     }
     else {
       this->_RtsSshRequest.Unpack(buffer);
@@ -6881,7 +17290,7 @@ size_t RtsConnection_1::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsSshResponse:
     if (newTag != oldTag) {
-      new(&(this->_RtsSshResponse)) Anki::Victor::ExternalComms::RtsSshResponse(buffer);
+      new(&(this->_RtsSshResponse)) Anki::Vector::ExternalComms::RtsSshResponse(buffer);
     }
     else {
       this->_RtsSshResponse.Unpack(buffer);
@@ -7251,177 +17660,45 @@ const char* RtsConnection_1TagToString(const RtsConnection_1Tag tag) {
   }
 }
 
-const char* RtsConnection_1VersionHashStr = "eef56a2497e693232383647c52126582";
+const char* RtsConnection_1VersionHashStr = "4bf0c4ef0a787465818e85c24ce2bb75";
 
 const uint8_t RtsConnection_1VersionHash[16] = { 
-    0xee, 0xf5, 0x6a, 0x24, 0x97, 0xe6, 0x93, 0x23, 0x23, 0x83, 0x64, 0x7c, 0x52, 0x12, 0x65, 0x82 
+    0x4b, 0xf0, 0xc4, 0xef, 0xa, 0x78, 0x74, 0x65, 0x81, 0x8e, 0x85, 0xc2, 0x4c, 0xe2, 0xbb, 0x75 
 };
 
-const char* EnumToString(const RobotStatus m)
-{
-  switch(m) {
-    case RobotStatus::Exploring:
-      return "Exploring";
-    default: return nullptr;
-  }
-  return nullptr;
-}
+// UNION RtsConnection
 
-const char* RobotStatusVersionHashStr = "8a243e4679d7b35a9add296b8e81af6b";
-
-const uint8_t RobotStatusVersionHash[16] = { 
-    0x8a, 0x24, 0x3e, 0x46, 0x79, 0xd7, 0xb3, 0x5a, 0x9a, 0xdd, 0x29, 0x6b, 0x8e, 0x81, 0xaf, 0x6b 
-};
-
-// MESSAGE RobotStatusRequest
-
-RobotStatusRequest::RobotStatusRequest(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-RobotStatusRequest::RobotStatusRequest(const uint8_t* buff, size_t len)
-: RobotStatusRequest::RobotStatusRequest({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t RobotStatusRequest::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t RobotStatusRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t RobotStatusRequest::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t RobotStatusRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  return buffer.GetBytesRead();
-}
-
-size_t RobotStatusRequest::Size() const
-{
-  size_t result = 0;
-  return result;
-}
-
-bool RobotStatusRequest::operator==(const RobotStatusRequest& other) const
-{
-return true;
-}
-
-bool RobotStatusRequest::operator!=(const RobotStatusRequest& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* RobotStatusRequestVersionHashStr = "186d0fb002640102bd18a9ea4356e327";
-
-const uint8_t RobotStatusRequestVersionHash[16] = { 
-    0x18, 0x6d, 0xf, 0xb0, 0x2, 0x64, 0x1, 0x2, 0xbd, 0x18, 0xa9, 0xea, 0x43, 0x56, 0xe3, 0x27 
-};
-
-// MESSAGE RobotStatusResponse
-
-RobotStatusResponse::RobotStatusResponse(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-RobotStatusResponse::RobotStatusResponse(const uint8_t* buff, size_t len)
-: RobotStatusResponse::RobotStatusResponse({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t RobotStatusResponse::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t RobotStatusResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.Write(this->response);
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t RobotStatusResponse::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t RobotStatusResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  buffer.Read(this->response);
-  return buffer.GetBytesRead();
-}
-
-size_t RobotStatusResponse::Size() const
-{
-  size_t result = 0;
-  // response
-  result += 2; // RobotStatus
-  return result;
-}
-
-bool RobotStatusResponse::operator==(const RobotStatusResponse& other) const
-{
-  return (this->response == other.response);
-}
-
-bool RobotStatusResponse::operator!=(const RobotStatusResponse& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* RobotStatusResponseVersionHashStr = "d8abdaacb349941a777213c23f314f73";
-
-const uint8_t RobotStatusResponseVersionHash[16] = { 
-    0xd8, 0xab, 0xda, 0xac, 0xb3, 0x49, 0x94, 0x1a, 0x77, 0x72, 0x13, 0xc2, 0x3f, 0x31, 0x4f, 0x73 
-};
-
-// UNION AppGeneral
-
-AppGeneral::AppGeneral(const CLAD::SafeMessageBuffer& buff)
+RtsConnection::RtsConnection(const CLAD::SafeMessageBuffer& buff)
 : _tag(Tag::INVALID)
 {
   Unpack(buff);
 }
 
-AppGeneral::AppGeneral(const uint8_t* buffer, size_t length)
+RtsConnection::RtsConnection(const uint8_t* buffer, size_t length)
 : _tag(Tag::INVALID)
 {
   CLAD::SafeMessageBuffer buff(const_cast<uint8_t*>(buffer), length);
   Unpack(buff);
 }
 
-AppGeneral::AppGeneral(const AppGeneral& other)
+RtsConnection::RtsConnection(const RtsConnection& other)
 : _tag(other._tag)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
-  case Tag::RobotStatusRequest:
-    new(&(this->_RobotStatusRequest)) Anki::Victor::ExternalComms::RobotStatusRequest(other._RobotStatusRequest);
+  case Tag::RtsConnection_2:
+    new(&(this->_RtsConnection_2)) Anki::Vector::ExternalComms::RtsConnection_2(other._RtsConnection_2);
     break;
-  case Tag::RobotStatusResponse:
-    new(&(this->_RobotStatusResponse)) Anki::Victor::ExternalComms::RobotStatusResponse(other._RobotStatusResponse);
+  case Tag::RtsConnection_3:
+    new(&(this->_RtsConnection_3)) Anki::Vector::ExternalComms::RtsConnection_3(other._RtsConnection_3);
+    break;
+  case Tag::RtsConnection_4:
+    new(&(this->_RtsConnection_4)) Anki::Vector::ExternalComms::RtsConnection_4(other._RtsConnection_4);
+    break;
+  case Tag::RtsConnection_5:
+    new(&(this->_RtsConnection_5)) Anki::Vector::ExternalComms::RtsConnection_5(other._RtsConnection_5);
     break;
   default:
     _tag = Tag::INVALID;
@@ -7429,18 +17706,24 @@ AppGeneral::AppGeneral(const AppGeneral& other)
   }
 }
 
-AppGeneral::AppGeneral(AppGeneral&& other) noexcept
+RtsConnection::RtsConnection(RtsConnection&& other) noexcept
 : _tag(other._tag)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
-  case Tag::RobotStatusRequest:
-    new(&(this->_RobotStatusRequest)) Anki::Victor::ExternalComms::RobotStatusRequest(std::move(other._RobotStatusRequest));
+  case Tag::RtsConnection_2:
+    new(&(this->_RtsConnection_2)) Anki::Vector::ExternalComms::RtsConnection_2(std::move(other._RtsConnection_2));
     break;
-  case Tag::RobotStatusResponse:
-    new(&(this->_RobotStatusResponse)) Anki::Victor::ExternalComms::RobotStatusResponse(std::move(other._RobotStatusResponse));
+  case Tag::RtsConnection_3:
+    new(&(this->_RtsConnection_3)) Anki::Vector::ExternalComms::RtsConnection_3(std::move(other._RtsConnection_3));
+    break;
+  case Tag::RtsConnection_4:
+    new(&(this->_RtsConnection_4)) Anki::Vector::ExternalComms::RtsConnection_4(std::move(other._RtsConnection_4));
+    break;
+  case Tag::RtsConnection_5:
+    new(&(this->_RtsConnection_5)) Anki::Vector::ExternalComms::RtsConnection_5(std::move(other._RtsConnection_5));
     break;
   default:
     _tag = Tag::INVALID;
@@ -7449,20 +17732,26 @@ AppGeneral::AppGeneral(AppGeneral&& other) noexcept
   other.ClearCurrent();
 }
 
-AppGeneral& AppGeneral::operator=(const AppGeneral& other)
+RtsConnection& RtsConnection::operator=(const RtsConnection& other)
 {
   if(this == &other) { return *this; }
   ClearCurrent();
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
-  case Tag::RobotStatusRequest:
-    new(&(this->_RobotStatusRequest)) Anki::Victor::ExternalComms::RobotStatusRequest(other._RobotStatusRequest);
+  case Tag::RtsConnection_2:
+    new(&(this->_RtsConnection_2)) Anki::Vector::ExternalComms::RtsConnection_2(other._RtsConnection_2);
     break;
-  case Tag::RobotStatusResponse:
-    new(&(this->_RobotStatusResponse)) Anki::Victor::ExternalComms::RobotStatusResponse(other._RobotStatusResponse);
+  case Tag::RtsConnection_3:
+    new(&(this->_RtsConnection_3)) Anki::Vector::ExternalComms::RtsConnection_3(other._RtsConnection_3);
+    break;
+  case Tag::RtsConnection_4:
+    new(&(this->_RtsConnection_4)) Anki::Vector::ExternalComms::RtsConnection_4(other._RtsConnection_4);
+    break;
+  case Tag::RtsConnection_5:
+    new(&(this->_RtsConnection_5)) Anki::Vector::ExternalComms::RtsConnection_5(other._RtsConnection_5);
     break;
   default:
     _tag = Tag::INVALID;
@@ -7471,20 +17760,26 @@ AppGeneral& AppGeneral::operator=(const AppGeneral& other)
   return *this;
 }
 
-AppGeneral& AppGeneral::operator=(AppGeneral&& other) noexcept
+RtsConnection& RtsConnection::operator=(RtsConnection&& other) noexcept
 {
   if(this == &other) { return *this; }
   ClearCurrent();
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
-  case Tag::RobotStatusRequest:
-    new(&(this->_RobotStatusRequest)) Anki::Victor::ExternalComms::RobotStatusRequest(std::move(other._RobotStatusRequest));
+  case Tag::RtsConnection_2:
+    new(&(this->_RtsConnection_2)) Anki::Vector::ExternalComms::RtsConnection_2(std::move(other._RtsConnection_2));
     break;
-  case Tag::RobotStatusResponse:
-    new(&(this->_RobotStatusResponse)) Anki::Victor::ExternalComms::RobotStatusResponse(std::move(other._RobotStatusResponse));
+  case Tag::RtsConnection_3:
+    new(&(this->_RtsConnection_3)) Anki::Vector::ExternalComms::RtsConnection_3(std::move(other._RtsConnection_3));
+    break;
+  case Tag::RtsConnection_4:
+    new(&(this->_RtsConnection_4)) Anki::Vector::ExternalComms::RtsConnection_4(std::move(other._RtsConnection_4));
+    break;
+  case Tag::RtsConnection_5:
+    new(&(this->_RtsConnection_5)) Anki::Vector::ExternalComms::RtsConnection_5(std::move(other._RtsConnection_5));
     break;
   default:
     _tag = Tag::INVALID;
@@ -7494,181 +17789,293 @@ AppGeneral& AppGeneral::operator=(AppGeneral&& other) noexcept
   return *this;
 }
 
-AppGeneral AppGeneral::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection RtsConnection::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  AppGeneral m;
+  RtsConnection m;
   m.Set_Error(new_Error);
   return m;
 }
 
-AppGeneral::AppGeneral(Anki::Victor::ExternalComms::Error&& new_Error)
+RtsConnection::RtsConnection(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
   _tag = Tag::Error;
 }
 
-const Anki::Victor::ExternalComms::Error& AppGeneral::Get_Error() const
+const Anki::Vector::ExternalComms::Error& RtsConnection::Get_Error() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
-void AppGeneral::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
+void RtsConnection::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
 {
   if(this->_tag == Tag::Error) {
     this->_Error = new_Error;
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
     _tag = Tag::Error;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::Error& AppGeneral::Get_<AppGeneral::Tag::Error>() const
+const Anki::Vector::ExternalComms::Error& RtsConnection::Get_<RtsConnection::Tag::Error>() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
 template<>
-AppGeneral AppGeneral::Create_<AppGeneral::Tag::Error>(Anki::Victor::ExternalComms::Error member)
+RtsConnection RtsConnection::Create_<RtsConnection::Tag::Error>(Anki::Vector::ExternalComms::Error member)
 {
   return CreateError(std::move(member));
 }
 
-void AppGeneral::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
+void RtsConnection::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   if (this->_tag == Tag::Error) {
     this->_Error = std::move(new_Error);
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
     _tag = Tag::Error;
   }
 }
 
-AppGeneral AppGeneral::CreateRobotStatusRequest(Anki::Victor::ExternalComms::RobotStatusRequest&& new_RobotStatusRequest)
+RtsConnection RtsConnection::CreateRtsConnection_2(Anki::Vector::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
 {
-  AppGeneral m;
-  m.Set_RobotStatusRequest(new_RobotStatusRequest);
+  RtsConnection m;
+  m.Set_RtsConnection_2(new_RtsConnection_2);
   return m;
 }
 
-AppGeneral::AppGeneral(Anki::Victor::ExternalComms::RobotStatusRequest&& new_RobotStatusRequest)
+RtsConnection::RtsConnection(Anki::Vector::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
 {
-  new(&this->_RobotStatusRequest) Anki::Victor::ExternalComms::RobotStatusRequest(std::move(new_RobotStatusRequest));
-  _tag = Tag::RobotStatusRequest;
+  new(&this->_RtsConnection_2) Anki::Vector::ExternalComms::RtsConnection_2(std::move(new_RtsConnection_2));
+  _tag = Tag::RtsConnection_2;
 }
 
-const Anki::Victor::ExternalComms::RobotStatusRequest& AppGeneral::Get_RobotStatusRequest() const
+const Anki::Vector::ExternalComms::RtsConnection_2& RtsConnection::Get_RtsConnection_2() const
 {
-  assert(_tag == Tag::RobotStatusRequest);
-  return this->_RobotStatusRequest;
+  assert(_tag == Tag::RtsConnection_2);
+  return this->_RtsConnection_2;
 }
 
-void AppGeneral::Set_RobotStatusRequest(const Anki::Victor::ExternalComms::RobotStatusRequest& new_RobotStatusRequest)
+void RtsConnection::Set_RtsConnection_2(const Anki::Vector::ExternalComms::RtsConnection_2& new_RtsConnection_2)
 {
-  if(this->_tag == Tag::RobotStatusRequest) {
-    this->_RobotStatusRequest = new_RobotStatusRequest;
+  if(this->_tag == Tag::RtsConnection_2) {
+    this->_RtsConnection_2 = new_RtsConnection_2;
   }
   else {
     ClearCurrent();
-    new(&this->_RobotStatusRequest) Anki::Victor::ExternalComms::RobotStatusRequest(new_RobotStatusRequest);
-    _tag = Tag::RobotStatusRequest;
+    new(&this->_RtsConnection_2) Anki::Vector::ExternalComms::RtsConnection_2(new_RtsConnection_2);
+    _tag = Tag::RtsConnection_2;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RobotStatusRequest& AppGeneral::Get_<AppGeneral::Tag::RobotStatusRequest>() const
+const Anki::Vector::ExternalComms::RtsConnection_2& RtsConnection::Get_<RtsConnection::Tag::RtsConnection_2>() const
 {
-  assert(_tag == Tag::RobotStatusRequest);
-  return this->_RobotStatusRequest;
+  assert(_tag == Tag::RtsConnection_2);
+  return this->_RtsConnection_2;
 }
 
 template<>
-AppGeneral AppGeneral::Create_<AppGeneral::Tag::RobotStatusRequest>(Anki::Victor::ExternalComms::RobotStatusRequest member)
+RtsConnection RtsConnection::Create_<RtsConnection::Tag::RtsConnection_2>(Anki::Vector::ExternalComms::RtsConnection_2 member)
 {
-  return CreateRobotStatusRequest(std::move(member));
+  return CreateRtsConnection_2(std::move(member));
 }
 
-void AppGeneral::Set_RobotStatusRequest(Anki::Victor::ExternalComms::RobotStatusRequest&& new_RobotStatusRequest)
+void RtsConnection::Set_RtsConnection_2(Anki::Vector::ExternalComms::RtsConnection_2&& new_RtsConnection_2)
 {
-  if (this->_tag == Tag::RobotStatusRequest) {
-    this->_RobotStatusRequest = std::move(new_RobotStatusRequest);
+  if (this->_tag == Tag::RtsConnection_2) {
+    this->_RtsConnection_2 = std::move(new_RtsConnection_2);
   }
   else {
     ClearCurrent();
-    new(&this->_RobotStatusRequest) Anki::Victor::ExternalComms::RobotStatusRequest(std::move(new_RobotStatusRequest));
-    _tag = Tag::RobotStatusRequest;
+    new(&this->_RtsConnection_2) Anki::Vector::ExternalComms::RtsConnection_2(std::move(new_RtsConnection_2));
+    _tag = Tag::RtsConnection_2;
   }
 }
 
-AppGeneral AppGeneral::CreateRobotStatusResponse(Anki::Victor::ExternalComms::RobotStatusResponse&& new_RobotStatusResponse)
+RtsConnection RtsConnection::CreateRtsConnection_3(Anki::Vector::ExternalComms::RtsConnection_3&& new_RtsConnection_3)
 {
-  AppGeneral m;
-  m.Set_RobotStatusResponse(new_RobotStatusResponse);
+  RtsConnection m;
+  m.Set_RtsConnection_3(new_RtsConnection_3);
   return m;
 }
 
-AppGeneral::AppGeneral(Anki::Victor::ExternalComms::RobotStatusResponse&& new_RobotStatusResponse)
+RtsConnection::RtsConnection(Anki::Vector::ExternalComms::RtsConnection_3&& new_RtsConnection_3)
 {
-  new(&this->_RobotStatusResponse) Anki::Victor::ExternalComms::RobotStatusResponse(std::move(new_RobotStatusResponse));
-  _tag = Tag::RobotStatusResponse;
+  new(&this->_RtsConnection_3) Anki::Vector::ExternalComms::RtsConnection_3(std::move(new_RtsConnection_3));
+  _tag = Tag::RtsConnection_3;
 }
 
-const Anki::Victor::ExternalComms::RobotStatusResponse& AppGeneral::Get_RobotStatusResponse() const
+const Anki::Vector::ExternalComms::RtsConnection_3& RtsConnection::Get_RtsConnection_3() const
 {
-  assert(_tag == Tag::RobotStatusResponse);
-  return this->_RobotStatusResponse;
+  assert(_tag == Tag::RtsConnection_3);
+  return this->_RtsConnection_3;
 }
 
-void AppGeneral::Set_RobotStatusResponse(const Anki::Victor::ExternalComms::RobotStatusResponse& new_RobotStatusResponse)
+void RtsConnection::Set_RtsConnection_3(const Anki::Vector::ExternalComms::RtsConnection_3& new_RtsConnection_3)
 {
-  if(this->_tag == Tag::RobotStatusResponse) {
-    this->_RobotStatusResponse = new_RobotStatusResponse;
+  if(this->_tag == Tag::RtsConnection_3) {
+    this->_RtsConnection_3 = new_RtsConnection_3;
   }
   else {
     ClearCurrent();
-    new(&this->_RobotStatusResponse) Anki::Victor::ExternalComms::RobotStatusResponse(new_RobotStatusResponse);
-    _tag = Tag::RobotStatusResponse;
+    new(&this->_RtsConnection_3) Anki::Vector::ExternalComms::RtsConnection_3(new_RtsConnection_3);
+    _tag = Tag::RtsConnection_3;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RobotStatusResponse& AppGeneral::Get_<AppGeneral::Tag::RobotStatusResponse>() const
+const Anki::Vector::ExternalComms::RtsConnection_3& RtsConnection::Get_<RtsConnection::Tag::RtsConnection_3>() const
 {
-  assert(_tag == Tag::RobotStatusResponse);
-  return this->_RobotStatusResponse;
+  assert(_tag == Tag::RtsConnection_3);
+  return this->_RtsConnection_3;
 }
 
 template<>
-AppGeneral AppGeneral::Create_<AppGeneral::Tag::RobotStatusResponse>(Anki::Victor::ExternalComms::RobotStatusResponse member)
+RtsConnection RtsConnection::Create_<RtsConnection::Tag::RtsConnection_3>(Anki::Vector::ExternalComms::RtsConnection_3 member)
 {
-  return CreateRobotStatusResponse(std::move(member));
+  return CreateRtsConnection_3(std::move(member));
 }
 
-void AppGeneral::Set_RobotStatusResponse(Anki::Victor::ExternalComms::RobotStatusResponse&& new_RobotStatusResponse)
+void RtsConnection::Set_RtsConnection_3(Anki::Vector::ExternalComms::RtsConnection_3&& new_RtsConnection_3)
 {
-  if (this->_tag == Tag::RobotStatusResponse) {
-    this->_RobotStatusResponse = std::move(new_RobotStatusResponse);
+  if (this->_tag == Tag::RtsConnection_3) {
+    this->_RtsConnection_3 = std::move(new_RtsConnection_3);
   }
   else {
     ClearCurrent();
-    new(&this->_RobotStatusResponse) Anki::Victor::ExternalComms::RobotStatusResponse(std::move(new_RobotStatusResponse));
-    _tag = Tag::RobotStatusResponse;
+    new(&this->_RtsConnection_3) Anki::Vector::ExternalComms::RtsConnection_3(std::move(new_RtsConnection_3));
+    _tag = Tag::RtsConnection_3;
   }
 }
 
-size_t AppGeneral::Unpack(const uint8_t* buff, const size_t len)
+RtsConnection RtsConnection::CreateRtsConnection_4(Anki::Vector::ExternalComms::RtsConnection_4&& new_RtsConnection_4)
+{
+  RtsConnection m;
+  m.Set_RtsConnection_4(new_RtsConnection_4);
+  return m;
+}
+
+RtsConnection::RtsConnection(Anki::Vector::ExternalComms::RtsConnection_4&& new_RtsConnection_4)
+{
+  new(&this->_RtsConnection_4) Anki::Vector::ExternalComms::RtsConnection_4(std::move(new_RtsConnection_4));
+  _tag = Tag::RtsConnection_4;
+}
+
+const Anki::Vector::ExternalComms::RtsConnection_4& RtsConnection::Get_RtsConnection_4() const
+{
+  assert(_tag == Tag::RtsConnection_4);
+  return this->_RtsConnection_4;
+}
+
+void RtsConnection::Set_RtsConnection_4(const Anki::Vector::ExternalComms::RtsConnection_4& new_RtsConnection_4)
+{
+  if(this->_tag == Tag::RtsConnection_4) {
+    this->_RtsConnection_4 = new_RtsConnection_4;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnection_4) Anki::Vector::ExternalComms::RtsConnection_4(new_RtsConnection_4);
+    _tag = Tag::RtsConnection_4;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnection_4& RtsConnection::Get_<RtsConnection::Tag::RtsConnection_4>() const
+{
+  assert(_tag == Tag::RtsConnection_4);
+  return this->_RtsConnection_4;
+}
+
+template<>
+RtsConnection RtsConnection::Create_<RtsConnection::Tag::RtsConnection_4>(Anki::Vector::ExternalComms::RtsConnection_4 member)
+{
+  return CreateRtsConnection_4(std::move(member));
+}
+
+void RtsConnection::Set_RtsConnection_4(Anki::Vector::ExternalComms::RtsConnection_4&& new_RtsConnection_4)
+{
+  if (this->_tag == Tag::RtsConnection_4) {
+    this->_RtsConnection_4 = std::move(new_RtsConnection_4);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnection_4) Anki::Vector::ExternalComms::RtsConnection_4(std::move(new_RtsConnection_4));
+    _tag = Tag::RtsConnection_4;
+  }
+}
+
+RtsConnection RtsConnection::CreateRtsConnection_5(Anki::Vector::ExternalComms::RtsConnection_5&& new_RtsConnection_5)
+{
+  RtsConnection m;
+  m.Set_RtsConnection_5(new_RtsConnection_5);
+  return m;
+}
+
+RtsConnection::RtsConnection(Anki::Vector::ExternalComms::RtsConnection_5&& new_RtsConnection_5)
+{
+  new(&this->_RtsConnection_5) Anki::Vector::ExternalComms::RtsConnection_5(std::move(new_RtsConnection_5));
+  _tag = Tag::RtsConnection_5;
+}
+
+const Anki::Vector::ExternalComms::RtsConnection_5& RtsConnection::Get_RtsConnection_5() const
+{
+  assert(_tag == Tag::RtsConnection_5);
+  return this->_RtsConnection_5;
+}
+
+void RtsConnection::Set_RtsConnection_5(const Anki::Vector::ExternalComms::RtsConnection_5& new_RtsConnection_5)
+{
+  if(this->_tag == Tag::RtsConnection_5) {
+    this->_RtsConnection_5 = new_RtsConnection_5;
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnection_5) Anki::Vector::ExternalComms::RtsConnection_5(new_RtsConnection_5);
+    _tag = Tag::RtsConnection_5;
+  }
+}
+
+template<>
+const Anki::Vector::ExternalComms::RtsConnection_5& RtsConnection::Get_<RtsConnection::Tag::RtsConnection_5>() const
+{
+  assert(_tag == Tag::RtsConnection_5);
+  return this->_RtsConnection_5;
+}
+
+template<>
+RtsConnection RtsConnection::Create_<RtsConnection::Tag::RtsConnection_5>(Anki::Vector::ExternalComms::RtsConnection_5 member)
+{
+  return CreateRtsConnection_5(std::move(member));
+}
+
+void RtsConnection::Set_RtsConnection_5(Anki::Vector::ExternalComms::RtsConnection_5&& new_RtsConnection_5)
+{
+  if (this->_tag == Tag::RtsConnection_5) {
+    this->_RtsConnection_5 = std::move(new_RtsConnection_5);
+  }
+  else {
+    ClearCurrent();
+    new(&this->_RtsConnection_5) Anki::Vector::ExternalComms::RtsConnection_5(std::move(new_RtsConnection_5));
+    _tag = Tag::RtsConnection_5;
+  }
+}
+
+size_t RtsConnection::Unpack(const uint8_t* buff, const size_t len)
 {
   const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
   return Unpack(buffer);
 }
 
-size_t AppGeneral::Unpack(const CLAD::SafeMessageBuffer& buffer)
+size_t RtsConnection::Unpack(const CLAD::SafeMessageBuffer& buffer)
 {
   Tag newTag {Tag::INVALID};
   const Tag oldTag {GetTag()};
@@ -7679,26 +18086,42 @@ size_t AppGeneral::Unpack(const CLAD::SafeMessageBuffer& buffer)
   switch(newTag) {
   case Tag::Error:
     if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
     }
     else {
       this->_Error.Unpack(buffer);
     }
     break;
-  case Tag::RobotStatusRequest:
+  case Tag::RtsConnection_2:
     if (newTag != oldTag) {
-      new(&(this->_RobotStatusRequest)) Anki::Victor::ExternalComms::RobotStatusRequest(buffer);
+      new(&(this->_RtsConnection_2)) Anki::Vector::ExternalComms::RtsConnection_2(buffer);
     }
     else {
-      this->_RobotStatusRequest.Unpack(buffer);
+      this->_RtsConnection_2.Unpack(buffer);
     }
     break;
-  case Tag::RobotStatusResponse:
+  case Tag::RtsConnection_3:
     if (newTag != oldTag) {
-      new(&(this->_RobotStatusResponse)) Anki::Victor::ExternalComms::RobotStatusResponse(buffer);
+      new(&(this->_RtsConnection_3)) Anki::Vector::ExternalComms::RtsConnection_3(buffer);
     }
     else {
-      this->_RobotStatusResponse.Unpack(buffer);
+      this->_RtsConnection_3.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnection_4:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnection_4)) Anki::Vector::ExternalComms::RtsConnection_4(buffer);
+    }
+    else {
+      this->_RtsConnection_4.Unpack(buffer);
+    }
+    break;
+  case Tag::RtsConnection_5:
+    if (newTag != oldTag) {
+      new(&(this->_RtsConnection_5)) Anki::Vector::ExternalComms::RtsConnection_5(buffer);
+    }
+    else {
+      this->_RtsConnection_5.Unpack(buffer);
     }
     break;
   default:
@@ -7708,24 +18131,30 @@ size_t AppGeneral::Unpack(const CLAD::SafeMessageBuffer& buffer)
   return buffer.GetBytesRead();
 }
 
-size_t AppGeneral::Pack(uint8_t* buff, size_t len) const
+size_t RtsConnection::Pack(uint8_t* buff, size_t len) const
 {
   CLAD::SafeMessageBuffer buffer(buff, len, false);
   return Pack(buffer);
 }
 
-size_t AppGeneral::Pack(CLAD::SafeMessageBuffer& buffer) const
+size_t RtsConnection::Pack(CLAD::SafeMessageBuffer& buffer) const
 {
   buffer.Write(_tag);
   switch(GetTag()) {
   case Tag::Error:
     this->_Error.Pack(buffer);
     break;
-  case Tag::RobotStatusRequest:
-    this->_RobotStatusRequest.Pack(buffer);
+  case Tag::RtsConnection_2:
+    this->_RtsConnection_2.Pack(buffer);
     break;
-  case Tag::RobotStatusResponse:
-    this->_RobotStatusResponse.Pack(buffer);
+  case Tag::RtsConnection_3:
+    this->_RtsConnection_3.Pack(buffer);
+    break;
+  case Tag::RtsConnection_4:
+    this->_RtsConnection_4.Pack(buffer);
+    break;
+  case Tag::RtsConnection_5:
+    this->_RtsConnection_5.Pack(buffer);
     break;
   default:
     break;
@@ -7733,18 +18162,24 @@ size_t AppGeneral::Pack(CLAD::SafeMessageBuffer& buffer) const
   return buffer.GetBytesWritten();
 }
 
-size_t AppGeneral::Size() const
+size_t RtsConnection::Size() const
 {
   size_t result {1}; // tag = uint_8
   switch(GetTag()) {
   case Tag::Error:
     result += this->_Error.Size(); // Error
     break;
-  case Tag::RobotStatusRequest:
-    result += this->_RobotStatusRequest.Size(); // RobotStatusRequest
+  case Tag::RtsConnection_2:
+    result += this->_RtsConnection_2.Size(); // RtsConnection_2
     break;
-  case Tag::RobotStatusResponse:
-    result += this->_RobotStatusResponse.Size(); // RobotStatusResponse
+  case Tag::RtsConnection_3:
+    result += this->_RtsConnection_3.Size(); // RtsConnection_3
+    break;
+  case Tag::RtsConnection_4:
+    result += this->_RtsConnection_4.Size(); // RtsConnection_4
+    break;
+  case Tag::RtsConnection_5:
+    result += this->_RtsConnection_5.Size(); // RtsConnection_5
     break;
   default:
     break;
@@ -7752,7 +18187,7 @@ size_t AppGeneral::Size() const
   return result;
 }
 
-bool AppGeneral::operator==(const AppGeneral& other) const
+bool RtsConnection::operator==(const RtsConnection& other) const
 {
   if (this->_tag != other._tag) {
     return false;
@@ -7760,31 +18195,41 @@ bool AppGeneral::operator==(const AppGeneral& other) const
   switch(GetTag()) {
   case Tag::Error:
     return this->_Error == other._Error;
-  case Tag::RobotStatusRequest:
-    return this->_RobotStatusRequest == other._RobotStatusRequest;
-  case Tag::RobotStatusResponse:
-    return this->_RobotStatusResponse == other._RobotStatusResponse;
+  case Tag::RtsConnection_2:
+    return this->_RtsConnection_2 == other._RtsConnection_2;
+  case Tag::RtsConnection_3:
+    return this->_RtsConnection_3 == other._RtsConnection_3;
+  case Tag::RtsConnection_4:
+    return this->_RtsConnection_4 == other._RtsConnection_4;
+  case Tag::RtsConnection_5:
+    return this->_RtsConnection_5 == other._RtsConnection_5;
   default:
     return true;
   }
 }
 
-bool AppGeneral::operator!=(const AppGeneral& other) const
+bool RtsConnection::operator!=(const RtsConnection& other) const
 {
   return !(operator==(other));
 }
 
-void AppGeneral::ClearCurrent()
+void RtsConnection::ClearCurrent()
 {
   switch(GetTag()) {
   case Tag::Error:
     _Error.~Error();
     break;
-  case Tag::RobotStatusRequest:
-    _RobotStatusRequest.~RobotStatusRequest();
+  case Tag::RtsConnection_2:
+    _RtsConnection_2.~RtsConnection_2();
     break;
-  case Tag::RobotStatusResponse:
-    _RobotStatusResponse.~RobotStatusResponse();
+  case Tag::RtsConnection_3:
+    _RtsConnection_3.~RtsConnection_3();
+    break;
+  case Tag::RtsConnection_4:
+    _RtsConnection_4.~RtsConnection_4();
+    break;
+  case Tag::RtsConnection_5:
+    _RtsConnection_5.~RtsConnection_5();
     break;
   default:
     break;
@@ -7792,1322 +18237,86 @@ void AppGeneral::ClearCurrent()
   _tag = Tag::INVALID;
 }
 
-const char* AppGeneralTagToString(const AppGeneralTag tag) {
+const char* RtsConnectionTagToString(const RtsConnectionTag tag) {
   switch(tag) {
-  case AppGeneralTag::Error:
+  case RtsConnectionTag::Error:
     return "Error";
-  case AppGeneralTag::RobotStatusRequest:
-    return "RobotStatusRequest";
-  case AppGeneralTag::RobotStatusResponse:
-    return "RobotStatusResponse";
+  case RtsConnectionTag::RtsConnection_2:
+    return "RtsConnection_2";
+  case RtsConnectionTag::RtsConnection_3:
+    return "RtsConnection_3";
+  case RtsConnectionTag::RtsConnection_4:
+    return "RtsConnection_4";
+  case RtsConnectionTag::RtsConnection_5:
+    return "RtsConnection_5";
   default:
     return "INVALID";
   }
 }
 
-const char* AppGeneralVersionHashStr = "d44e1a9f3399efa1da51bcf4f5b90706";
+const char* RtsConnectionVersionHashStr = "2217698cbf21891a51f8051642293741";
 
-const uint8_t AppGeneralVersionHash[16] = { 
-    0xd4, 0x4e, 0x1a, 0x9f, 0x33, 0x99, 0xef, 0xa1, 0xda, 0x51, 0xbc, 0xf4, 0xf5, 0xb9, 0x7, 0x6 
+const uint8_t RtsConnectionVersionHash[16] = { 
+    0x22, 0x17, 0x69, 0x8c, 0xbf, 0x21, 0x89, 0x1a, 0x51, 0xf8, 0x5, 0x16, 0x42, 0x29, 0x37, 0x41 
 };
 
-// MESSAGE MeetVictorRequest
+// MESSAGE DeprecatedAndReserved
 
-MeetVictorRequest::MeetVictorRequest(const CLAD::SafeMessageBuffer& buffer)
+DeprecatedAndReserved::DeprecatedAndReserved(const CLAD::SafeMessageBuffer& buffer)
 
 {
   Unpack(buffer);
 }
 
-MeetVictorRequest::MeetVictorRequest(const uint8_t* buff, size_t len)
-: MeetVictorRequest::MeetVictorRequest({const_cast<uint8_t*>(buff), len, false})
+DeprecatedAndReserved::DeprecatedAndReserved(const uint8_t* buff, size_t len)
+: DeprecatedAndReserved::DeprecatedAndReserved({const_cast<uint8_t*>(buff), len, false})
 {
 }
 
-size_t MeetVictorRequest::Pack(uint8_t* buff, size_t len) const
+size_t DeprecatedAndReserved::Pack(uint8_t* buff, size_t len) const
 {
   CLAD::SafeMessageBuffer buffer(buff, len, false);
   return Pack(buffer);
 }
 
-size_t MeetVictorRequest::Pack(CLAD::SafeMessageBuffer& buffer) const
+size_t DeprecatedAndReserved::Pack(CLAD::SafeMessageBuffer& buffer) const
 {
   const size_t bytesWritten {buffer.GetBytesWritten()};
   return bytesWritten;
 }
 
-size_t MeetVictorRequest::Unpack(const uint8_t* buff, const size_t len)
+size_t DeprecatedAndReserved::Unpack(const uint8_t* buff, const size_t len)
 {
   const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
   return Unpack(buffer);
 }
 
-size_t MeetVictorRequest::Unpack(const CLAD::SafeMessageBuffer& buffer)
+size_t DeprecatedAndReserved::Unpack(const CLAD::SafeMessageBuffer& buffer)
 {
   return buffer.GetBytesRead();
 }
 
-size_t MeetVictorRequest::Size() const
+size_t DeprecatedAndReserved::Size() const
 {
   size_t result = 0;
   return result;
 }
 
-bool MeetVictorRequest::operator==(const MeetVictorRequest& other) const
+bool DeprecatedAndReserved::operator==(const DeprecatedAndReserved& other) const
 {
 return true;
 }
 
-bool MeetVictorRequest::operator!=(const MeetVictorRequest& other) const
+bool DeprecatedAndReserved::operator!=(const DeprecatedAndReserved& other) const
 {
   return !(operator==(other));
 }
 
 
-const char* MeetVictorRequestVersionHashStr = "e8f4856627cb8d063e57663d7f95a64e";
+const char* DeprecatedAndReservedVersionHashStr = "4b3ebb49cedecb2c58f78f4fe36b8459";
 
-const uint8_t MeetVictorRequestVersionHash[16] = { 
-    0xe8, 0xf4, 0x85, 0x66, 0x27, 0xcb, 0x8d, 0x6, 0x3e, 0x57, 0x66, 0x3d, 0x7f, 0x95, 0xa6, 0x4e 
-};
-
-// MESSAGE MeetVictorReadyResponse
-
-MeetVictorReadyResponse::MeetVictorReadyResponse(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorReadyResponse::MeetVictorReadyResponse(const uint8_t* buff, size_t len)
-: MeetVictorReadyResponse::MeetVictorReadyResponse({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorReadyResponse::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorReadyResponse::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.WritePString<uint8_t>(this->faceID);
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorReadyResponse::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorReadyResponse::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  buffer.ReadPString<uint8_t>(this->faceID);
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorReadyResponse::Size() const
-{
-  size_t result = 0;
-  // faceID
-  result += 1; // uint_8 (string length)
-  result += this->faceID.length(); // uint_8
-  return result;
-}
-
-bool MeetVictorReadyResponse::operator==(const MeetVictorReadyResponse& other) const
-{
-  return (this->faceID == other.faceID);
-}
-
-bool MeetVictorReadyResponse::operator!=(const MeetVictorReadyResponse& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorReadyResponseVersionHashStr = "09d5e4de68ed983c00063766b737e84f";
-
-const uint8_t MeetVictorReadyResponseVersionHash[16] = { 
-    0x9, 0xd5, 0xe4, 0xde, 0x68, 0xed, 0x98, 0x3c, 0x0, 0x6, 0x37, 0x66, 0xb7, 0x37, 0xe8, 0x4f 
-};
-
-// MESSAGE MeetVictorFaceScanStarted
-
-MeetVictorFaceScanStarted::MeetVictorFaceScanStarted(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorFaceScanStarted::MeetVictorFaceScanStarted(const uint8_t* buff, size_t len)
-: MeetVictorFaceScanStarted::MeetVictorFaceScanStarted({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorFaceScanStarted::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorFaceScanStarted::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorFaceScanStarted::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorFaceScanStarted::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorFaceScanStarted::Size() const
-{
-  size_t result = 0;
-  return result;
-}
-
-bool MeetVictorFaceScanStarted::operator==(const MeetVictorFaceScanStarted& other) const
-{
-return true;
-}
-
-bool MeetVictorFaceScanStarted::operator!=(const MeetVictorFaceScanStarted& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorFaceScanStartedVersionHashStr = "ee6bfd1e0b74af63175d1cc2378d6dc1";
-
-const uint8_t MeetVictorFaceScanStartedVersionHash[16] = { 
-    0xee, 0x6b, 0xfd, 0x1e, 0xb, 0x74, 0xaf, 0x63, 0x17, 0x5d, 0x1c, 0xc2, 0x37, 0x8d, 0x6d, 0xc1 
-};
-
-// MESSAGE MeetVictorFaceScanComplete
-
-MeetVictorFaceScanComplete::MeetVictorFaceScanComplete(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorFaceScanComplete::MeetVictorFaceScanComplete(const uint8_t* buff, size_t len)
-: MeetVictorFaceScanComplete::MeetVictorFaceScanComplete({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorFaceScanComplete::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorFaceScanComplete::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorFaceScanComplete::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorFaceScanComplete::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorFaceScanComplete::Size() const
-{
-  size_t result = 0;
-  return result;
-}
-
-bool MeetVictorFaceScanComplete::operator==(const MeetVictorFaceScanComplete& other) const
-{
-return true;
-}
-
-bool MeetVictorFaceScanComplete::operator!=(const MeetVictorFaceScanComplete& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorFaceScanCompleteVersionHashStr = "60ec24ff66256faf271d19a28777c1fa";
-
-const uint8_t MeetVictorFaceScanCompleteVersionHash[16] = { 
-    0x60, 0xec, 0x24, 0xff, 0x66, 0x25, 0x6f, 0xaf, 0x27, 0x1d, 0x19, 0xa2, 0x87, 0x77, 0xc1, 0xfa 
-};
-
-// MESSAGE MeetVictorSetUserName
-
-MeetVictorSetUserName::MeetVictorSetUserName(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorSetUserName::MeetVictorSetUserName(const uint8_t* buff, size_t len)
-: MeetVictorSetUserName::MeetVictorSetUserName({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorSetUserName::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorSetUserName::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.WritePString<uint8_t>(this->faceID);
-  buffer.WritePString<uint8_t>(this->name);
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorSetUserName::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorSetUserName::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  buffer.ReadPString<uint8_t>(this->faceID);
-  buffer.ReadPString<uint8_t>(this->name);
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorSetUserName::Size() const
-{
-  size_t result = 0;
-  // faceID
-  result += 1; // uint_8 (string length)
-  result += this->faceID.length(); // uint_8
-  // name
-  result += 1; // uint_8 (string length)
-  result += this->name.length(); // uint_8
-  return result;
-}
-
-bool MeetVictorSetUserName::operator==(const MeetVictorSetUserName& other) const
-{
-  return (this->faceID == other.faceID &&
-    this->name == other.name);
-}
-
-bool MeetVictorSetUserName::operator!=(const MeetVictorSetUserName& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorSetUserNameVersionHashStr = "cea6cab1691434ae93a457009e7a301c";
-
-const uint8_t MeetVictorSetUserNameVersionHash[16] = { 
-    0xce, 0xa6, 0xca, 0xb1, 0x69, 0x14, 0x34, 0xae, 0x93, 0xa4, 0x57, 0x0, 0x9e, 0x7a, 0x30, 0x1c 
-};
-
-// MESSAGE MeetVictorComplete
-
-MeetVictorComplete::MeetVictorComplete(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorComplete::MeetVictorComplete(const uint8_t* buff, size_t len)
-: MeetVictorComplete::MeetVictorComplete({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorComplete::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorComplete::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.Write(this->success);
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorComplete::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorComplete::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  buffer.Read(this->success);
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorComplete::Size() const
-{
-  size_t result = 0;
-  // success
-  result += 1; // bool
-  return result;
-}
-
-bool MeetVictorComplete::operator==(const MeetVictorComplete& other) const
-{
-  return (this->success == other.success);
-}
-
-bool MeetVictorComplete::operator!=(const MeetVictorComplete& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorCompleteVersionHashStr = "bc39acc3c355f8a5134c5fff4b12ec53";
-
-const uint8_t MeetVictorCompleteVersionHash[16] = { 
-    0xbc, 0x39, 0xac, 0xc3, 0xc3, 0x55, 0xf8, 0xa5, 0x13, 0x4c, 0x5f, 0xff, 0x4b, 0x12, 0xec, 0x53 
-};
-
-// MESSAGE MeetVictorError
-
-MeetVictorError::MeetVictorError(const CLAD::SafeMessageBuffer& buffer)
-
-{
-  Unpack(buffer);
-}
-
-MeetVictorError::MeetVictorError(const uint8_t* buff, size_t len)
-: MeetVictorError::MeetVictorError({const_cast<uint8_t*>(buff), len, false})
-{
-}
-
-size_t MeetVictorError::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictorError::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.WritePString<uint8_t>(this->errorString);
-  const size_t bytesWritten {buffer.GetBytesWritten()};
-  return bytesWritten;
-}
-
-size_t MeetVictorError::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictorError::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  buffer.ReadPString<uint8_t>(this->errorString);
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictorError::Size() const
-{
-  size_t result = 0;
-  // errorString
-  result += 1; // uint_8 (string length)
-  result += this->errorString.length(); // uint_8
-  return result;
-}
-
-bool MeetVictorError::operator==(const MeetVictorError& other) const
-{
-  return (this->errorString == other.errorString);
-}
-
-bool MeetVictorError::operator!=(const MeetVictorError& other) const
-{
-  return !(operator==(other));
-}
-
-
-const char* MeetVictorErrorVersionHashStr = "9635476095f1452ef8a6644c91cb4806";
-
-const uint8_t MeetVictorErrorVersionHash[16] = { 
-    0x96, 0x35, 0x47, 0x60, 0x95, 0xf1, 0x45, 0x2e, 0xf8, 0xa6, 0x64, 0x4c, 0x91, 0xcb, 0x48, 0x6 
-};
-
-// UNION MeetVictor
-
-MeetVictor::MeetVictor(const CLAD::SafeMessageBuffer& buff)
-: _tag(Tag::INVALID)
-{
-  Unpack(buff);
-}
-
-MeetVictor::MeetVictor(const uint8_t* buffer, size_t length)
-: _tag(Tag::INVALID)
-{
-  CLAD::SafeMessageBuffer buff(const_cast<uint8_t*>(buffer), length);
-  Unpack(buff);
-}
-
-MeetVictor::MeetVictor(const MeetVictor& other)
-: _tag(other._tag)
-{
-  switch(GetTag()) {
-  case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
-    break;
-  case Tag::MeetVictorRequest:
-    new(&(this->_MeetVictorRequest)) Anki::Victor::ExternalComms::MeetVictorRequest(other._MeetVictorRequest);
-    break;
-  case Tag::MeetVictorReadyResponse:
-    new(&(this->_MeetVictorReadyResponse)) Anki::Victor::ExternalComms::MeetVictorReadyResponse(other._MeetVictorReadyResponse);
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    new(&(this->_MeetVictorFaceScanStarted)) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(other._MeetVictorFaceScanStarted);
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    new(&(this->_MeetVictorFaceScanComplete)) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(other._MeetVictorFaceScanComplete);
-    break;
-  case Tag::MeetVictorSetUserName:
-    new(&(this->_MeetVictorSetUserName)) Anki::Victor::ExternalComms::MeetVictorSetUserName(other._MeetVictorSetUserName);
-    break;
-  case Tag::MeetVictorComplete:
-    new(&(this->_MeetVictorComplete)) Anki::Victor::ExternalComms::MeetVictorComplete(other._MeetVictorComplete);
-    break;
-  case Tag::MeetVictorError:
-    new(&(this->_MeetVictorError)) Anki::Victor::ExternalComms::MeetVictorError(other._MeetVictorError);
-    break;
-  default:
-    _tag = Tag::INVALID;
-    break;
-  }
-}
-
-MeetVictor::MeetVictor(MeetVictor&& other) noexcept
-: _tag(other._tag)
-{
-  switch(GetTag()) {
-  case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
-    break;
-  case Tag::MeetVictorRequest:
-    new(&(this->_MeetVictorRequest)) Anki::Victor::ExternalComms::MeetVictorRequest(std::move(other._MeetVictorRequest));
-    break;
-  case Tag::MeetVictorReadyResponse:
-    new(&(this->_MeetVictorReadyResponse)) Anki::Victor::ExternalComms::MeetVictorReadyResponse(std::move(other._MeetVictorReadyResponse));
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    new(&(this->_MeetVictorFaceScanStarted)) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(std::move(other._MeetVictorFaceScanStarted));
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    new(&(this->_MeetVictorFaceScanComplete)) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(std::move(other._MeetVictorFaceScanComplete));
-    break;
-  case Tag::MeetVictorSetUserName:
-    new(&(this->_MeetVictorSetUserName)) Anki::Victor::ExternalComms::MeetVictorSetUserName(std::move(other._MeetVictorSetUserName));
-    break;
-  case Tag::MeetVictorComplete:
-    new(&(this->_MeetVictorComplete)) Anki::Victor::ExternalComms::MeetVictorComplete(std::move(other._MeetVictorComplete));
-    break;
-  case Tag::MeetVictorError:
-    new(&(this->_MeetVictorError)) Anki::Victor::ExternalComms::MeetVictorError(std::move(other._MeetVictorError));
-    break;
-  default:
-    _tag = Tag::INVALID;
-    break;
-  }
-  other.ClearCurrent();
-}
-
-MeetVictor& MeetVictor::operator=(const MeetVictor& other)
-{
-  if(this == &other) { return *this; }
-  ClearCurrent();
-  _tag = other._tag;
-  switch(GetTag()) {
-  case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
-    break;
-  case Tag::MeetVictorRequest:
-    new(&(this->_MeetVictorRequest)) Anki::Victor::ExternalComms::MeetVictorRequest(other._MeetVictorRequest);
-    break;
-  case Tag::MeetVictorReadyResponse:
-    new(&(this->_MeetVictorReadyResponse)) Anki::Victor::ExternalComms::MeetVictorReadyResponse(other._MeetVictorReadyResponse);
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    new(&(this->_MeetVictorFaceScanStarted)) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(other._MeetVictorFaceScanStarted);
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    new(&(this->_MeetVictorFaceScanComplete)) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(other._MeetVictorFaceScanComplete);
-    break;
-  case Tag::MeetVictorSetUserName:
-    new(&(this->_MeetVictorSetUserName)) Anki::Victor::ExternalComms::MeetVictorSetUserName(other._MeetVictorSetUserName);
-    break;
-  case Tag::MeetVictorComplete:
-    new(&(this->_MeetVictorComplete)) Anki::Victor::ExternalComms::MeetVictorComplete(other._MeetVictorComplete);
-    break;
-  case Tag::MeetVictorError:
-    new(&(this->_MeetVictorError)) Anki::Victor::ExternalComms::MeetVictorError(other._MeetVictorError);
-    break;
-  default:
-    _tag = Tag::INVALID;
-    break;
-  }
-  return *this;
-}
-
-MeetVictor& MeetVictor::operator=(MeetVictor&& other) noexcept
-{
-  if(this == &other) { return *this; }
-  ClearCurrent();
-  _tag = other._tag;
-  switch(GetTag()) {
-  case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
-    break;
-  case Tag::MeetVictorRequest:
-    new(&(this->_MeetVictorRequest)) Anki::Victor::ExternalComms::MeetVictorRequest(std::move(other._MeetVictorRequest));
-    break;
-  case Tag::MeetVictorReadyResponse:
-    new(&(this->_MeetVictorReadyResponse)) Anki::Victor::ExternalComms::MeetVictorReadyResponse(std::move(other._MeetVictorReadyResponse));
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    new(&(this->_MeetVictorFaceScanStarted)) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(std::move(other._MeetVictorFaceScanStarted));
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    new(&(this->_MeetVictorFaceScanComplete)) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(std::move(other._MeetVictorFaceScanComplete));
-    break;
-  case Tag::MeetVictorSetUserName:
-    new(&(this->_MeetVictorSetUserName)) Anki::Victor::ExternalComms::MeetVictorSetUserName(std::move(other._MeetVictorSetUserName));
-    break;
-  case Tag::MeetVictorComplete:
-    new(&(this->_MeetVictorComplete)) Anki::Victor::ExternalComms::MeetVictorComplete(std::move(other._MeetVictorComplete));
-    break;
-  case Tag::MeetVictorError:
-    new(&(this->_MeetVictorError)) Anki::Victor::ExternalComms::MeetVictorError(std::move(other._MeetVictorError));
-    break;
-  default:
-    _tag = Tag::INVALID;
-    break;
-  }
-  other.ClearCurrent();
-  return *this;
-}
-
-MeetVictor MeetVictor::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
-{
-  MeetVictor m;
-  m.Set_Error(new_Error);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::Error&& new_Error)
-{
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
-  _tag = Tag::Error;
-}
-
-const Anki::Victor::ExternalComms::Error& MeetVictor::Get_Error() const
-{
-  assert(_tag == Tag::Error);
-  return this->_Error;
-}
-
-void MeetVictor::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
-{
-  if(this->_tag == Tag::Error) {
-    this->_Error = new_Error;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
-    _tag = Tag::Error;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::Error& MeetVictor::Get_<MeetVictor::Tag::Error>() const
-{
-  assert(_tag == Tag::Error);
-  return this->_Error;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::Error>(Anki::Victor::ExternalComms::Error member)
-{
-  return CreateError(std::move(member));
-}
-
-void MeetVictor::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
-{
-  if (this->_tag == Tag::Error) {
-    this->_Error = std::move(new_Error);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
-    _tag = Tag::Error;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorRequest(Anki::Victor::ExternalComms::MeetVictorRequest&& new_MeetVictorRequest)
-{
-  MeetVictor m;
-  m.Set_MeetVictorRequest(new_MeetVictorRequest);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorRequest&& new_MeetVictorRequest)
-{
-  new(&this->_MeetVictorRequest) Anki::Victor::ExternalComms::MeetVictorRequest(std::move(new_MeetVictorRequest));
-  _tag = Tag::MeetVictorRequest;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorRequest& MeetVictor::Get_MeetVictorRequest() const
-{
-  assert(_tag == Tag::MeetVictorRequest);
-  return this->_MeetVictorRequest;
-}
-
-void MeetVictor::Set_MeetVictorRequest(const Anki::Victor::ExternalComms::MeetVictorRequest& new_MeetVictorRequest)
-{
-  if(this->_tag == Tag::MeetVictorRequest) {
-    this->_MeetVictorRequest = new_MeetVictorRequest;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorRequest) Anki::Victor::ExternalComms::MeetVictorRequest(new_MeetVictorRequest);
-    _tag = Tag::MeetVictorRequest;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorRequest& MeetVictor::Get_<MeetVictor::Tag::MeetVictorRequest>() const
-{
-  assert(_tag == Tag::MeetVictorRequest);
-  return this->_MeetVictorRequest;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorRequest>(Anki::Victor::ExternalComms::MeetVictorRequest member)
-{
-  return CreateMeetVictorRequest(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorRequest(Anki::Victor::ExternalComms::MeetVictorRequest&& new_MeetVictorRequest)
-{
-  if (this->_tag == Tag::MeetVictorRequest) {
-    this->_MeetVictorRequest = std::move(new_MeetVictorRequest);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorRequest) Anki::Victor::ExternalComms::MeetVictorRequest(std::move(new_MeetVictorRequest));
-    _tag = Tag::MeetVictorRequest;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorReadyResponse(Anki::Victor::ExternalComms::MeetVictorReadyResponse&& new_MeetVictorReadyResponse)
-{
-  MeetVictor m;
-  m.Set_MeetVictorReadyResponse(new_MeetVictorReadyResponse);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorReadyResponse&& new_MeetVictorReadyResponse)
-{
-  new(&this->_MeetVictorReadyResponse) Anki::Victor::ExternalComms::MeetVictorReadyResponse(std::move(new_MeetVictorReadyResponse));
-  _tag = Tag::MeetVictorReadyResponse;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorReadyResponse& MeetVictor::Get_MeetVictorReadyResponse() const
-{
-  assert(_tag == Tag::MeetVictorReadyResponse);
-  return this->_MeetVictorReadyResponse;
-}
-
-void MeetVictor::Set_MeetVictorReadyResponse(const Anki::Victor::ExternalComms::MeetVictorReadyResponse& new_MeetVictorReadyResponse)
-{
-  if(this->_tag == Tag::MeetVictorReadyResponse) {
-    this->_MeetVictorReadyResponse = new_MeetVictorReadyResponse;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorReadyResponse) Anki::Victor::ExternalComms::MeetVictorReadyResponse(new_MeetVictorReadyResponse);
-    _tag = Tag::MeetVictorReadyResponse;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorReadyResponse& MeetVictor::Get_<MeetVictor::Tag::MeetVictorReadyResponse>() const
-{
-  assert(_tag == Tag::MeetVictorReadyResponse);
-  return this->_MeetVictorReadyResponse;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorReadyResponse>(Anki::Victor::ExternalComms::MeetVictorReadyResponse member)
-{
-  return CreateMeetVictorReadyResponse(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorReadyResponse(Anki::Victor::ExternalComms::MeetVictorReadyResponse&& new_MeetVictorReadyResponse)
-{
-  if (this->_tag == Tag::MeetVictorReadyResponse) {
-    this->_MeetVictorReadyResponse = std::move(new_MeetVictorReadyResponse);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorReadyResponse) Anki::Victor::ExternalComms::MeetVictorReadyResponse(std::move(new_MeetVictorReadyResponse));
-    _tag = Tag::MeetVictorReadyResponse;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorFaceScanStarted(Anki::Victor::ExternalComms::MeetVictorFaceScanStarted&& new_MeetVictorFaceScanStarted)
-{
-  MeetVictor m;
-  m.Set_MeetVictorFaceScanStarted(new_MeetVictorFaceScanStarted);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorFaceScanStarted&& new_MeetVictorFaceScanStarted)
-{
-  new(&this->_MeetVictorFaceScanStarted) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(std::move(new_MeetVictorFaceScanStarted));
-  _tag = Tag::MeetVictorFaceScanStarted;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorFaceScanStarted& MeetVictor::Get_MeetVictorFaceScanStarted() const
-{
-  assert(_tag == Tag::MeetVictorFaceScanStarted);
-  return this->_MeetVictorFaceScanStarted;
-}
-
-void MeetVictor::Set_MeetVictorFaceScanStarted(const Anki::Victor::ExternalComms::MeetVictorFaceScanStarted& new_MeetVictorFaceScanStarted)
-{
-  if(this->_tag == Tag::MeetVictorFaceScanStarted) {
-    this->_MeetVictorFaceScanStarted = new_MeetVictorFaceScanStarted;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorFaceScanStarted) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(new_MeetVictorFaceScanStarted);
-    _tag = Tag::MeetVictorFaceScanStarted;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorFaceScanStarted& MeetVictor::Get_<MeetVictor::Tag::MeetVictorFaceScanStarted>() const
-{
-  assert(_tag == Tag::MeetVictorFaceScanStarted);
-  return this->_MeetVictorFaceScanStarted;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorFaceScanStarted>(Anki::Victor::ExternalComms::MeetVictorFaceScanStarted member)
-{
-  return CreateMeetVictorFaceScanStarted(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorFaceScanStarted(Anki::Victor::ExternalComms::MeetVictorFaceScanStarted&& new_MeetVictorFaceScanStarted)
-{
-  if (this->_tag == Tag::MeetVictorFaceScanStarted) {
-    this->_MeetVictorFaceScanStarted = std::move(new_MeetVictorFaceScanStarted);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorFaceScanStarted) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(std::move(new_MeetVictorFaceScanStarted));
-    _tag = Tag::MeetVictorFaceScanStarted;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorFaceScanComplete(Anki::Victor::ExternalComms::MeetVictorFaceScanComplete&& new_MeetVictorFaceScanComplete)
-{
-  MeetVictor m;
-  m.Set_MeetVictorFaceScanComplete(new_MeetVictorFaceScanComplete);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorFaceScanComplete&& new_MeetVictorFaceScanComplete)
-{
-  new(&this->_MeetVictorFaceScanComplete) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(std::move(new_MeetVictorFaceScanComplete));
-  _tag = Tag::MeetVictorFaceScanComplete;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorFaceScanComplete& MeetVictor::Get_MeetVictorFaceScanComplete() const
-{
-  assert(_tag == Tag::MeetVictorFaceScanComplete);
-  return this->_MeetVictorFaceScanComplete;
-}
-
-void MeetVictor::Set_MeetVictorFaceScanComplete(const Anki::Victor::ExternalComms::MeetVictorFaceScanComplete& new_MeetVictorFaceScanComplete)
-{
-  if(this->_tag == Tag::MeetVictorFaceScanComplete) {
-    this->_MeetVictorFaceScanComplete = new_MeetVictorFaceScanComplete;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorFaceScanComplete) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(new_MeetVictorFaceScanComplete);
-    _tag = Tag::MeetVictorFaceScanComplete;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorFaceScanComplete& MeetVictor::Get_<MeetVictor::Tag::MeetVictorFaceScanComplete>() const
-{
-  assert(_tag == Tag::MeetVictorFaceScanComplete);
-  return this->_MeetVictorFaceScanComplete;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorFaceScanComplete>(Anki::Victor::ExternalComms::MeetVictorFaceScanComplete member)
-{
-  return CreateMeetVictorFaceScanComplete(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorFaceScanComplete(Anki::Victor::ExternalComms::MeetVictorFaceScanComplete&& new_MeetVictorFaceScanComplete)
-{
-  if (this->_tag == Tag::MeetVictorFaceScanComplete) {
-    this->_MeetVictorFaceScanComplete = std::move(new_MeetVictorFaceScanComplete);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorFaceScanComplete) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(std::move(new_MeetVictorFaceScanComplete));
-    _tag = Tag::MeetVictorFaceScanComplete;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorSetUserName(Anki::Victor::ExternalComms::MeetVictorSetUserName&& new_MeetVictorSetUserName)
-{
-  MeetVictor m;
-  m.Set_MeetVictorSetUserName(new_MeetVictorSetUserName);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorSetUserName&& new_MeetVictorSetUserName)
-{
-  new(&this->_MeetVictorSetUserName) Anki::Victor::ExternalComms::MeetVictorSetUserName(std::move(new_MeetVictorSetUserName));
-  _tag = Tag::MeetVictorSetUserName;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorSetUserName& MeetVictor::Get_MeetVictorSetUserName() const
-{
-  assert(_tag == Tag::MeetVictorSetUserName);
-  return this->_MeetVictorSetUserName;
-}
-
-void MeetVictor::Set_MeetVictorSetUserName(const Anki::Victor::ExternalComms::MeetVictorSetUserName& new_MeetVictorSetUserName)
-{
-  if(this->_tag == Tag::MeetVictorSetUserName) {
-    this->_MeetVictorSetUserName = new_MeetVictorSetUserName;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorSetUserName) Anki::Victor::ExternalComms::MeetVictorSetUserName(new_MeetVictorSetUserName);
-    _tag = Tag::MeetVictorSetUserName;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorSetUserName& MeetVictor::Get_<MeetVictor::Tag::MeetVictorSetUserName>() const
-{
-  assert(_tag == Tag::MeetVictorSetUserName);
-  return this->_MeetVictorSetUserName;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorSetUserName>(Anki::Victor::ExternalComms::MeetVictorSetUserName member)
-{
-  return CreateMeetVictorSetUserName(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorSetUserName(Anki::Victor::ExternalComms::MeetVictorSetUserName&& new_MeetVictorSetUserName)
-{
-  if (this->_tag == Tag::MeetVictorSetUserName) {
-    this->_MeetVictorSetUserName = std::move(new_MeetVictorSetUserName);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorSetUserName) Anki::Victor::ExternalComms::MeetVictorSetUserName(std::move(new_MeetVictorSetUserName));
-    _tag = Tag::MeetVictorSetUserName;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorComplete(Anki::Victor::ExternalComms::MeetVictorComplete&& new_MeetVictorComplete)
-{
-  MeetVictor m;
-  m.Set_MeetVictorComplete(new_MeetVictorComplete);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorComplete&& new_MeetVictorComplete)
-{
-  new(&this->_MeetVictorComplete) Anki::Victor::ExternalComms::MeetVictorComplete(std::move(new_MeetVictorComplete));
-  _tag = Tag::MeetVictorComplete;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorComplete& MeetVictor::Get_MeetVictorComplete() const
-{
-  assert(_tag == Tag::MeetVictorComplete);
-  return this->_MeetVictorComplete;
-}
-
-void MeetVictor::Set_MeetVictorComplete(const Anki::Victor::ExternalComms::MeetVictorComplete& new_MeetVictorComplete)
-{
-  if(this->_tag == Tag::MeetVictorComplete) {
-    this->_MeetVictorComplete = new_MeetVictorComplete;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorComplete) Anki::Victor::ExternalComms::MeetVictorComplete(new_MeetVictorComplete);
-    _tag = Tag::MeetVictorComplete;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorComplete& MeetVictor::Get_<MeetVictor::Tag::MeetVictorComplete>() const
-{
-  assert(_tag == Tag::MeetVictorComplete);
-  return this->_MeetVictorComplete;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorComplete>(Anki::Victor::ExternalComms::MeetVictorComplete member)
-{
-  return CreateMeetVictorComplete(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorComplete(Anki::Victor::ExternalComms::MeetVictorComplete&& new_MeetVictorComplete)
-{
-  if (this->_tag == Tag::MeetVictorComplete) {
-    this->_MeetVictorComplete = std::move(new_MeetVictorComplete);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorComplete) Anki::Victor::ExternalComms::MeetVictorComplete(std::move(new_MeetVictorComplete));
-    _tag = Tag::MeetVictorComplete;
-  }
-}
-
-MeetVictor MeetVictor::CreateMeetVictorError(Anki::Victor::ExternalComms::MeetVictorError&& new_MeetVictorError)
-{
-  MeetVictor m;
-  m.Set_MeetVictorError(new_MeetVictorError);
-  return m;
-}
-
-MeetVictor::MeetVictor(Anki::Victor::ExternalComms::MeetVictorError&& new_MeetVictorError)
-{
-  new(&this->_MeetVictorError) Anki::Victor::ExternalComms::MeetVictorError(std::move(new_MeetVictorError));
-  _tag = Tag::MeetVictorError;
-}
-
-const Anki::Victor::ExternalComms::MeetVictorError& MeetVictor::Get_MeetVictorError() const
-{
-  assert(_tag == Tag::MeetVictorError);
-  return this->_MeetVictorError;
-}
-
-void MeetVictor::Set_MeetVictorError(const Anki::Victor::ExternalComms::MeetVictorError& new_MeetVictorError)
-{
-  if(this->_tag == Tag::MeetVictorError) {
-    this->_MeetVictorError = new_MeetVictorError;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorError) Anki::Victor::ExternalComms::MeetVictorError(new_MeetVictorError);
-    _tag = Tag::MeetVictorError;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictorError& MeetVictor::Get_<MeetVictor::Tag::MeetVictorError>() const
-{
-  assert(_tag == Tag::MeetVictorError);
-  return this->_MeetVictorError;
-}
-
-template<>
-MeetVictor MeetVictor::Create_<MeetVictor::Tag::MeetVictorError>(Anki::Victor::ExternalComms::MeetVictorError member)
-{
-  return CreateMeetVictorError(std::move(member));
-}
-
-void MeetVictor::Set_MeetVictorError(Anki::Victor::ExternalComms::MeetVictorError&& new_MeetVictorError)
-{
-  if (this->_tag == Tag::MeetVictorError) {
-    this->_MeetVictorError = std::move(new_MeetVictorError);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictorError) Anki::Victor::ExternalComms::MeetVictorError(std::move(new_MeetVictorError));
-    _tag = Tag::MeetVictorError;
-  }
-}
-
-size_t MeetVictor::Unpack(const uint8_t* buff, const size_t len)
-{
-  const CLAD::SafeMessageBuffer buffer(const_cast<uint8_t*>(buff), len, false);
-  return Unpack(buffer);
-}
-
-size_t MeetVictor::Unpack(const CLAD::SafeMessageBuffer& buffer)
-{
-  Tag newTag {Tag::INVALID};
-  const Tag oldTag {GetTag()};
-  buffer.Read(newTag);
-  if (newTag != oldTag) {
-    ClearCurrent();
-  }
-  switch(newTag) {
-  case Tag::Error:
-    if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
-    }
-    else {
-      this->_Error.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorRequest:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorRequest)) Anki::Victor::ExternalComms::MeetVictorRequest(buffer);
-    }
-    else {
-      this->_MeetVictorRequest.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorReadyResponse:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorReadyResponse)) Anki::Victor::ExternalComms::MeetVictorReadyResponse(buffer);
-    }
-    else {
-      this->_MeetVictorReadyResponse.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorFaceScanStarted)) Anki::Victor::ExternalComms::MeetVictorFaceScanStarted(buffer);
-    }
-    else {
-      this->_MeetVictorFaceScanStarted.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorFaceScanComplete)) Anki::Victor::ExternalComms::MeetVictorFaceScanComplete(buffer);
-    }
-    else {
-      this->_MeetVictorFaceScanComplete.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorSetUserName:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorSetUserName)) Anki::Victor::ExternalComms::MeetVictorSetUserName(buffer);
-    }
-    else {
-      this->_MeetVictorSetUserName.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorComplete:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorComplete)) Anki::Victor::ExternalComms::MeetVictorComplete(buffer);
-    }
-    else {
-      this->_MeetVictorComplete.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictorError:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictorError)) Anki::Victor::ExternalComms::MeetVictorError(buffer);
-    }
-    else {
-      this->_MeetVictorError.Unpack(buffer);
-    }
-    break;
-  default:
-    break;
-  }
-  _tag = newTag;
-  return buffer.GetBytesRead();
-}
-
-size_t MeetVictor::Pack(uint8_t* buff, size_t len) const
-{
-  CLAD::SafeMessageBuffer buffer(buff, len, false);
-  return Pack(buffer);
-}
-
-size_t MeetVictor::Pack(CLAD::SafeMessageBuffer& buffer) const
-{
-  buffer.Write(_tag);
-  switch(GetTag()) {
-  case Tag::Error:
-    this->_Error.Pack(buffer);
-    break;
-  case Tag::MeetVictorRequest:
-    this->_MeetVictorRequest.Pack(buffer);
-    break;
-  case Tag::MeetVictorReadyResponse:
-    this->_MeetVictorReadyResponse.Pack(buffer);
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    this->_MeetVictorFaceScanStarted.Pack(buffer);
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    this->_MeetVictorFaceScanComplete.Pack(buffer);
-    break;
-  case Tag::MeetVictorSetUserName:
-    this->_MeetVictorSetUserName.Pack(buffer);
-    break;
-  case Tag::MeetVictorComplete:
-    this->_MeetVictorComplete.Pack(buffer);
-    break;
-  case Tag::MeetVictorError:
-    this->_MeetVictorError.Pack(buffer);
-    break;
-  default:
-    break;
-  }
-  return buffer.GetBytesWritten();
-}
-
-size_t MeetVictor::Size() const
-{
-  size_t result {1}; // tag = uint_8
-  switch(GetTag()) {
-  case Tag::Error:
-    result += this->_Error.Size(); // Error
-    break;
-  case Tag::MeetVictorRequest:
-    result += this->_MeetVictorRequest.Size(); // MeetVictorRequest
-    break;
-  case Tag::MeetVictorReadyResponse:
-    result += this->_MeetVictorReadyResponse.Size(); // MeetVictorReadyResponse
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    result += this->_MeetVictorFaceScanStarted.Size(); // MeetVictorFaceScanStarted
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    result += this->_MeetVictorFaceScanComplete.Size(); // MeetVictorFaceScanComplete
-    break;
-  case Tag::MeetVictorSetUserName:
-    result += this->_MeetVictorSetUserName.Size(); // MeetVictorSetUserName
-    break;
-  case Tag::MeetVictorComplete:
-    result += this->_MeetVictorComplete.Size(); // MeetVictorComplete
-    break;
-  case Tag::MeetVictorError:
-    result += this->_MeetVictorError.Size(); // MeetVictorError
-    break;
-  default:
-    break;
-  }
-  return result;
-}
-
-bool MeetVictor::operator==(const MeetVictor& other) const
-{
-  if (this->_tag != other._tag) {
-    return false;
-  }
-  switch(GetTag()) {
-  case Tag::Error:
-    return this->_Error == other._Error;
-  case Tag::MeetVictorRequest:
-    return this->_MeetVictorRequest == other._MeetVictorRequest;
-  case Tag::MeetVictorReadyResponse:
-    return this->_MeetVictorReadyResponse == other._MeetVictorReadyResponse;
-  case Tag::MeetVictorFaceScanStarted:
-    return this->_MeetVictorFaceScanStarted == other._MeetVictorFaceScanStarted;
-  case Tag::MeetVictorFaceScanComplete:
-    return this->_MeetVictorFaceScanComplete == other._MeetVictorFaceScanComplete;
-  case Tag::MeetVictorSetUserName:
-    return this->_MeetVictorSetUserName == other._MeetVictorSetUserName;
-  case Tag::MeetVictorComplete:
-    return this->_MeetVictorComplete == other._MeetVictorComplete;
-  case Tag::MeetVictorError:
-    return this->_MeetVictorError == other._MeetVictorError;
-  default:
-    return true;
-  }
-}
-
-bool MeetVictor::operator!=(const MeetVictor& other) const
-{
-  return !(operator==(other));
-}
-
-void MeetVictor::ClearCurrent()
-{
-  switch(GetTag()) {
-  case Tag::Error:
-    _Error.~Error();
-    break;
-  case Tag::MeetVictorRequest:
-    _MeetVictorRequest.~MeetVictorRequest();
-    break;
-  case Tag::MeetVictorReadyResponse:
-    _MeetVictorReadyResponse.~MeetVictorReadyResponse();
-    break;
-  case Tag::MeetVictorFaceScanStarted:
-    _MeetVictorFaceScanStarted.~MeetVictorFaceScanStarted();
-    break;
-  case Tag::MeetVictorFaceScanComplete:
-    _MeetVictorFaceScanComplete.~MeetVictorFaceScanComplete();
-    break;
-  case Tag::MeetVictorSetUserName:
-    _MeetVictorSetUserName.~MeetVictorSetUserName();
-    break;
-  case Tag::MeetVictorComplete:
-    _MeetVictorComplete.~MeetVictorComplete();
-    break;
-  case Tag::MeetVictorError:
-    _MeetVictorError.~MeetVictorError();
-    break;
-  default:
-    break;
-  }
-  _tag = Tag::INVALID;
-}
-
-const char* MeetVictorTagToString(const MeetVictorTag tag) {
-  switch(tag) {
-  case MeetVictorTag::Error:
-    return "Error";
-  case MeetVictorTag::MeetVictorRequest:
-    return "MeetVictorRequest";
-  case MeetVictorTag::MeetVictorReadyResponse:
-    return "MeetVictorReadyResponse";
-  case MeetVictorTag::MeetVictorFaceScanStarted:
-    return "MeetVictorFaceScanStarted";
-  case MeetVictorTag::MeetVictorFaceScanComplete:
-    return "MeetVictorFaceScanComplete";
-  case MeetVictorTag::MeetVictorSetUserName:
-    return "MeetVictorSetUserName";
-  case MeetVictorTag::MeetVictorComplete:
-    return "MeetVictorComplete";
-  case MeetVictorTag::MeetVictorError:
-    return "MeetVictorError";
-  default:
-    return "INVALID";
-  }
-}
-
-const char* MeetVictorVersionHashStr = "74547ddf819771da36cfce92bf117b2f";
-
-const uint8_t MeetVictorVersionHash[16] = { 
-    0x74, 0x54, 0x7d, 0xdf, 0x81, 0x97, 0x71, 0xda, 0x36, 0xcf, 0xce, 0x92, 0xbf, 0x11, 0x7b, 0x2f 
+const uint8_t DeprecatedAndReservedVersionHash[16] = { 
+    0x4b, 0x3e, 0xbb, 0x49, 0xce, 0xde, 0xcb, 0x2c, 0x58, 0xf7, 0x8f, 0x4f, 0xe3, 0x6b, 0x84, 0x59 
 };
 
 // UNION ExternalComms
@@ -9130,19 +18339,13 @@ ExternalComms::ExternalComms(const ExternalComms& other)
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnection_1:
-    new(&(this->_RtsConnection_1)) Anki::Victor::ExternalComms::RtsConnection_1(other._RtsConnection_1);
+    new(&(this->_RtsConnection_1)) Anki::Vector::ExternalComms::RtsConnection_1(other._RtsConnection_1);
     break;
   case Tag::RtsConnection:
-    new(&(this->_RtsConnection)) Anki::Victor::ExternalComms::RtsConnection(other._RtsConnection);
-    break;
-  case Tag::AppGeneral:
-    new(&(this->_AppGeneral)) Anki::Victor::ExternalComms::AppGeneral(other._AppGeneral);
-    break;
-  case Tag::MeetVictor:
-    new(&(this->_MeetVictor)) Anki::Victor::ExternalComms::MeetVictor(other._MeetVictor);
+    new(&(this->_RtsConnection)) Anki::Vector::ExternalComms::RtsConnection(other._RtsConnection);
     break;
   default:
     _tag = Tag::INVALID;
@@ -9155,19 +18358,13 @@ ExternalComms::ExternalComms(ExternalComms&& other) noexcept
 {
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnection_1:
-    new(&(this->_RtsConnection_1)) Anki::Victor::ExternalComms::RtsConnection_1(std::move(other._RtsConnection_1));
+    new(&(this->_RtsConnection_1)) Anki::Vector::ExternalComms::RtsConnection_1(std::move(other._RtsConnection_1));
     break;
   case Tag::RtsConnection:
-    new(&(this->_RtsConnection)) Anki::Victor::ExternalComms::RtsConnection(std::move(other._RtsConnection));
-    break;
-  case Tag::AppGeneral:
-    new(&(this->_AppGeneral)) Anki::Victor::ExternalComms::AppGeneral(std::move(other._AppGeneral));
-    break;
-  case Tag::MeetVictor:
-    new(&(this->_MeetVictor)) Anki::Victor::ExternalComms::MeetVictor(std::move(other._MeetVictor));
+    new(&(this->_RtsConnection)) Anki::Vector::ExternalComms::RtsConnection(std::move(other._RtsConnection));
     break;
   default:
     _tag = Tag::INVALID;
@@ -9183,19 +18380,13 @@ ExternalComms& ExternalComms::operator=(const ExternalComms& other)
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(other._Error);
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(other._Error);
     break;
   case Tag::RtsConnection_1:
-    new(&(this->_RtsConnection_1)) Anki::Victor::ExternalComms::RtsConnection_1(other._RtsConnection_1);
+    new(&(this->_RtsConnection_1)) Anki::Vector::ExternalComms::RtsConnection_1(other._RtsConnection_1);
     break;
   case Tag::RtsConnection:
-    new(&(this->_RtsConnection)) Anki::Victor::ExternalComms::RtsConnection(other._RtsConnection);
-    break;
-  case Tag::AppGeneral:
-    new(&(this->_AppGeneral)) Anki::Victor::ExternalComms::AppGeneral(other._AppGeneral);
-    break;
-  case Tag::MeetVictor:
-    new(&(this->_MeetVictor)) Anki::Victor::ExternalComms::MeetVictor(other._MeetVictor);
+    new(&(this->_RtsConnection)) Anki::Vector::ExternalComms::RtsConnection(other._RtsConnection);
     break;
   default:
     _tag = Tag::INVALID;
@@ -9211,19 +18402,13 @@ ExternalComms& ExternalComms::operator=(ExternalComms&& other) noexcept
   _tag = other._tag;
   switch(GetTag()) {
   case Tag::Error:
-    new(&(this->_Error)) Anki::Victor::ExternalComms::Error(std::move(other._Error));
+    new(&(this->_Error)) Anki::Vector::ExternalComms::Error(std::move(other._Error));
     break;
   case Tag::RtsConnection_1:
-    new(&(this->_RtsConnection_1)) Anki::Victor::ExternalComms::RtsConnection_1(std::move(other._RtsConnection_1));
+    new(&(this->_RtsConnection_1)) Anki::Vector::ExternalComms::RtsConnection_1(std::move(other._RtsConnection_1));
     break;
   case Tag::RtsConnection:
-    new(&(this->_RtsConnection)) Anki::Victor::ExternalComms::RtsConnection(std::move(other._RtsConnection));
-    break;
-  case Tag::AppGeneral:
-    new(&(this->_AppGeneral)) Anki::Victor::ExternalComms::AppGeneral(std::move(other._AppGeneral));
-    break;
-  case Tag::MeetVictor:
-    new(&(this->_MeetVictor)) Anki::Victor::ExternalComms::MeetVictor(std::move(other._MeetVictor));
+    new(&(this->_RtsConnection)) Anki::Vector::ExternalComms::RtsConnection(std::move(other._RtsConnection));
     break;
   default:
     _tag = Tag::INVALID;
@@ -9233,283 +18418,171 @@ ExternalComms& ExternalComms::operator=(ExternalComms&& other) noexcept
   return *this;
 }
 
-ExternalComms ExternalComms::CreateError(Anki::Victor::ExternalComms::Error&& new_Error)
+ExternalComms ExternalComms::CreateError(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   ExternalComms m;
   m.Set_Error(new_Error);
   return m;
 }
 
-ExternalComms::ExternalComms(Anki::Victor::ExternalComms::Error&& new_Error)
+ExternalComms::ExternalComms(Anki::Vector::ExternalComms::Error&& new_Error)
 {
-  new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+  new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
   _tag = Tag::Error;
 }
 
-const Anki::Victor::ExternalComms::Error& ExternalComms::Get_Error() const
+const Anki::Vector::ExternalComms::Error& ExternalComms::Get_Error() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
-void ExternalComms::Set_Error(const Anki::Victor::ExternalComms::Error& new_Error)
+void ExternalComms::Set_Error(const Anki::Vector::ExternalComms::Error& new_Error)
 {
   if(this->_tag == Tag::Error) {
     this->_Error = new_Error;
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(new_Error);
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(new_Error);
     _tag = Tag::Error;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::Error& ExternalComms::Get_<ExternalComms::Tag::Error>() const
+const Anki::Vector::ExternalComms::Error& ExternalComms::Get_<ExternalComms::Tag::Error>() const
 {
   assert(_tag == Tag::Error);
   return this->_Error;
 }
 
 template<>
-ExternalComms ExternalComms::Create_<ExternalComms::Tag::Error>(Anki::Victor::ExternalComms::Error member)
+ExternalComms ExternalComms::Create_<ExternalComms::Tag::Error>(Anki::Vector::ExternalComms::Error member)
 {
   return CreateError(std::move(member));
 }
 
-void ExternalComms::Set_Error(Anki::Victor::ExternalComms::Error&& new_Error)
+void ExternalComms::Set_Error(Anki::Vector::ExternalComms::Error&& new_Error)
 {
   if (this->_tag == Tag::Error) {
     this->_Error = std::move(new_Error);
   }
   else {
     ClearCurrent();
-    new(&this->_Error) Anki::Victor::ExternalComms::Error(std::move(new_Error));
+    new(&this->_Error) Anki::Vector::ExternalComms::Error(std::move(new_Error));
     _tag = Tag::Error;
   }
 }
 
-ExternalComms ExternalComms::CreateRtsConnection_1(Anki::Victor::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
+ExternalComms ExternalComms::CreateRtsConnection_1(Anki::Vector::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
 {
   ExternalComms m;
   m.Set_RtsConnection_1(new_RtsConnection_1);
   return m;
 }
 
-ExternalComms::ExternalComms(Anki::Victor::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
+ExternalComms::ExternalComms(Anki::Vector::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
 {
-  new(&this->_RtsConnection_1) Anki::Victor::ExternalComms::RtsConnection_1(std::move(new_RtsConnection_1));
+  new(&this->_RtsConnection_1) Anki::Vector::ExternalComms::RtsConnection_1(std::move(new_RtsConnection_1));
   _tag = Tag::RtsConnection_1;
 }
 
-const Anki::Victor::ExternalComms::RtsConnection_1& ExternalComms::Get_RtsConnection_1() const
+const Anki::Vector::ExternalComms::RtsConnection_1& ExternalComms::Get_RtsConnection_1() const
 {
   assert(_tag == Tag::RtsConnection_1);
   return this->_RtsConnection_1;
 }
 
-void ExternalComms::Set_RtsConnection_1(const Anki::Victor::ExternalComms::RtsConnection_1& new_RtsConnection_1)
+void ExternalComms::Set_RtsConnection_1(const Anki::Vector::ExternalComms::RtsConnection_1& new_RtsConnection_1)
 {
   if(this->_tag == Tag::RtsConnection_1) {
     this->_RtsConnection_1 = new_RtsConnection_1;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection_1) Anki::Victor::ExternalComms::RtsConnection_1(new_RtsConnection_1);
+    new(&this->_RtsConnection_1) Anki::Vector::ExternalComms::RtsConnection_1(new_RtsConnection_1);
     _tag = Tag::RtsConnection_1;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnection_1& ExternalComms::Get_<ExternalComms::Tag::RtsConnection_1>() const
+const Anki::Vector::ExternalComms::RtsConnection_1& ExternalComms::Get_<ExternalComms::Tag::RtsConnection_1>() const
 {
   assert(_tag == Tag::RtsConnection_1);
   return this->_RtsConnection_1;
 }
 
 template<>
-ExternalComms ExternalComms::Create_<ExternalComms::Tag::RtsConnection_1>(Anki::Victor::ExternalComms::RtsConnection_1 member)
+ExternalComms ExternalComms::Create_<ExternalComms::Tag::RtsConnection_1>(Anki::Vector::ExternalComms::RtsConnection_1 member)
 {
   return CreateRtsConnection_1(std::move(member));
 }
 
-void ExternalComms::Set_RtsConnection_1(Anki::Victor::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
+void ExternalComms::Set_RtsConnection_1(Anki::Vector::ExternalComms::RtsConnection_1&& new_RtsConnection_1)
 {
   if (this->_tag == Tag::RtsConnection_1) {
     this->_RtsConnection_1 = std::move(new_RtsConnection_1);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection_1) Anki::Victor::ExternalComms::RtsConnection_1(std::move(new_RtsConnection_1));
+    new(&this->_RtsConnection_1) Anki::Vector::ExternalComms::RtsConnection_1(std::move(new_RtsConnection_1));
     _tag = Tag::RtsConnection_1;
   }
 }
 
-ExternalComms ExternalComms::CreateRtsConnection(Anki::Victor::ExternalComms::RtsConnection&& new_RtsConnection)
+ExternalComms ExternalComms::CreateRtsConnection(Anki::Vector::ExternalComms::RtsConnection&& new_RtsConnection)
 {
   ExternalComms m;
   m.Set_RtsConnection(new_RtsConnection);
   return m;
 }
 
-ExternalComms::ExternalComms(Anki::Victor::ExternalComms::RtsConnection&& new_RtsConnection)
+ExternalComms::ExternalComms(Anki::Vector::ExternalComms::RtsConnection&& new_RtsConnection)
 {
-  new(&this->_RtsConnection) Anki::Victor::ExternalComms::RtsConnection(std::move(new_RtsConnection));
+  new(&this->_RtsConnection) Anki::Vector::ExternalComms::RtsConnection(std::move(new_RtsConnection));
   _tag = Tag::RtsConnection;
 }
 
-const Anki::Victor::ExternalComms::RtsConnection& ExternalComms::Get_RtsConnection() const
+const Anki::Vector::ExternalComms::RtsConnection& ExternalComms::Get_RtsConnection() const
 {
   assert(_tag == Tag::RtsConnection);
   return this->_RtsConnection;
 }
 
-void ExternalComms::Set_RtsConnection(const Anki::Victor::ExternalComms::RtsConnection& new_RtsConnection)
+void ExternalComms::Set_RtsConnection(const Anki::Vector::ExternalComms::RtsConnection& new_RtsConnection)
 {
   if(this->_tag == Tag::RtsConnection) {
     this->_RtsConnection = new_RtsConnection;
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection) Anki::Victor::ExternalComms::RtsConnection(new_RtsConnection);
+    new(&this->_RtsConnection) Anki::Vector::ExternalComms::RtsConnection(new_RtsConnection);
     _tag = Tag::RtsConnection;
   }
 }
 
 template<>
-const Anki::Victor::ExternalComms::RtsConnection& ExternalComms::Get_<ExternalComms::Tag::RtsConnection>() const
+const Anki::Vector::ExternalComms::RtsConnection& ExternalComms::Get_<ExternalComms::Tag::RtsConnection>() const
 {
   assert(_tag == Tag::RtsConnection);
   return this->_RtsConnection;
 }
 
 template<>
-ExternalComms ExternalComms::Create_<ExternalComms::Tag::RtsConnection>(Anki::Victor::ExternalComms::RtsConnection member)
+ExternalComms ExternalComms::Create_<ExternalComms::Tag::RtsConnection>(Anki::Vector::ExternalComms::RtsConnection member)
 {
   return CreateRtsConnection(std::move(member));
 }
 
-void ExternalComms::Set_RtsConnection(Anki::Victor::ExternalComms::RtsConnection&& new_RtsConnection)
+void ExternalComms::Set_RtsConnection(Anki::Vector::ExternalComms::RtsConnection&& new_RtsConnection)
 {
   if (this->_tag == Tag::RtsConnection) {
     this->_RtsConnection = std::move(new_RtsConnection);
   }
   else {
     ClearCurrent();
-    new(&this->_RtsConnection) Anki::Victor::ExternalComms::RtsConnection(std::move(new_RtsConnection));
+    new(&this->_RtsConnection) Anki::Vector::ExternalComms::RtsConnection(std::move(new_RtsConnection));
     _tag = Tag::RtsConnection;
-  }
-}
-
-ExternalComms ExternalComms::CreateAppGeneral(Anki::Victor::ExternalComms::AppGeneral&& new_AppGeneral)
-{
-  ExternalComms m;
-  m.Set_AppGeneral(new_AppGeneral);
-  return m;
-}
-
-ExternalComms::ExternalComms(Anki::Victor::ExternalComms::AppGeneral&& new_AppGeneral)
-{
-  new(&this->_AppGeneral) Anki::Victor::ExternalComms::AppGeneral(std::move(new_AppGeneral));
-  _tag = Tag::AppGeneral;
-}
-
-const Anki::Victor::ExternalComms::AppGeneral& ExternalComms::Get_AppGeneral() const
-{
-  assert(_tag == Tag::AppGeneral);
-  return this->_AppGeneral;
-}
-
-void ExternalComms::Set_AppGeneral(const Anki::Victor::ExternalComms::AppGeneral& new_AppGeneral)
-{
-  if(this->_tag == Tag::AppGeneral) {
-    this->_AppGeneral = new_AppGeneral;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_AppGeneral) Anki::Victor::ExternalComms::AppGeneral(new_AppGeneral);
-    _tag = Tag::AppGeneral;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::AppGeneral& ExternalComms::Get_<ExternalComms::Tag::AppGeneral>() const
-{
-  assert(_tag == Tag::AppGeneral);
-  return this->_AppGeneral;
-}
-
-template<>
-ExternalComms ExternalComms::Create_<ExternalComms::Tag::AppGeneral>(Anki::Victor::ExternalComms::AppGeneral member)
-{
-  return CreateAppGeneral(std::move(member));
-}
-
-void ExternalComms::Set_AppGeneral(Anki::Victor::ExternalComms::AppGeneral&& new_AppGeneral)
-{
-  if (this->_tag == Tag::AppGeneral) {
-    this->_AppGeneral = std::move(new_AppGeneral);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_AppGeneral) Anki::Victor::ExternalComms::AppGeneral(std::move(new_AppGeneral));
-    _tag = Tag::AppGeneral;
-  }
-}
-
-ExternalComms ExternalComms::CreateMeetVictor(Anki::Victor::ExternalComms::MeetVictor&& new_MeetVictor)
-{
-  ExternalComms m;
-  m.Set_MeetVictor(new_MeetVictor);
-  return m;
-}
-
-ExternalComms::ExternalComms(Anki::Victor::ExternalComms::MeetVictor&& new_MeetVictor)
-{
-  new(&this->_MeetVictor) Anki::Victor::ExternalComms::MeetVictor(std::move(new_MeetVictor));
-  _tag = Tag::MeetVictor;
-}
-
-const Anki::Victor::ExternalComms::MeetVictor& ExternalComms::Get_MeetVictor() const
-{
-  assert(_tag == Tag::MeetVictor);
-  return this->_MeetVictor;
-}
-
-void ExternalComms::Set_MeetVictor(const Anki::Victor::ExternalComms::MeetVictor& new_MeetVictor)
-{
-  if(this->_tag == Tag::MeetVictor) {
-    this->_MeetVictor = new_MeetVictor;
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictor) Anki::Victor::ExternalComms::MeetVictor(new_MeetVictor);
-    _tag = Tag::MeetVictor;
-  }
-}
-
-template<>
-const Anki::Victor::ExternalComms::MeetVictor& ExternalComms::Get_<ExternalComms::Tag::MeetVictor>() const
-{
-  assert(_tag == Tag::MeetVictor);
-  return this->_MeetVictor;
-}
-
-template<>
-ExternalComms ExternalComms::Create_<ExternalComms::Tag::MeetVictor>(Anki::Victor::ExternalComms::MeetVictor member)
-{
-  return CreateMeetVictor(std::move(member));
-}
-
-void ExternalComms::Set_MeetVictor(Anki::Victor::ExternalComms::MeetVictor&& new_MeetVictor)
-{
-  if (this->_tag == Tag::MeetVictor) {
-    this->_MeetVictor = std::move(new_MeetVictor);
-  }
-  else {
-    ClearCurrent();
-    new(&this->_MeetVictor) Anki::Victor::ExternalComms::MeetVictor(std::move(new_MeetVictor));
-    _tag = Tag::MeetVictor;
   }
 }
 
@@ -9530,7 +18603,7 @@ size_t ExternalComms::Unpack(const CLAD::SafeMessageBuffer& buffer)
   switch(newTag) {
   case Tag::Error:
     if (newTag != oldTag) {
-      new(&(this->_Error)) Anki::Victor::ExternalComms::Error(buffer);
+      new(&(this->_Error)) Anki::Vector::ExternalComms::Error(buffer);
     }
     else {
       this->_Error.Unpack(buffer);
@@ -9538,7 +18611,7 @@ size_t ExternalComms::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnection_1:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnection_1)) Anki::Victor::ExternalComms::RtsConnection_1(buffer);
+      new(&(this->_RtsConnection_1)) Anki::Vector::ExternalComms::RtsConnection_1(buffer);
     }
     else {
       this->_RtsConnection_1.Unpack(buffer);
@@ -9546,26 +18619,10 @@ size_t ExternalComms::Unpack(const CLAD::SafeMessageBuffer& buffer)
     break;
   case Tag::RtsConnection:
     if (newTag != oldTag) {
-      new(&(this->_RtsConnection)) Anki::Victor::ExternalComms::RtsConnection(buffer);
+      new(&(this->_RtsConnection)) Anki::Vector::ExternalComms::RtsConnection(buffer);
     }
     else {
       this->_RtsConnection.Unpack(buffer);
-    }
-    break;
-  case Tag::AppGeneral:
-    if (newTag != oldTag) {
-      new(&(this->_AppGeneral)) Anki::Victor::ExternalComms::AppGeneral(buffer);
-    }
-    else {
-      this->_AppGeneral.Unpack(buffer);
-    }
-    break;
-  case Tag::MeetVictor:
-    if (newTag != oldTag) {
-      new(&(this->_MeetVictor)) Anki::Victor::ExternalComms::MeetVictor(buffer);
-    }
-    else {
-      this->_MeetVictor.Unpack(buffer);
     }
     break;
   default:
@@ -9594,12 +18651,6 @@ size_t ExternalComms::Pack(CLAD::SafeMessageBuffer& buffer) const
   case Tag::RtsConnection:
     this->_RtsConnection.Pack(buffer);
     break;
-  case Tag::AppGeneral:
-    this->_AppGeneral.Pack(buffer);
-    break;
-  case Tag::MeetVictor:
-    this->_MeetVictor.Pack(buffer);
-    break;
   default:
     break;
   }
@@ -9619,12 +18670,6 @@ size_t ExternalComms::Size() const
   case Tag::RtsConnection:
     result += this->_RtsConnection.Size(); // RtsConnection
     break;
-  case Tag::AppGeneral:
-    result += this->_AppGeneral.Size(); // AppGeneral
-    break;
-  case Tag::MeetVictor:
-    result += this->_MeetVictor.Size(); // MeetVictor
-    break;
   default:
     break;
   }
@@ -9643,10 +18688,6 @@ bool ExternalComms::operator==(const ExternalComms& other) const
     return this->_RtsConnection_1 == other._RtsConnection_1;
   case Tag::RtsConnection:
     return this->_RtsConnection == other._RtsConnection;
-  case Tag::AppGeneral:
-    return this->_AppGeneral == other._AppGeneral;
-  case Tag::MeetVictor:
-    return this->_MeetVictor == other._MeetVictor;
   default:
     return true;
   }
@@ -9669,12 +18710,6 @@ void ExternalComms::ClearCurrent()
   case Tag::RtsConnection:
     _RtsConnection.~RtsConnection();
     break;
-  case Tag::AppGeneral:
-    _AppGeneral.~AppGeneral();
-    break;
-  case Tag::MeetVictor:
-    _MeetVictor.~MeetVictor();
-    break;
   default:
     break;
   }
@@ -9689,24 +18724,20 @@ const char* ExternalCommsTagToString(const ExternalCommsTag tag) {
     return "RtsConnection_1";
   case ExternalCommsTag::RtsConnection:
     return "RtsConnection";
-  case ExternalCommsTag::AppGeneral:
-    return "AppGeneral";
-  case ExternalCommsTag::MeetVictor:
-    return "MeetVictor";
   default:
     return "INVALID";
   }
 }
 
-const char* ExternalCommsVersionHashStr = "55afa0ad6d18ba72981c5e65e1426cdc";
+const char* ExternalCommsVersionHashStr = "6a5cde20e04c502a51f8e2498080c73f";
 
 const uint8_t ExternalCommsVersionHash[16] = { 
-    0x55, 0xaf, 0xa0, 0xad, 0x6d, 0x18, 0xba, 0x72, 0x98, 0x1c, 0x5e, 0x65, 0xe1, 0x42, 0x6c, 0xdc 
+    0x6a, 0x5c, 0xde, 0x20, 0xe0, 0x4c, 0x50, 0x2a, 0x51, 0xf8, 0xe2, 0x49, 0x80, 0x80, 0xc7, 0x3f 
 };
 
 } // namespace ExternalComms
 
-} // namespace Victor
+} // namespace Vector
 
 } // namespace Anki
 

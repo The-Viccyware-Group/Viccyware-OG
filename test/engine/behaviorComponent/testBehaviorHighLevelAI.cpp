@@ -10,7 +10,6 @@
  *
  **/
 
-#include "clad/types/behaviorComponent/userIntent.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/cozmoContext.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
@@ -30,13 +29,13 @@
 #include "test/engine/behaviorComponent/testIntentsFramework.h"
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 
 extern CozmoContext* cozmoContext;
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 // class that is friends with UnitTestKey and ConditionUserIntentPending
 class TestBehaviorHighLevelAI
@@ -136,14 +135,7 @@ TEST(BehaviorHighLevelAI, UserIntentsHandled)
   // There should be one entry per completed intent in completedUserIntents.json
   
   LabeledExceptions exceptionsList = {
-    { "system_sleep",      {"Napping", "NappingOnCharger"} },
-    { "system_charger",    {"ObservingOnCharger",
-                            "ObservingOnChargerRecentlyPlaced",
-                            "Napping",
-                            "NappingOnCharger",
-                            "WakingUp",
-                            "FailedToFindCharger"} },
-    { "explore_start",     {"Napping", "NappingOnCharger"} },
+    { "explore_start",     {} },
   };
   // OK YOUR JOB IS DONE
   // *********************************************************
@@ -222,8 +214,8 @@ TEST(BehaviorHighLevelAI, PostBehaviorSuggestionsConsidered)
   
   // a list of the named completedUserIntents(.json), the behavior that responds to it, and the HLAI state that should follow
   std::vector< std::tuple<std::string, BehaviorID, std::string> > expected = {
-    { "fist_bump",       BEHAVIOR_ID(FistBumpVoiceCommand),   "Socializing" },
-    { "keep_away",       BEHAVIOR_ID(KeepawayVoiceCommand),   "Socializing" },
+    { "fist_bump",       BEHAVIOR_ID(FistBumpVoiceCommand),   "Observing" },
+  //{ "keep_away",       BEHAVIOR_ID(KeepawayVoiceCommand),   "Socializing" }, // removed in https://github.com/anki/voice-intent-resolution-config/pull/33/files
     { "roll_cube",       BEHAVIOR_ID(RollCubeVoiceCommand),   "Observing"   },
     { "meet_victor",     BEHAVIOR_ID(MeetVictor),             "Socializing" },
   //{ "imperative_come", BEHAVIOR_ID(ComeHereVoiceCommand),   "Socializing" }, // todo: come here needs a look for face in order to activate

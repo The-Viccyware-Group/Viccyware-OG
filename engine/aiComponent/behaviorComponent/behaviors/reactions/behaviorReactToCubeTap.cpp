@@ -15,7 +15,6 @@
 
 #include "engine/actions/animActions.h"
 #include "engine/actions/driveToActions.h"
-#include "engine/activeObject.h"
 #include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
@@ -23,6 +22,7 @@
 #include "engine/aiComponent/objectInteractionInfoCache.h"
 #include "engine/blockWorld/blockWorld.h"
 
+#include "clad/externalInterface/messageEngineToGame.h"
 #include "clad/types/animationTrigger.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "coretech/common/engine/utils/timer.h"
@@ -42,7 +42,7 @@ namespace {
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 constexpr BehaviorReactToCubeTap::CubeIntensityAnimations BehaviorReactToCubeTap::kReactToCubeAnimations =
 {
@@ -88,20 +88,7 @@ void BehaviorReactToCubeTap::InitBehavior()
   // grab our charger behavior ...
   if ( !_iVars.chargerBehaviorString.empty() )
   {
-    // try grabbing it from anonymous behaviors first, else we'll grab it from the behavior id
-    ICozmoBehaviorPtr chargerBehavior = FindAnonymousBehaviorByName( _iVars.chargerBehaviorString );
-    if ( nullptr == chargerBehavior )
-    {
-      // no match, try behavior IDs
-      const BehaviorID behaviorID = BehaviorTypesWrapper::BehaviorIDFromString( _iVars.chargerBehaviorString );
-      chargerBehavior = GetBEI().GetBehaviorContainer().FindBehaviorByID( behaviorID );
-    }
-
-    // downcast to a BehaviorDriveOffCharger since we're forcing all reactions to be of this behavior
-    DEV_ASSERT_MSG( chargerBehavior != nullptr,
-                    "BehaviorReactToCubeTap.Init",
-                    "Reaction behavior not found: %s", _iVars.chargerBehaviorString.c_str() );
-    _iVars.chargerBehavior = chargerBehavior;
+    _iVars.chargerBehavior = FindBehavior( _iVars.chargerBehaviorString );
   }
 
   SubscribeToTags(
@@ -128,7 +115,7 @@ void BehaviorReactToCubeTap::GetBehaviorOperationModifiers( BehaviorOperationMod
   modifiers.behaviorAlwaysDelegates               = true;
 
   // allow us to find the cubes as best as we can
-  modifiers.visionModesForActivatableScope->insert( { VisionMode::DetectingMarkers, EVisionUpdateFrequency::High } );
+  modifiers.visionModesForActivatableScope->insert( { VisionMode::Markers, EVisionUpdateFrequency::High } );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -295,7 +282,7 @@ void BehaviorReactToCubeTap::TransitionToFindCube()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool BehaviorReactToCubeTap::IsCubeLocated() const
 {
-  const ObservableObject* locatedCube = GetBEI().GetBlockWorld().GetLocatedObjectByID( _iVars.targetCube.id, ObjectFamily::LightCube );
+  const ObservableObject* locatedCube = GetBEI().GetBlockWorld().GetLocatedObjectByID( _iVars.targetCube.id );
   return ( nullptr != locatedCube );
 }
 
@@ -375,9 +362,9 @@ void BehaviorReactToCubeTap::TransitionToInteractWithCube()
   if ( _iVars.cubeInteractionDuration > 0.0f )
   {
     CompoundActionSequential* cubeInterAction = new CompoundActionSequential();
-    cubeInterAction->AddAction( new TriggerAnimationAction( AnimationTrigger::ReactToCubeTapInteractionLoop,
-                                                            0, true, (u8)AnimTrackFlag::NO_TRACKS,
-                                                            _iVars.cubeInteractionDuration ), true );
+    cubeInterAction->AddAction( new ReselectingLoopAnimationAction( AnimationTrigger::ReactToCubeTapInteractionLoop,
+                                                                    0, true, (u8)AnimTrackFlag::NO_TRACKS,
+                                                                    _iVars.cubeInteractionDuration ), true );
 
     cubeInterAction->AddAction( new TriggerAnimationAction( AnimationTrigger::ReactToCubeTapInteractionGetOut ) );
 
@@ -405,5 +392,5 @@ AnimationTrigger BehaviorReactToCubeTap::GetSearchForCubeAnimation() const
   return kSearchForCubeAnimations[_dVars.intensity].Value();
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

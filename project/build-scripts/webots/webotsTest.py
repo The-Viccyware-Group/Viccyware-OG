@@ -134,7 +134,7 @@ def sudo_this(command, password):
 
 def is_firewall_enabled(password):
   output = firewall_cli(["--getglobalstate"], password, sudo=False)
-  return b"Firewall is enabled. (State = 1)" in output
+  return b"Firewall is enabled" in output
 
 def firewall_cli(flags, password, sudo=True, executable_path=""):
   """
@@ -261,7 +261,7 @@ def sign_webot_executables(generator, build_type, password):
 
   build_name = get_build_name(generator, build_type)
   executables_folder = get_subpath(os.path.join("_build","mac"), build_name, "bin")
-  executables = glob.glob(os.path.join(executables_folder, 'webotsCtrl*'))
+  executables = glob.glob(os.path.join(executables_folder, 'webotsCtrl*')) + glob.glob(os.path.join(executables_folder, 'vic-gateway'))
 
   codesign_command = [
     'codesign',
@@ -415,7 +415,7 @@ def stop_webots():
 
   # kill all webots processes
   ps   = subprocess.Popen(('ps', 'Auxc'), stdout=subprocess.PIPE)
-  grep = subprocess.Popen(('grep', '[w]ebots'), stdin=ps.stdout, stdout=subprocess.PIPE)
+  grep = subprocess.Popen(('grep', '-e', '[w]ebots', '-e', 'vic-gateway'), stdin=ps.stdout, stdout=subprocess.PIPE)
   grep_minus_this_process = subprocess.Popen(('grep', '-v', currFile), stdin=grep.stdout, stdout=subprocess.PIPE)
   awk  = subprocess.Popen(('awk', '{print $2}'), stdin=grep_minus_this_process.stdout, stdout=subprocess.PIPE)
   kill = subprocess.Popen(('xargs', 'kill', '-9'), stdin=awk.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -686,7 +686,17 @@ def generate_combined_webots_devLog(log_folder, log_file_name, didFail, test_con
 
   dev_log_folder = os.path.join(log_folder, "playbackLogs", "webotsCtrlGameEngine2", "gameLogs","devLogger")
   print("Path to DevLogger folder: " + dev_log_folder)
-  assert os.path.isdir(dev_log_folder)
+
+  try:
+    print(dev_log_folder + " does not exist, creating directory.")
+    current_mask = os.umask(0) #temporarily force umask 000 -> (new dirs will be created with 777)
+    os.makedirs(dev_log_folder, mode=0o777, exist_ok=True)
+    os.chmod(dev_log_folder, mode=0o777) #not really necessary, but just in case
+    os.umask(current_mask) 
+  except OSError:
+    if not os.path.isdir(dev_log_folder):
+      raise
+
   dirs = [entry.path for entry in os.scandir(dev_log_folder) if entry.is_dir()]
   assert len(dirs) == 1
 
@@ -757,9 +767,11 @@ def parse_output(log_level, log_file):
     elif log_level is ForwardWebotsLogLevel.full_forwarding:
       UtilLog.info(line)
 
-    # Stop parsing the output if we encounter the end of the webots run, since
-    # there can be nonsense error messages while processes are terminating.
-    if 'UiGameController.QuitWebots.Result' in line:
+    # Stop parsing the output if we encounter any log lines indicating the end of the webots run, since there can be
+    # nonsense error messages while the various processes are terminating.
+    endOfRunLines = ['INFO: webotsCtrlBuildServerTest: Terminating.',
+                     'UiGameController.QuitWebots.Result']
+    if any(x in line for x in endOfRunLines):
       break
 
   return (crash_count, error_count, warning_count)

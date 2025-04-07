@@ -19,11 +19,11 @@
 #include "engine/robotToEngineImplMessaging.h"
 #include "engine/actions/actionContainers.h"
 #include "engine/actions/animActions.h"
-#include "engine/activeObjectHelpers.h"
+#include "engine/actions/basicActions.h"
 #include "engine/ankiEventUtil.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/charger.h"
-#include "engine/components/batteryComponent.h"
+#include "engine/components/battery/batteryComponent.h"
 #include "engine/components/blockTapFilterComponent.h"
 #include "engine/components/carryingComponent.h"
 #include "engine/components/sensors/cliffSensorComponent.h"
@@ -53,7 +53,10 @@
 #include "util/debug/messageDebugging.h"
 #include "util/fileUtils/fileUtils.h"
 #include "util/helpers/includeFstream.h"
+#include "util/logging/DAS.h"
 #include "util/signals/signalHolder.h"
+
+#include "webServerProcess/src/webService.h"
 
 #include "anki/cozmo/shared/factory/emrHelper.h"
 
@@ -73,14 +76,12 @@
 #define POWER_LEVEL_INTERVAL_SEC 600
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 using GameToEngineEvent = AnkiEvent<ExternalInterface::MessageGameToEngine>;
 
 RobotToEngineImplMessaging::RobotToEngineImplMessaging()
 : IDependencyManagedComponent(this, RobotComponentID::RobotToEngineImplMessaging)
-, _hasMismatchedEngineToRobotCLAD(false)
-, _hasMismatchedRobotToEngineCLAD(false)
 {
    _faceImageRGB565.Allocate(FACE_DISPLAY_HEIGHT, FACE_DISPLAY_WIDTH);
 }
@@ -106,27 +107,24 @@ void RobotToEngineImplMessaging::InitRobotMessageComponent(RobotInterface::Messa
   };
 
   // bind to specific handlers in the robotImplMessaging class
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::factoryFirmwareVersion,         &RobotToEngineImplMessaging::HandleFWVersionInfo);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::pickAndPlaceResult,             &RobotToEngineImplMessaging::HandlePickAndPlaceResult);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::fallingEvent,                   &RobotToEngineImplMessaging::HandleFallingEvent);
+  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::fallImpactEvent,                &RobotToEngineImplMessaging::HandleFallImpactEvent);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::goalPose,                       &RobotToEngineImplMessaging::HandleGoalPose);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::robotStopped,                   &RobotToEngineImplMessaging::HandleRobotStopped);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::cliffEvent,                     &RobotToEngineImplMessaging::HandleCliffEvent);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::potentialCliff,                 &RobotToEngineImplMessaging::HandlePotentialCliffEvent);
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::imageGyro,                      &RobotToEngineImplMessaging::HandleImageImuData);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::imuDataChunk,                   &RobotToEngineImplMessaging::HandleImuData);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::imuRawDataChunk,                &RobotToEngineImplMessaging::HandleImuRawData);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::syncRobotAck,                   &RobotToEngineImplMessaging::HandleSyncRobotAck);
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::robotPoked,                     &RobotToEngineImplMessaging::HandleRobotPoked);
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::robotAvailable,                 &RobotToEngineImplMessaging::HandleRobotSetHeadID);
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::firmwareVersion,                &RobotToEngineImplMessaging::HandleFirmwareVersion);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::motorCalibration,               &RobotToEngineImplMessaging::HandleMotorCalibration);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::motorAutoEnabled,               &RobotToEngineImplMessaging::HandleMotorAutoEnabled);
   doRobotSubscribe(RobotInterface::RobotToEngineTag::dockingStatus,                             &RobotToEngineImplMessaging::HandleDockingStatus);
-  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::mfgId,                          &RobotToEngineImplMessaging::HandleRobotSetBodyID);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::micDirection,                   &RobotToEngineImplMessaging::HandleMicDirection);
+  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::micDataState,                   &RobotToEngineImplMessaging::HandleMicDataState);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::streamCameraImages,             &RobotToEngineImplMessaging::HandleStreamCameraImages);
   doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::displayedFaceImageRGBChunk,     &RobotToEngineImplMessaging::HandleDisplayedFaceImage);
+  doRobotSubscribeWithRoboRef(RobotInterface::RobotToEngineTag::robotPoked,                     &RobotToEngineImplMessaging::HandleRobotPoked);
 
   // lambda wrapper to call internal handler
   GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::state,
@@ -134,45 +132,6 @@ void RobotToEngineImplMessaging::InitRobotMessageComponent(RobotInterface::Messa
                                                        ANKI_CPU_PROFILE("RobotTag::state");
                                                        const RobotState& payload = message.GetData().Get_state();
                                                        robot->UpdateFullRobotState(payload);
-                                                     }));
-
-
-
-  // lambda for some simple message handling
-  GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::rampTraverseStarted,
-                                                     [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
-                                                       ANKI_CPU_PROFILE("RobotTag::rampTraverseStarted");
-                                                       LOG_INFO("RobotMessageHandler.ProcessMessage",
-                                                                "Robot %d reported it started traversing a ramp.",
-                                                                robot->GetID());
-                                                       robot->SetOnRamp(true);
-                                                     }));
-
-  GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::rampTraverseCompleted,
-                                                     [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
-                                                       ANKI_CPU_PROFILE("RobotTag::rampTraverseCompleted");
-                                                       LOG_INFO("RobotMessageHandler.ProcessMessage",
-                                                                "Robot %d reported it completed traversing a ramp.",
-                                                                robot->GetID());
-                                                       robot->SetOnRamp(false);
-                                                     }));
-
-  GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::bridgeTraverseStarted,
-                                                     [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
-                                                       ANKI_CPU_PROFILE("RobotTag::bridgeTraverseStarted");
-                                                       LOG_INFO("RobotMessageHandler.ProcessMessage",
-                                                                "Robot %d reported it started traversing a bridge.",
-                                                                robot->GetID());
-                                                       //SetOnBridge(true);
-                                                     }));
-
-  GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::bridgeTraverseCompleted,
-                                                     [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
-                                                       ANKI_CPU_PROFILE("RobotTag::bridgeTraverseCompleted");
-                                                       LOG_INFO("RobotMessageHandler.ProcessMessage",
-                                                                "Robot %d reported it completed traversing a bridge.",
-                                                                robot->GetID());
-                                                       //SetOnBridge(false);
                                                      }));
 
   GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::chargerMountCompleted,
@@ -203,6 +162,7 @@ void RobotToEngineImplMessaging::InitRobotMessageComponent(RobotInterface::Messa
   GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::enterPairing,
                                                      [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
                                                        // Forward to switchboard
+                                                       LOG_INFO("RobotMessageHandler.ProcessMessage.EnterPairing","");
                                                        robot->Broadcast(ExternalInterface::MessageEngineToGame(SwitchboardInterface::EnterPairing()));
                                                      }));
 
@@ -215,7 +175,7 @@ void RobotToEngineImplMessaging::InitRobotMessageComponent(RobotInterface::Messa
   GetSignalHandles().push_back(messageHandler->Subscribe(RobotInterface::RobotToEngineTag::prepForShutdown,
                                                      [robot](const AnkiEvent<RobotInterface::RobotToEngine>& message){
                                                        LOG_INFO("RobotMessageHandler.ProcessMessage.Shutdown","");
-                                                       robot->Shutdown();
+                                                       robot->Shutdown(message.GetData().Get_prepForShutdown().reason);
                                                      }));
 
   
@@ -223,7 +183,6 @@ void RobotToEngineImplMessaging::InitRobotMessageComponent(RobotInterface::Messa
   {
     using namespace ExternalInterface;
     auto helper = MakeAnkiEventUtil(*robot->GetExternalInterface(), *robot, GetSignalHandles());
-    helper.SubscribeGameToEngine<MessageGameToEngineTag::EnableDroneMode>();
     helper.SubscribeGameToEngine<MessageGameToEngineTag::RequestRobotSettings>();
   }
 }
@@ -233,18 +192,8 @@ void RobotToEngineImplMessaging::HandleMotorCalibration(const AnkiEvent<RobotInt
   ANKI_CPU_PROFILE("Robot::HandleMotorCalibration");
 
   const MotorCalibration& payload = message.GetData().Get_motorCalibration();
-  LOG_INFO("HandleMotorCalibration.Recvd", "Motor %d, started %d, autoStarted %d",
-           (int)payload.motorID, payload.calibStarted, payload.autoStarted);
-
-  if (payload.calibStarted) {
-    Util::sInfoF("HandleMotorCalibration.Start",
-                 {{DDATA, std::to_string(payload.autoStarted).c_str()}},
-                  "%s", EnumToString(payload.motorID));
-  } else {
-    Util::sInfoF("HandleMotorCalibration.Complete",
-                 {{DDATA, std::to_string(payload.autoStarted).c_str()}},
-                  "%s", EnumToString(payload.motorID));
-  }
+  LOG_INFO("HandleMotorCalibration.Recvd", "Motor %s, started %d, autoStarted %d",
+           EnumToString(payload.motorID), payload.calibStarted, payload.autoStarted);
 
   if (payload.motorID == MotorID::MOTOR_LIFT &&
       payload.calibStarted && robot->GetCarryingComponent().IsCarryingObject())
@@ -275,9 +224,9 @@ void RobotToEngineImplMessaging::HandleMotorAutoEnabled(const AnkiEvent<RobotInt
   if (!payload.enabled) {
     // Burnout protection triggered.
     // Somebody is probably messing with the lift
-    PRINT_NAMED_INFO("HandleMotorAutoEnabled.MotorDisabled", "%s", EnumToString(payload.motorID));
+    LOG_INFO("HandleMotorAutoEnabled.MotorDisabled", "%s", EnumToString(payload.motorID));
   } else {
-    PRINT_NAMED_INFO("HandleMotorAutoEnabled.MotorEnabled", "%s", EnumToString(payload.motorID));
+    LOG_INFO("HandleMotorAutoEnabled.MotorEnabled", "%s", EnumToString(payload.motorID));
   }
 
   // This probably applies here as it does in HandleMotorCalibration.
@@ -289,121 +238,6 @@ void RobotToEngineImplMessaging::HandleMotorAutoEnabled(const AnkiEvent<RobotInt
   }
 
   robot->Broadcast(ExternalInterface::MessageEngineToGame(MotorAutoEnabled(payload)));
-}
-
-void RobotToEngineImplMessaging::HandleRobotSetHeadID(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  ANKI_CPU_PROFILE("Robot::HandleRobotSetHeadID");
-
-  const RobotInterface::RobotAvailable& payload = message.GetData().Get_robotAvailable();
-  const auto hwRev  = payload.hwRevision;
-  const auto headID = payload.serialNumber;
-
-  // Set DAS Global on all messages
-  char string_id[32] = {};
-  snprintf(string_id, sizeof(string_id), "0xbeef%04x%08x", hwRev, headID);
-  Anki::Util::sSetGlobal(DGROUP, string_id);
-
-  // This should be definition always have a phys ID
-  Anki::Util::sInfo("robot.handle_robot_set_head_id", {{DDATA,string_id}}, string_id);
-
-  robot->SetHeadSerialNumber(headID);
-  robot->SetModelNumber(hwRev);
-}
-
-void RobotToEngineImplMessaging::HandleRobotSetBodyID(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  ANKI_CPU_PROFILE("Robot::HandleRobotSetBodyID");
-
-  const RobotInterface::ManufacturingID& payload = message.GetData().Get_mfgId();
-  const int32_t hwVersion = payload.hw_version;
-  const uint32_t bodyID = payload.esn;
-  const int32_t bodyColor = payload.body_color;
-
-  // Set DAS Global on all messages
-  char string_id[32] = {};
-  snprintf(string_id, sizeof(string_id),
-           "0xbeef%04x%04x%08x",
-           Util::numeric_cast<uint16_t>(bodyColor), // We expect bodyColor and hwVersion to always be +ve
-           Util::numeric_cast<uint16_t>(hwVersion),
-           bodyID);
-
-  Anki::Util::sSetGlobal(DPHYS, string_id);
-  Anki::Util::sInfo("robot.handle_robot_set_body_id", {{DDATA,string_id}}, string_id);
-
-  robot->SetBodySerialNumber(bodyID);
-  robot->SetBodyHWVersion(hwVersion);
-  robot->SetBodyColor(bodyColor);
-
-  // Activate A/B tests for robot now that we have its serial
-  robot->GetContext()->GetExperiments()->AutoActivateExperiments(std::to_string(bodyID));
-}
-
-void RobotToEngineImplMessaging::HandleFirmwareVersion(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  // Extract sim flag from json
-  const auto& fwData = message.GetData().Get_firmwareVersion().json;
-  std::string jsonString{fwData.begin(), fwData.end()};
-  Json::Reader reader;
-  Json::Value headerData;
-  if (!reader.parse(jsonString, headerData))
-  {
-    return;
-  }
-
-  // simulated robot will have special tag in json
-  const bool robotIsPhysical = headerData["sim"].isNull();
-
-  LOG_INFO("RobotIsPhysical", "%d", robotIsPhysical);
-  robot->SetPhysicalRobot(robotIsPhysical);
-}
-
-void RobotToEngineImplMessaging::HandleFWVersionInfo(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  ANKI_CPU_PROFILE("Robot::HandleFWVersionInfo");
-
-  static_assert(decltype(RobotInterface::FWVersionInfo::toRobotCLADHash)().size() == sizeof(messageEngineToRobotHash), "Incorrect sizes in CLAD version mismatch message");
-  static_assert(decltype(RobotInterface::FWVersionInfo::toEngineCLADHash)().size() == sizeof(messageRobotToEngineHash), "Incorrect sizes in CLAD version mismatch message");
-
-  _factoryFirmwareVersion = message.GetData().Get_factoryFirmwareVersion();
-
-  std::string robotEngineToRobotStr;
-  std::string engineEngineToRobotStr;
-  if (memcmp(_factoryFirmwareVersion.toRobotCLADHash.data(), messageEngineToRobotHash, _factoryFirmwareVersion.toRobotCLADHash.size())) {
-    robotEngineToRobotStr = Anki::Util::ConvertMessageBufferToString(_factoryFirmwareVersion.toRobotCLADHash.data(), static_cast<uint32_t>(_factoryFirmwareVersion.toRobotCLADHash.size()), Anki::Util::EBytesToTextType::eBTTT_Hex);
-    engineEngineToRobotStr = Anki::Util::ConvertMessageBufferToString(messageEngineToRobotHash, sizeof(messageEngineToRobotHash), Anki::Util::EBytesToTextType::eBTTT_Hex);
-
-    LOG_WARNING("RobotFirmware.VersionMismatch",
-                "Engine to Robot CLAD version hash mismatch. Robot's EngineToRobot hash = %s. Engine's EngineToRobot hash = %s.",
-                robotEngineToRobotStr.c_str(), engineEngineToRobotStr.c_str());
-
-    _hasMismatchedEngineToRobotCLAD = true;
-  }
-
-  std::string robotRobotToEngineStr;
-  std::string engineRobotToEngineStr;
-
-  if (memcmp(_factoryFirmwareVersion.toEngineCLADHash.data(), messageRobotToEngineHash, _factoryFirmwareVersion.toEngineCLADHash.size())) {
-
-    robotRobotToEngineStr = Anki::Util::ConvertMessageBufferToString(_factoryFirmwareVersion.toEngineCLADHash.data(), static_cast<uint32_t>(_factoryFirmwareVersion.toEngineCLADHash.size()), Anki::Util::EBytesToTextType::eBTTT_Hex);
-
-    engineRobotToEngineStr = Anki::Util::ConvertMessageBufferToString(messageRobotToEngineHash, sizeof(messageRobotToEngineHash), Anki::Util::EBytesToTextType::eBTTT_Hex);
-
-    LOG_WARNING("RobotFirmware.VersionMismatch",
-                "Robot to Engine CLAD version hash mismatch. Robot's RobotToEngine hash = %s. Engine's RobotToEngine hash = %s.",
-                robotRobotToEngineStr.c_str(), engineRobotToEngineStr.c_str());
-
-    _hasMismatchedRobotToEngineCLAD = true;
-  }
-
-  if (_hasMismatchedEngineToRobotCLAD || _hasMismatchedRobotToEngineCLAD) {
-    robot->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::EngineRobotCLADVersionMismatch(_hasMismatchedEngineToRobotCLAD,
-                                                                                                              _hasMismatchedRobotToEngineCLAD,
-                                                                                                              engineEngineToRobotStr,
-                                                                                                              engineRobotToEngineStr,
-                                                                                                              robotEngineToRobotStr,
-                                                                                                              robotRobotToEngineStr)));
-  }
 }
 
 void RobotToEngineImplMessaging::HandlePickAndPlaceResult(const AnkiEvent<RobotInterface::RobotToEngine>& message,
@@ -421,21 +255,19 @@ void RobotToEngineImplMessaging::HandlePickAndPlaceResult(const AnkiEvent<RobotI
     case BlockStatus::NO_BLOCK:
     {
       LOG_INFO("RobotMessageHandler.ProcessMessage.HandlePickAndPlaceResult.NoBlock",
-               "Robot %d reported it %s doing something without a block. Stopping docking and turning on Look-for-Markers mode.",
-               robot->GetID(), successStr);
+               "Robot reported it %s doing something without a block. Stopping docking and turning on Look-for-Markers mode.",
+               successStr);
       break;
     }
     case BlockStatus::BLOCK_PLACED:
     {
       LOG_INFO("RobotMessageHandler.ProcessMessage.HandlePickAndPlaceResult.BlockPlaced",
-               "Robot %d reported it %s placing block. Stopping docking and turning on Look-for-Markers mode.",
-               robot->GetID(), successStr);
+               "Robot reported it %s placing block. Stopping docking and turning on Look-for-Markers mode.",
+               successStr);
 
       if (payload.didSucceed) {
         robot->GetCarryingComponent().SetCarriedObjectAsUnattached();
       }
-
-      robot->GetVisionComponent().EnableMode(VisionMode::DetectingMarkers, true);
 
       break;
     }
@@ -464,7 +296,7 @@ void RobotToEngineImplMessaging::HandleDockingStatus(const AnkiEvent<RobotInterf
   //const DockingStatus& payload = message.GetData().Get_dockingStatus();
 
   // Log event to help us track whether backup or "Hanns Manuever" is being used
-  PRINT_NAMED_INFO("robot.docking.status", "%s", EnumToString(message.GetData().Get_dockingStatus().status));
+  LOG_INFO("robot.docking.status", "%s", EnumToString(message.GetData().Get_dockingStatus().status));
 }
 
 
@@ -473,21 +305,29 @@ void RobotToEngineImplMessaging::HandleFallingEvent(const AnkiEvent<RobotInterfa
   const auto& msg = message.GetData().Get_fallingEvent();
 
   LOG_INFO("Robot.HandleFallingEvent.FallingEvent",
-           "timestamp: %u, duration (ms): %u, intensity %.1f",
+           "timestamp: %u duration: %u",
            msg.timestamp,
-           msg.duration_ms,
-           msg.impactIntensity);
+           msg.duration_ms);
 
-  // DAS Event: "robot.falling_event"
-  // s_val: Impact intensity
-  // data: Freefall duration in milliseconds
-  const int impactIntensity_int = std::round(msg.impactIntensity);
-  Util::sInfo("robot.falling_event",                              // 'event'
-              {{DDATA, std::to_string(msg.duration_ms).c_str()}}, // 'data'
-              std::to_string(impactIntensity_int).c_str());       // 's_val'
+  robot->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotFallingEvent(msg.duration_ms)));
+}
 
-  // TODO: Beam this up to game?
-  robot->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotFallingEvent(msg.duration_ms, msg.impactIntensity)));
+void RobotToEngineImplMessaging::HandleFallImpactEvent(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
+{
+  LOG_INFO("Robot.HandleFallImpactEvent", "");
+
+  // webviz counter for the number of detected fall impacts
+  static size_t webvizFallImpactCounter = 0;
+  webvizFallImpactCounter++;
+  const auto* context = robot->GetContext();
+  if (context != nullptr) {
+    auto* webService = context->GetWebService();
+    if (webService != nullptr) {
+      Json::Value toSendJson;
+      toSendJson["fall_impact_count"] = (int)webvizFallImpactCounter;
+      webService->SendToWebViz("imu", toSendJson);
+    }
+  }
 }
 
 void RobotToEngineImplMessaging::HandleGoalPose(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
@@ -508,11 +348,14 @@ void RobotToEngineImplMessaging::HandleGoalPose(const AnkiEvent<RobotInterface::
 void RobotToEngineImplMessaging::HandleRobotStopped(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
 {
   ANKI_CPU_PROFILE("Robot::HandleRobotStopped");
-
+  
   RobotInterface::RobotStopped payload = message.GetData().Get_robotStopped();
-  Util::sInfoF("RobotImplMessaging.HandleRobotStopped",
-               {{DDATA, ""}},
-               "%d", payload.reason);
+  
+  DASMSG(robot_impl_messaging.handle_robot_stopped,
+         "robot_impl_messaging.handle_robot_stopped",
+         "Received RobotStopped message");
+  DASMSG_SET(s1, EnumToString(payload.reason), "Stop reason");
+  DASMSG_SEND();
 
   // This is a somewhat overloaded use of enableCliffSensor, but currently only cliffs
   // trigger this RobotStopped message so it's not too crazy.
@@ -527,7 +370,12 @@ void RobotToEngineImplMessaging::HandleRobotStopped(const AnkiEvent<RobotInterfa
   robot->SendMessage(RobotInterface::EngineToRobot(RobotInterface::RobotStoppedAck()));
 
   // Forward on with EngineToGame event
-  robot->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotStopped()));
+  robot->Broadcast(
+    ExternalInterface::MessageEngineToGame(
+      ExternalInterface::RobotStopped(
+        payload.reason,
+        payload.cliffDetectedFlags,
+        payload.whiteDetectedFlags)));
 }
 
 void RobotToEngineImplMessaging::HandlePotentialCliffEvent(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
@@ -559,10 +407,6 @@ void RobotToEngineImplMessaging::HandlePotentialCliffEvent(const AnkiEvent<Robot
     IActionRunner* action = new TriggerLiftSafeAnimationAction(AnimationTrigger::AudioOnlyHuh, 1,
                                                                true, (u8)AnimTrackFlag::NO_TRACKS, 3.f, true);
     robot->GetActionList().QueueAction(QueueActionPosition::NOW, action);
-  } else if (!robot->GetContext()->IsInSdkMode()) {
-    LOG_WARNING("Robot.HandlePotentialCliffEvent", "Got potential cliff message but not in drone mode");
-    robot->GetMoveComponent().StopAllMotors();
-    robot->SendMessage(RobotInterface::EngineToRobot(RobotInterface::EnableStopOnCliff(false)));
   }
 }
 
@@ -571,21 +415,25 @@ void RobotToEngineImplMessaging::HandleCliffEvent(const AnkiEvent<RobotInterface
   ANKI_CPU_PROFILE("Robot::HandleCliffEvent");
 
   CliffEvent cliffEvent = message.GetData().Get_cliffEvent();
+  const auto& cliffComp = robot->GetCliffSensorComponent();
   // always listen to events which say we aren't on a cliff, but ignore ones which say we are (so we don't
   // get "stuck" on a cliff
-  if (!robot->GetCliffSensorComponent().IsCliffSensorEnabled() && (cliffEvent.detectedFlags != 0)) {
+  if (!cliffComp.IsCliffSensorEnabled() && (cliffEvent.detectedFlags != 0)) {
     return;
   }
 
   if (cliffEvent.detectedFlags != 0) {
     Pose3d cliffPose;
-    if (robot->GetCliffSensorComponent().ComputeCliffPose(cliffEvent, cliffPose)) {
-      LOG_INFO("RobotImplMessaging.HandleCliffEvent.Detected", "at %.3f,%.3f. DetectedFlags = 0x%02X",
-               cliffPose.GetTranslation().x(), cliffPose.GetTranslation().y(), cliffEvent.detectedFlags);
-    } else {
-      LOG_ERROR("RobotImplMessaging.HandleCliffEvent.ComputeCliffPoseFailed",
-                "Failed computing cliff pose!");
+    const bool isValidPose = cliffComp.ComputeCliffPose(cliffEvent.timestamp, cliffEvent.detectedFlags, cliffPose);
+    if (isValidPose) {
+      cliffComp.UpdateNavMapWithCliffAt(cliffPose, cliffEvent.timestamp);
     }
+    LOG_INFO("RobotImplMessaging.HandleCliffEvent.Detected",
+             "at %.3f,%.3f. DetectedFlags = 0x%02X. %s cliff into nav map",
+             cliffPose.GetTranslation().x(),
+             cliffPose.GetTranslation().y(),
+             cliffEvent.detectedFlags,
+             isValidPose ? "Inserting" : "NOT inserting");
   } else {
     LOG_INFO("RobotImplMessaging.HandleCliffEvent.Undetected", "");
   }
@@ -594,15 +442,10 @@ void RobotToEngineImplMessaging::HandleCliffEvent(const AnkiEvent<RobotInterface
   robot->Broadcast(ExternalInterface::MessageEngineToGame(std::move(cliffEvent)));
 }
 
-bool RobotToEngineImplMessaging::ShouldIgnoreMultipleImages() const
-{
-  return _repeatedImageCount >= 3;
-}
-
 // For processing imu data chunks arriving from robot.
 // Writes the entire log of 3-axis accelerometer and 3-axis
 // gyro readings to a .m file in kP_IMU_LOGS_DIR so they
-// can be read in from Matlab. (See robot/util/imuLogsTool.m)
+// can be read in from Matlab.
 void RobotToEngineImplMessaging::HandleImuData(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
 {
   ANKI_CPU_PROFILE("Robot::HandleImuData");
@@ -688,18 +531,6 @@ void RobotToEngineImplMessaging::HandleImuRawData(const AnkiEvent<RobotInterface
   }
 }
 
-void RobotToEngineImplMessaging::HandleImageImuData(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  ANKI_CPU_PROFILE("Robot::HandleImageImuData");
-
-  const ImageImuData& payload = message.GetData().Get_imageGyro();
-
-  robot->GetVisionComponent().GetImuDataHistory().AddImuData(payload.systemTimestamp_ms,
-                                                             payload.rateX,
-                                                             payload.rateY,
-                                                             payload.rateZ);
-}
-
 void RobotToEngineImplMessaging::HandleSyncRobotAck(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
 {
   ANKI_CPU_PROFILE("Robot::HandleSyncRobotAck");
@@ -709,28 +540,37 @@ void RobotToEngineImplMessaging::HandleSyncRobotAck(const AnkiEvent<RobotInterfa
   // Move the head up when we sync time so that the customer can see the face easily
   if(FACTORY_TEST && Factory::GetEMR()->fields.PACKED_OUT_FLAG)
   {
+    // Move head up
     const f32 kLookUpSpeed_radps = 2;
-    robot->GetMoveComponent().MoveHeadToAngle(MAX_HEAD_ANGLE,
-                                              kLookUpSpeed_radps,
-                                              MAX_HEAD_ACCEL_RAD_PER_S2);
+    auto moveHeadUpAction = new MoveHeadToAngleAction(MAX_HEAD_ANGLE);
+    moveHeadUpAction->SetMaxSpeed(kLookUpSpeed_radps);
+    moveHeadUpAction->SetAccel(MAX_HEAD_ACCEL_RAD_PER_S2);
+
+    // Set calm mode
+    auto setCalmFunc = [](Robot& robot) {
+      robot.SendMessage(RobotInterface::EngineToRobot(RobotInterface::CalmPowerMode(true)));
+      return true;
+    };
+    auto setCalmModeAction = new WaitForLambdaAction(setCalmFunc);
+
+    // Command sequential action
+    auto moveHeadThenCalm = new CompoundActionSequential();
+    moveHeadThenCalm->AddAction(moveHeadUpAction);
+    moveHeadThenCalm->AddAction(setCalmModeAction);
+    robot->GetActionList().QueueAction(QueueActionPosition::NOW, moveHeadThenCalm);
   }
-}
-
-void RobotToEngineImplMessaging::HandleRobotPoked(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
-{
-  ANKI_CPU_PROFILE("Robot::HandleRobotPoked");
-
-  // Forward on with EngineToGame event
-  LOG_INFO("Robot.HandleRobotPoked","");
-  robot->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotPoked()));
 }
 
 void RobotToEngineImplMessaging::HandleMicDirection(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
 {
   const auto & payload = message.GetData().Get_micDirection();
-  robot->GetMicComponent().GetMicDirectionHistory().AddDirectionSample(payload.timestamp,
-                                                     payload.direction, payload.confidence,
-                                                     payload.selectedDirection);
+  robot->GetMicComponent().GetMicDirectionHistory().AddMicSample(payload);
+}
+
+void RobotToEngineImplMessaging::HandleMicDataState(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
+{
+  const auto & payload = message.GetData().Get_micDataState();
+  robot->GetMicComponent().SetBufferFullness(payload.rawBufferFullness);
 }
 
 void RobotToEngineImplMessaging::HandleDisplayedFaceImage(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
@@ -753,6 +593,7 @@ void RobotToEngineImplMessaging::HandleDisplayedFaceImage(const AnkiEvent<RobotI
   // Not user why copy_n wasn't working here, but just going ahead and doing an extra copy to fix the issue
   auto unnecessaryCopy = msg.faceData;
   std::copy_n(unnecessaryCopy.begin(), numPixels, _faceImageRGB565.GetRawDataPointer() + (msg.chunkIndex * kMaxNumPixelsPerChunk));
+  u32 kAllFaceImageRGBChunksReceivedMask = IsXray() ? kAllFaceImageRGBChunksReceivedMaskFor22Chunks : kAllFaceImageRGBChunksReceivedMaskFor30Chunks;
 
   if (_faceImageRGBChunksReceivedBitMask == kAllFaceImageRGBChunksReceivedMask) {
     Vision::ImageRGB fullImage;
@@ -768,11 +609,19 @@ void RobotToEngineImplMessaging::HandleDisplayedFaceImage(const AnkiEvent<RobotI
 
 }
 
-void RobotToEngineImplMessaging::HandleStreamCameraImages(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
+void RobotToEngineImplMessaging::HandleStreamCameraImages(const AnkiEvent<RobotInterface::RobotToEngine>& message,
+                                                          Robot* const robot)
 {
   const auto & payload = message.GetData().Get_streamCameraImages();
-  robot->GetVisionComponent().EnableDrawImagesToScreen(payload.enable);
+  robot->GetVisionComponent().EnableMirrorMode(payload.enable);
 }
 
-} // end namespace Cozmo
+void RobotToEngineImplMessaging::HandleRobotPoked(const AnkiEvent<RobotInterface::RobotToEngine>& message, Robot* const robot)
+{
+  ANKI_CPU_PROFILE("Robot::HandleRobotPoked");
+  LOG_INFO("Robot.HandleRobotPoked","");
+  robot->HandlePokeEvent();
+}
+
+} // end namespace Vector
 } // end namespace Anki

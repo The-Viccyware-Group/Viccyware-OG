@@ -15,8 +15,6 @@
 
 #include "cannedAnimLib/cannedAnims/animation.h"
 #include "cannedAnimLib/baseTypes/cozmo_anim_generated.h"
-//#include "cozmoAnim/animation/proceduralFace.h"
-//#include "anki/cozmo/shared/cozmoEngineConfig.h"
 #include "anki/cozmo/shared/cozmoConfig.h"
 #include "util/logging/logging.h"
 #include "clad/robotInterface/messageEngineToRobot.h"
@@ -24,9 +22,11 @@
 #define DEBUG_ANIMATIONS 0
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 static const char* kNameKey = "Name";
+static const char* kSpriteBoxKeyFrameName = "SpriteBoxKeyFrame";
+static const char* kFaceAnimKeyFrameName = "FaceAnimationKeyFrame";
 CONSOLE_VAR(bool, kShouldPreCacheSprites, "Animation", false);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -34,12 +34,31 @@ Animation::Animation(const std::string& name)
 : _name(name)
 , _isInitialized(false)
 {
-  
+
 }
 
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::AnimClip* animClip,
-                                    const Vision::SpritePathMap* spriteMap, Vision::SpriteSequenceContainer* seqContainer)
+bool Animation::operator==(const Animation &other) const {
+  return (_name == other._name) &&
+         (_headTrack == other._headTrack) &&
+         (_liftTrack == other._liftTrack) &&
+         (_proceduralFaceTrack == other._proceduralFaceTrack) &&
+         (_eventTrack == other._eventTrack) &&
+         (_backpackLightsTrack == other._backpackLightsTrack) &&
+         (_bodyPosTrack == other._bodyPosTrack) &&
+         (_recordHeadingTrack == other._recordHeadingTrack) &&
+         (_turnToRecordedHeadingTrack == other._turnToRecordedHeadingTrack) &&
+         (_robotAudioTrack == other._robotAudioTrack);
+}
+
+
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Result Animation::DefineFromFlatBuf(const std::string& name,
+                                    const CozmoAnim::AnimClip* animClip,
+                                    Vision::SpriteSequenceContainer* seqContainer)
 {
   /*
   TODO: Does this method and the FlatBuffers schema file need to support
@@ -66,10 +85,9 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (liftData != nullptr) {
     for (int lftIdx=0; lftIdx < liftData->size(); lftIdx++) {
       const CozmoAnim::LiftHeight* liftKeyframe = liftData->Get(lftIdx);
-      Result addResult = _liftTrack.AddKeyFrameToBack(liftKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding LiftHeight frame %d failed.", lftIdx);
+      const Result addResult = _liftTrack.AddKeyFrameToBack(liftKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding LiftHeight frame %d failed", lftIdx);
         return addResult;
       }
     }
@@ -79,10 +97,9 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (procFaceData != nullptr) {
     for (int pfIdx=0; pfIdx < procFaceData->size(); pfIdx++) {
       const CozmoAnim::ProceduralFace* procFaceKeyframe = procFaceData->Get(pfIdx);
-      Result addResult = _proceduralFaceTrack.AddKeyFrameToBack(procFaceKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding ProceduralFace frame %d failed.", pfIdx);
+      const Result addResult = _proceduralFaceTrack.AddKeyFrameToBack(procFaceKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding ProceduralFace frame %d failed", pfIdx);
         return addResult;
       }
     }
@@ -92,10 +109,9 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (headData != nullptr) {
     for (int headIdx=0; headIdx < headData->size(); headIdx++) {
       const CozmoAnim::HeadAngle* headKeyframe = headData->Get(headIdx);
-      Result addResult = _headTrack.AddKeyFrameToBack(headKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding HeadAngle frame %d failed.", headIdx);
+      const Result addResult = _headTrack.AddKeyFrameToBack(headKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding HeadAngle frame %d failed", headIdx);
         return addResult;
       }
     }
@@ -105,10 +121,9 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (audioData != nullptr) {
     for (int audioIdx=0; audioIdx < audioData->size(); audioIdx++) {
       const CozmoAnim::RobotAudio* audioKeyframe = audioData->Get(audioIdx);
-      Result addResult = _robotAudioTrack.AddKeyFrameToBack(audioKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding RobotAudio frame %d failed.", audioIdx);
+      const Result addResult = _robotAudioTrack.AddKeyFrameToBack(audioKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding RobotAudio frame %d failed", audioIdx);
         return addResult;
       }
     }
@@ -116,6 +131,7 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
 
   auto backpackData = keyframes->BackpackLightsKeyFrame();
   if (backpackData != nullptr) {
+
     for (int bpIdx=0; bpIdx < backpackData->size(); bpIdx++) {
 
       // TODO: Update the processing of these keyframes to NOT use an intermediate
@@ -128,7 +144,7 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
       jsonFrame[kNameKey] = std::string("BackpackLightsKeyFrame");
       jsonFrame["triggerTime_ms"] = backpackKeyframe->triggerTime_ms();
       jsonFrame["durationTime_ms"] = backpackKeyframe->durationTime_ms();
-      
+
       jsonFrame["Front"] = Json::Value(Json::arrayValue);
       auto frontData = backpackKeyframe->Front();
       for (int idx=0; idx < frontData->size(); idx++) {
@@ -147,10 +163,21 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
         auto backVal = backData->Get(idx);
         jsonFrame["Back"].append(backVal);
       }
-      Result addResult = _backpackLightsTrack.AddKeyFrameToBack(jsonFrame, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding BackpackLights frame %d failed.", bpIdx);
+      const Result addResult = _backpackLightsTrack.AddKeyFrameToBack(jsonFrame, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding BackpackLights frame %d failed", bpIdx);
+        return addResult;
+      }
+    }
+  }
+
+  auto spriteBoxData = keyframes->SpriteBoxKeyFrame();
+  if (nullptr != spriteBoxData) {
+    for(int sbIdx=0; sbIdx < spriteBoxData->size(); sbIdx++){
+      const CozmoAnim::SpriteBox* spriteBox = spriteBoxData->Get(sbIdx);
+      const Result addResult = _spriteBoxCompositor.AddKeyFrame(spriteBox);
+      if (RESULT_OK != addResult){
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding SpriteBox frame %d failed", sbIdx);
         return addResult;
       }
     }
@@ -160,19 +187,12 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (spriteSequenceData != nullptr) {
     for (int faIdx=0; faIdx < spriteSequenceData->size(); faIdx++) {
       const CozmoAnim::FaceAnimation* faceAnimKeyframe = spriteSequenceData->Get(faIdx);
-      
-      const Vision::SpriteSequence* spriteSeq = nullptr;
-      TimeStamp_t triggerTime_ms = 0;
-      float scanlineOpacity = 0;
-      u32 frameInterval_ms = ANIM_TIME_STEP_MS;
-      const bool success = SpriteSequenceKeyFrame::ExtractDataFromFlatBuf(faceAnimKeyframe, spriteMap, seqContainer,
-                                                                          spriteSeq, triggerTime_ms, scanlineOpacity);
-      const bool shouldRenderInEyeHue = true;
-      SpriteSequenceKeyFrame kf(spriteSeq, triggerTime_ms, frameInterval_ms, scanlineOpacity, shouldRenderInEyeHue);
-      Result addResult = _spriteSequenceTrack.AddKeyFrameToBack(kf);
-      if(success && addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding FaceAnimation frame %d failed.", faIdx);
+      const Result addResult = _spriteBoxCompositor.AddFullFaceSpriteSeq(faceAnimKeyframe, *seqContainer);
+      if (RESULT_OK != addResult){
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
+                  "Adding Legacy SpriteBox frame %d failed for animation %s",
+                  faIdx,
+                  name.c_str());
         return addResult;
       }
     }
@@ -182,10 +202,9 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (eventData != nullptr) {
     for (int eIdx=0; eIdx < eventData->size(); eIdx++) {
       const CozmoAnim::Event* eventKeyframe = eventData->Get(eIdx);
-      Result addResult = _eventTrack.AddKeyFrameToBack(eventKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding Event frame %d failed.", eIdx);
+      const Result addResult = _eventTrack.AddKeyFrameToBack(eventKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding Event frame %d failed", eIdx);
         return addResult;
       }
     }
@@ -195,101 +214,87 @@ Result Animation::DefineFromFlatBuf(const std::string& name, const CozmoAnim::An
   if (bodyData != nullptr) {
     for (int bdyIdx=0; bdyIdx < bodyData->size(); bdyIdx++) {
       const CozmoAnim::BodyMotion* bodyKeyframe = bodyData->Get(bdyIdx);
-      Result addResult = _bodyPosTrack.AddKeyFrameToBack(bodyKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding BodyMotion frame %d failed.", bdyIdx);
-        return addResult;
-      }
-    }
-  }
-  
-  auto recordHeadingData = keyframes->RecordHeadingKeyFrame();
-  if (recordHeadingData != nullptr) {
-    for (int rhIdx=0; rhIdx < recordHeadingData->size(); rhIdx++) {
-      const CozmoAnim::RecordHeading* recordHeadingKeyframe = recordHeadingData->Get(rhIdx);
-      Result addResult = _recordHeadingTrack.AddKeyFrameToBack(recordHeadingKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding RecordHeading frame %d failed.", rhIdx);
-        return addResult;
-      }
-    }
-  }
-  
-  auto turnToRecordedHeadingData = keyframes->TurnToRecordedHeadingKeyFrame();
-  if (turnToRecordedHeadingData != nullptr) {
-    for (int rhIdx=0; rhIdx < turnToRecordedHeadingData->size(); rhIdx++) {
-      const CozmoAnim::TurnToRecordedHeading* turnToRecordedHeadingKeyframe = turnToRecordedHeadingData->Get(rhIdx);
-      Result addResult = _turnToRecordedHeadingTrack.AddKeyFrameToBack(turnToRecordedHeadingKeyframe, name);
-      if(addResult != RESULT_OK) {
-        PRINT_NAMED_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
-                          "Adding TurnToRecordedHeading frame %d failed.", rhIdx);
+      const Result addResult = _bodyPosTrack.AddKeyFrameToBack(bodyKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding BodyMotion frame %d failed", bdyIdx);
         return addResult;
       }
     }
   }
 
-  SetKeyFrameDuration_ms();
+  auto recordHeadingData = keyframes->RecordHeadingKeyFrame();
+  if (recordHeadingData != nullptr) {
+    for (int rhIdx=0; rhIdx < recordHeadingData->size(); rhIdx++) {
+      const CozmoAnim::RecordHeading* recordHeadingKeyframe = recordHeadingData->Get(rhIdx);
+      const Result addResult = _recordHeadingTrack.AddKeyFrameToBack(recordHeadingKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure", "Adding RecordHeading frame %d failed", rhIdx);
+        return addResult;
+      }
+    }
+  }
+
+  auto turnToRecordedHeadingData = keyframes->TurnToRecordedHeadingKeyFrame();
+  if (turnToRecordedHeadingData != nullptr) {
+    for (int rhIdx=0; rhIdx < turnToRecordedHeadingData->size(); rhIdx++) {
+      const CozmoAnim::TurnToRecordedHeading* turnToRecordedHeadingKeyframe = turnToRecordedHeadingData->Get(rhIdx);
+      const Result addResult = _turnToRecordedHeadingTrack.AddKeyFrameToBack(turnToRecordedHeadingKeyframe, name);
+      if (addResult != RESULT_OK) {
+        LOG_ERROR("Animation.DefineFromFlatBuf.AddKeyFrameFailure",
+                  "Adding TurnToRecordedHeading frame %d failed",
+                  rhIdx);
+        return addResult;
+      }
+    }
+  }
+
   return RESULT_OK;
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Result Animation::DefineFromJson(const std::string& name, const Json::Value &jsonRoot,
-                                 const Vision::SpritePathMap* spriteMap, Vision::SpriteSequenceContainer* seqContainer)
+                                 Vision::SpriteSequenceContainer* seqContainer)
 {
   _name = name;
-  
+
   // Clear whatever is in the existing animation
   Clear();
-  
+
   const s32 numFrames = jsonRoot.size();
   for(s32 iFrame = 0; iFrame < numFrames; ++iFrame)
   {
     const Json::Value& jsonFrame = jsonRoot[iFrame];
-    
+
     if(!jsonFrame.isObject()) {
       PRINT_NAMED_ERROR("Animation.DefineFromJson.FrameMissing",
                         "frame %d of '%s' animation is missing or incorrect type.",
                         iFrame, _name.c_str());
       return RESULT_FAIL;
     }
-    
+
     const Json::Value& jsonFrameName = jsonFrame[kNameKey];
-    
+
     if(!jsonFrameName.isString()) {
       PRINT_NAMED_ERROR("Animation.DefineFromJson.FrameNameMissing",
                         "Missing '%s' field for frame %d of '%s' animation.",
                         kNameKey, iFrame, _name.c_str());
       return RESULT_FAIL;
     }
-    
+
     const std::string& frameName = jsonFrameName.asString();
-    
+
     Result addResult = RESULT_FAIL;
-    
+
     // Map from string name of frame to which track we want to store it in:
     if(frameName == HeadAngleKeyFrame::GetClassName()) {
       addResult = _headTrack.AddKeyFrameToBack(jsonFrame, name);
     } else if(frameName == LiftHeightKeyFrame::GetClassName()) {
       addResult = _liftTrack.AddKeyFrameToBack(jsonFrame, name);
-    } else if(frameName == SpriteSequenceKeyFrame::GetClassName()) {
-      const Vision::SpriteSequence* spriteSeq = nullptr;
-      TimeStamp_t triggerTime_ms = 0;
-      TimeStamp_t frameUpdateInterval = 0;
-      float scanlineOpacity = 0.f;
-      const bool success = SpriteSequenceKeyFrame::ExtractDataFromJson(jsonFrame, spriteMap, seqContainer,
-                                                                       spriteSeq, triggerTime_ms, 
-                                                                       scanlineOpacity, frameUpdateInterval);
-      if(success){
-        const bool shouldRenderInEyeHue = true;
-        SpriteSequenceKeyFrame kf(spriteSeq, triggerTime_ms, frameUpdateInterval, 
-                                scanlineOpacity, shouldRenderInEyeHue);
-        addResult = _spriteSequenceTrack.AddKeyFrameToBack(kf);
-      }else{
-        addResult = RESULT_FAIL;
-      }
+    } else if(frameName == kSpriteBoxKeyFrameName) {
+      addResult = _spriteBoxCompositor.AddKeyFrame(jsonFrame, name);
+    } else if(frameName == kFaceAnimKeyFrameName) {
+      addResult = _spriteBoxCompositor.AddFullFaceSpriteSeq(jsonFrame, *seqContainer, name);
     } else if(frameName == EventKeyFrame::GetClassName()) {
       addResult = _eventTrack.AddKeyFrameToBack(jsonFrame, name);
     } else if(frameName == "DeviceAudioKeyFrame") {
@@ -312,17 +317,16 @@ Result Animation::DefineFromJson(const std::string& name, const Json::Value &jso
                         iFrame, _name.c_str(), frameName.c_str());
       return RESULT_FAIL;
     }
-    
+
     if(addResult != RESULT_OK) {
       PRINT_NAMED_ERROR("Animation.DefineFromJson.AddKeyFrameFailure",
                         "Adding %s frame %d failed.",
                         frameName.c_str(), iFrame);
       return addResult;
     }
-    
+
   } // for each frame
-  
-  SetKeyFrameDuration_ms();
+
   return RESULT_OK;
 }
 
@@ -336,11 +340,6 @@ Animations::Track<HeadAngleKeyFrame>& Animation::GetTrack() {
 template<>
 Animations::Track<LiftHeightKeyFrame>& Animation::GetTrack() {
   return _liftTrack;
-}
-
-template<>
-Animations::Track<SpriteSequenceKeyFrame>& Animation::GetTrack() {
-  return _spriteSequenceTrack;
 }
 
 template<>
@@ -392,15 +391,15 @@ Result Animation::AddKeyFrameToBack(const HeadAngleKeyFrame& kf)
 #define ALL_TRACKS(__METHOD__, __COMBINE_WITH__, ...) \
 _headTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _liftTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
-_spriteSequenceTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _proceduralFaceTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _eventTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _robotAudioTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _backpackLightsTrack.__METHOD__(__VA_ARGS__) __COMBINE_WITH__ \
 _bodyPosTrack.__METHOD__(__VA_ARGS__)  __COMBINE_WITH__  \
 _recordHeadingTrack.__METHOD__(__VA_ARGS__)  __COMBINE_WITH__  \
-_turnToRecordedHeadingTrack.__METHOD__(__VA_ARGS__)
- 
+_turnToRecordedHeadingTrack.__METHOD__(__VA_ARGS__)  __COMBINE_WITH__  \
+_spriteBoxCompositor.__METHOD__(__VA_ARGS__)
+
 
 //# define ALL_TRACKS(__METHOD__, __ARG__, __COMBINE_WITH__) ALL_TRACKS_WITH_ARG(__METHOD__, void, __COMBINE_WITH__)
 
@@ -411,13 +410,13 @@ Result Animation::Init(Vision::SpriteCache* cache)
 #   if DEBUG_ANIMATIONS
   PRINT_NAMED_INFO("Animation.Init", "Initializing animation '%s'", GetName().c_str());
 #   endif
-  
+
   ALL_TRACKS(MoveToStart, ;);
   if(kShouldPreCacheSprites){
     CacheAnimationSprites(cache);
   }
   _isInitialized = true;
-  
+
   return RESULT_OK;
 } // Animation::Init()
 
@@ -437,11 +436,7 @@ void Animation::ClearUpToCurrent()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Animation::CacheAnimationSprites(Vision::SpriteCache* cache)
 {
-  auto& frameList = _spriteSequenceTrack.GetAllFrames();
-  auto endTime_ms = GetLastKeyFrameEndTime_ms();
-  for(auto& frame: frameList){
-    frame.CacheInternalSprites(cache, endTime_ms);
-  }
+  _spriteBoxCompositor.CacheInternalSprites(cache); 
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -467,11 +462,10 @@ void Animation::AppendAnimation(const Animation& appendAnim)
 {
   // Append animation starting at the next keyframe
   const uint32_t animOffest_ms = GetLastKeyFrameTime_ms() + ANIM_TIME_STEP_MS;
-  
+
   // Append animation tracks
   _headTrack.AppendTrack(appendAnim.GetTrack<HeadAngleKeyFrame>(), animOffest_ms);
   _liftTrack.AppendTrack(appendAnim.GetTrack<LiftHeightKeyFrame>(), animOffest_ms);
-  _spriteSequenceTrack.AppendTrack(appendAnim.GetTrack<SpriteSequenceKeyFrame>(), animOffest_ms);
   _proceduralFaceTrack.AppendTrack(appendAnim.GetTrack<ProceduralFaceKeyFrame>(), animOffest_ms);
   _eventTrack.AppendTrack(appendAnim.GetTrack<EventKeyFrame>(), animOffest_ms);
   _backpackLightsTrack.AppendTrack(appendAnim.GetTrack<BackpackLightsKeyFrame>(), animOffest_ms);
@@ -479,8 +473,8 @@ void Animation::AppendAnimation(const Animation& appendAnim)
   _recordHeadingTrack.AppendTrack(appendAnim.GetTrack<RecordHeadingKeyFrame>(), animOffest_ms);
   _turnToRecordedHeadingTrack.AppendTrack(appendAnim.GetTrack<TurnToRecordedHeadingKeyFrame>(), animOffest_ms);
   _robotAudioTrack.AppendTrack(appendAnim.GetTrack<RobotAudioKeyFrame>(), animOffest_ms);
+  _spriteBoxCompositor.AppendTracks(appendAnim.GetSpriteBoxCompositor(), animOffest_ms);
 
-  SetKeyFrameDuration_ms();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -488,7 +482,7 @@ uint32_t Animation::GetLastKeyFrameTime_ms() const
 {
   // Get Last keyframe of every track to find the last one in time_ms
   TimeStamp_t lastFrameTime_ms = 0;
-  
+
   lastFrameTime_ms = CompareLastFrameTime<RobotAudioKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<HeadAngleKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<LiftHeightKeyFrame>(lastFrameTime_ms);
@@ -496,20 +490,20 @@ uint32_t Animation::GetLastKeyFrameTime_ms() const
   lastFrameTime_ms = CompareLastFrameTime<RecordHeadingKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<TurnToRecordedHeadingKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<EventKeyFrame>(lastFrameTime_ms);
-  lastFrameTime_ms = CompareLastFrameTime<SpriteSequenceKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<BackpackLightsKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameTime<ProceduralFaceKeyFrame>(lastFrameTime_ms);
+  lastFrameTime_ms = _spriteBoxCompositor.CompareLastFrameTime(lastFrameTime_ms);
 
   return lastFrameTime_ms;
 }
 
-  
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uint32_t Animation::GetLastKeyFrameEndTime_ms() const
 {
   // Get Last keyframe of every track to find the last one in time_ms
   TimeStamp_t lastFrameTime_ms = 0;
-  
+
   lastFrameTime_ms = CompareLastFrameEndTime<RobotAudioKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<HeadAngleKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<LiftHeightKeyFrame>(lastFrameTime_ms);
@@ -517,18 +511,11 @@ uint32_t Animation::GetLastKeyFrameEndTime_ms() const
   lastFrameTime_ms = CompareLastFrameEndTime<RecordHeadingKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<TurnToRecordedHeadingKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<EventKeyFrame>(lastFrameTime_ms);
-  lastFrameTime_ms = CompareLastFrameEndTime<SpriteSequenceKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<BackpackLightsKeyFrame>(lastFrameTime_ms);
   lastFrameTime_ms = CompareLastFrameEndTime<ProceduralFaceKeyFrame>(lastFrameTime_ms);
-  
+  lastFrameTime_ms = _spriteBoxCompositor.CompareLastFrameTime(lastFrameTime_ms);
+
   return lastFrameTime_ms;
-}
-
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Animation::SetKeyFrameDuration_ms()
-{
-  ALL_TRACKS(SetKeyFrameDuration_ms, ;);
 }
 
 
@@ -553,11 +540,11 @@ TimeStamp_t Animation::CompareLastFrameEndTime(const TimeStamp_t lastFrameTime_m
   const auto& track = GetTrack<KeyFrameType>();
   if (!track.IsEmpty()) {
     // Compare track's last key frame time and lastFrameTime_ms
-    return std::max(lastFrameTime_ms, track.GetLastKeyFrame()->GetKeyFrameFinalTimestamp_ms());
+    return std::max(lastFrameTime_ms, track.GetLastKeyFrame()->GetTimestampActionComplete_ms());
   }
   // No key frames in track
   return lastFrameTime_ms;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

@@ -13,32 +13,29 @@
 #ifndef ANKI_COZMO_BASESTATION_VISIONSYSTEM_H
 #define ANKI_COZMO_BASESTATION_VISIONSYSTEM_H
 
-#if ANKICORETECH_USE_MATLAB
-   // You can manually adjust this one
-#  define ANKI_COZMO_USE_MATLAB_VISION 0
-#else
-   // Leave this one always set to 0
-#  define ANKI_COZMO_USE_MATLAB_VISION 0
-#endif
-
-#include "coretech/common/engine/math/polygon.h"
+#include "coretech/common/engine/math/polygon_fwd.h"
 #include "coretech/common/shared/types.h"
 
 #include "anki/cozmo/shared/cozmoConfig.h"
 
-#include "engine/debugImageList.h"
-#include "engine/groundPlaneROI.h"
 #include "engine/overheadEdge.h"
 #include "engine/robotStateHistory.h"
 #include "engine/rollingShutterCorrector.h"
 #include "engine/vision/cameraCalibrator.h"
 #include "engine/vision/visionModeSchedule.h"
+#include "engine/vision/groundPlaneROI.h"
+#include "engine/vision/visionModeSet.h"
 #include "engine/vision/visionPoseData.h"
+#include "engine/vision/visionProcessingResult.h"
+#include "engine/vision/visionSystemInput.h"
 
 #include "coretech/common/engine/matlabInterface.h"
-
+#include "coretech/common/engine/robotTimeStamp.h"
+#include "coretech/vision/engine/brightColorDetector.h"
 #include "coretech/vision/engine/camera.h"
 #include "coretech/vision/engine/cameraCalibration.h"
+#include "coretech/vision/engine/compressedImage.h"
+#include "coretech/vision/engine/debugImageList.h"
 #include "coretech/vision/engine/imageCache.h"
 #include "coretech/vision/engine/profiler.h"
 #include "coretech/vision/engine/trackedFace.h"
@@ -48,11 +45,10 @@
 #include "clad/vizInterface/messageViz.h"
 #include "clad/robotInterface/messageEngineToRobot.h"
 #include "clad/types/cameraParams.h"
-#include "clad/types/faceEnrollmentPoses.h"
 #include "clad/types/imageTypes.h"
 #include "clad/types/loadedKnownFace.h"
+#include "clad/types/salientPointTypes.h"
 #include "clad/types/visionModes.h"
-#include "clad/types/toolCodes.h"
 #include "clad/externalInterface/messageEngineToGame.h"
 
 #include "util/bitFlags/bitFlags.h"
@@ -61,24 +57,32 @@
 #include <queue>
 
 namespace Anki {
+  
+namespace NeuralNets {
+  class NeuralNetRunner;
+}
  
 namespace Vision {
   class Benchmark;
+  class BrightColorDetector;
+  class CameraParamsController;
   class FaceTracker;
   class ImageCache;
-  class ImagingPipeline;
   class MarkerDetector;
-  class ObjectDetector;
   class PetTracker;
+  class ImageCompositor;
 }
   
-namespace Cozmo {
+namespace Vector {
     
   // Forward declaration:
   class CameraCalibrator;
   class CozmoContext;
   class IlluminationDetector;
+  class ImageSaver;
+  struct ImageSaverParams;
   class LaserPointDetector;
+  class MirrorModeManager;
   class MotionDetector;
   class OverheadEdgesDetector;
   class OverheadMap;
@@ -114,7 +118,6 @@ namespace Cozmo {
     DebugImageList<Vision::ImageRGB> debugImageRGBs;
   };
   
-
   class VisionSystem : public Vision::Profiler
   {
   public:
@@ -131,22 +134,14 @@ namespace Cozmo {
     
     Result UpdateCameraCalibration(std::shared_ptr<Vision::CameraCalibration> camCalib);
     
-    Result SetNextMode(VisionMode mode, bool enable);
-    bool   IsModeEnabled(VisionMode whichMode) const { return _mode.IsBitFlagSet(whichMode); }
-    
-    Result PushNextModeSchedule(AllVisionModesSchedule&& schedule);
-    Result PopModeSchedule();
-    
-    Result EnableToolCodeCalibration(bool enable);
+    const VisionModeSet& GetEnabledModes() const { return _modes; }
+    bool  IsModeEnabled(VisionMode whichMode) const { return _modes.Contains(whichMode); }
     
     // This is main Update() call to be called in a loop from above.
-
-    Result Update(const VisionPoseData&      robotState,
-                  Vision::ImageCache&        imageCache);
+    Result Update(const VisionPoseData& robotState,
+                  Vision::ImageCache& imageCache);
     
-    // First decodes the image then calls Update() above
-    Result Update(const VisionPoseData&   robotState,
-                  const Vision::ImageRGB& image);
+    Result Update(const VisionSystemInput& input);
     
     // Wrappers for camera calibration
     Result AddCalibrationImage(const Vision::Image& calibImg, const Anki::Rectangle<s32>& targetROI) { return _cameraCalibrator->AddCalibrationImage(calibImg, targetROI); }
@@ -155,24 +150,25 @@ namespace Cozmo {
     const std::vector<CameraCalibrator::CalibImage>& GetCalibrationImages() const {return _cameraCalibrator->GetCalibrationImages();}
     const std::vector<Pose3d>& GetCalibrationPoses() const { return _cameraCalibrator->GetCalibrationPoses();}
 
-    Result ClearToolCodeImages();
-    size_t GetNumStoredToolCodeImages() const {return _toolCodeImages.size();}
-    const std::vector<Vision::Image>& GetToolCodeImages() const {return _toolCodeImages;}
-
     // VisionMode <-> String Lookups
-    std::string GetModeName(Util::BitFlags32<VisionMode> mode) const;
     std::string GetCurrentModeName() const;
     VisionMode  GetModeFromString(const std::string& str) const;
     
+    bool CanAddNamedFace() const;
     Result AssignNameToFace(Vision::FaceID_t faceID, const std::string& name, Vision::FaceID_t mergeWithID);
     
     // Enable face enrollment mode and optionally specify the ID for which 
     // enrollment is allowed (use UnknownFaceID to indicate "any" ID).
     // Enrollment will automatically disable after numEnrollments. (Use 
     // a value < 0 to enable ongoing enrollments.)
-    void SetFaceEnrollmentMode(Vision::FaceEnrollmentPose pose,
-                               Vision::FaceID_t forFaceID = Vision::UnknownFaceID,
-                               s32 numEnrollments = -1);
+    void SetFaceEnrollmentMode(Vision::FaceID_t forFaceID = Vision::UnknownFaceID,
+                               s32 numEnrollments = -1,
+                               bool forceNewID = false);
+
+#if ANKI_DEV_CHEATS
+    void SaveAllRecognitionImages(const std::string& imagePathPrefix);
+    void DeleteAllRecognitionImages();
+#endif
     
     void SetFaceRecognitionIsSynchronous(bool isSynchronous);
     
@@ -199,64 +195,40 @@ namespace Cozmo {
     static constexpr size_t GAMMA_CURVE_SIZE = 17;
     using GammaCurve = std::array<u8, GAMMA_CURVE_SIZE>;
     Result SetCameraExposureParams(const s32 currentExposureTime_ms,
-                                   const s32 minExposureTime_ms,
-                                   const s32 maxExposureTime_ms,
                                    const f32 currentGain,
-                                   const f32 minGain,
-                                   const f32 maxGain,
                                    const GammaCurve& gammaCurve);
-   
-    // Just specify what the current values are (don't actually change the robot's camera)
-    Result SetNextCameraExposure(s32 exposure_ms, f32 gain);
-    Result SetNextCameraWhiteBalance(f32 whiteBalanceGainR, 
-                                     f32 whiteBalanceGainG, 
-                                     f32 whiteBalanceGainB);
-    
-    // When SavingImages mode is enabled:
-    //  saveMode: SingleShot=save one image and wait for this call again
-    //            Stream=save according to the mode schedule
-    //            Off=no saving until this is called again with one of the above
-    //  subsample: Factor to reduce image size by (1 is no subsampling)
-    //  path: Where to save images (relative to <Cache>/camera/images)
-    //  quality: -1=PNG, 0-100=JPEG quality
-    void SetSaveParameters(const ImageSendMode saveMode, const std::string& path, 
-                           const int8_t quality, const Vision::ImageCache::Size& saveSize);
 
-    CameraParams GetCurrentCameraParams() const;
-  
+    // When SaveImages mode is enabled, how to save them
+    void SetSaveParameters(const ImageSaverParams& params);
+
+    Vision::CameraParams GetCurrentCameraParams() const;
+    Result SetNextCameraParams(const Vision::CameraParams& params);
+    
     bool CheckMailbox(VisionProcessingResult& result);
     
     const RollingShutterCorrector& GetRollingShutterCorrector() { return _rollingShutterCorrector; }
     void  ShouldDoRollingShutterCorrection(bool b) { _doRollingShutterCorrection = b; }
     bool  IsDoingRollingShutterCorrection() const { return _doRollingShutterCorrection; }
     
-    Result CheckImageQuality(const Vision::Image& inputImage,
-                             const std::vector<Anki::Rectangle<s32>>& detectionRects);
+    static f32 GetBodyTurnSpeedThresh_degPerSec();
     
-    // Will use color if not empty, or gray otherwise
-    Result DetectLaserPoints(Vision::ImageCache& imageCache);
+    s32 GetMinCameraExposureTime_ms() const { return MIN_CAMERA_EXPOSURE_TIME_MS; }
+    s32 GetMaxCameraExposureTime_ms() const { return MAX_CAMERA_EXPOSURE_TIME_MS; }
     
-    bool IsExposureValid(s32 exposure) const;
+    f32 GetMinCameraGain() const { return MIN_CAMERA_GAIN; }
+    f32 GetMaxCameraGain() const { return MAX_CAMERA_GAIN; }
     
-    bool IsGainValid(f32 gain) const;
-    
-    s32 GetMinCameraExposureTime_ms() const { return _minCameraExposureTime_ms; }
-    s32 GetMaxCameraExposureTime_ms() const { return _maxCameraExposureTime_ms; }
-    
-    f32 GetMinCameraGain() const { return _minCameraGain; }
-    f32 GetMaxCameraGain() const { return _maxCameraGain; }
+    void ClearImageCache();
+
+    void AddAllowedTrackedFace(const Vision::FaceID_t trackingID);
+    void ClearAllowedTrackedFaces();
     
   protected:
   
     RollingShutterCorrector _rollingShutterCorrector;
-
     bool _doRollingShutterCorrection = false;
-    
-#   if ANKI_COZMO_USE_MATLAB_VISION
-    // For prototyping with Matlab
-    Matlab _matlab;
-#   endif
-    
+    RobotTimeStamp_t _lastRollingShutterCorrectionTime;
+       
     std::unique_ptr<Vision::ImageCache> _imageCache;
     
     bool _isInitialized = false;
@@ -264,34 +236,14 @@ namespace Cozmo {
     
     Vision::Camera _camera;
     
-    // Camera parameters
-    std::unique_ptr<Vision::ImagingPipeline> _imagingPipeline;
-    s32 _maxCameraExposureTime_ms = 66;
-    s32 _minCameraExposureTime_ms = 1;
+    Vision::CameraParams _currentCameraParams;
+    std::pair<bool,Vision::CameraParams> _nextCameraParams; // bool represents if set but not yet sent
+    std::unique_ptr<Vision::CameraParamsController> _cameraParamsController;
     
-    // These baseline defaults are overridden by whatever we receive from the camera
-    f32 _minCameraGain     = 0.1f; 
-    f32 _maxCameraGain     = 3.8f;
-    
-    CameraParams _currentCameraParams{31, 1.0, 2.0, 1.0, 2.0};
-    std::pair<bool,CameraParams> _nextCameraParams{false, _currentCameraParams}; // bool represents if set but not yet sent
-    
-    Util::BitFlags32<VisionMode> _mode;
-    std::queue<std::pair<VisionMode, bool>> _nextModes;
-    
-    using ModeScheduleStack = std::list<AllVisionModesSchedule>;
-    ModeScheduleStack _modeScheduleStack;
-    std::queue<std::pair<bool,AllVisionModesSchedule>> _nextSchedules;
-    
-    bool _calibrateFromToolCode = false;
+    VisionModeSet _modes;
+    VisionModeSet _futureModes;
     
     s32 _frameNumber = 0;
-
-    // Image saving and transmitting
-    ImageSendMode             _imageSaveMode = ImageSendMode::Off;
-    s8                        _imageSaveQuality = -1;
-    Vision::ImageCache::Size  _imageSaveSize = Vision::ImageCache::Size::Full;
-    std::string               _imageSavePath;
     
     // Snapshots of robot state
     bool _wasCalledOnce    = false;
@@ -309,24 +261,23 @@ namespace Cozmo {
     std::unique_ptr<Vision::FaceTracker>            _faceTracker;
     std::unique_ptr<Vision::PetTracker>             _petTracker;
     std::unique_ptr<Vision::MarkerDetector>         _markerDetector;
+    std::unique_ptr<Vision::BrightColorDetector>    _brightColorDetector;
     std::unique_ptr<LaserPointDetector>             _laserPointDetector;
     std::unique_ptr<MotionDetector>                 _motionDetector;
+    std::unique_ptr<Vision::ImageCompositor>        _imageCompositor;
     std::unique_ptr<OverheadEdgesDetector>          _overheadEdgeDetector;
     std::unique_ptr<CameraCalibrator>               _cameraCalibrator;
     std::unique_ptr<OverheadMap>                    _overheadMap;
     std::unique_ptr<GroundPlaneClassifier>          _groundPlaneClassifier;
     std::unique_ptr<IlluminationDetector>           _illuminationDetector;
-
+    std::unique_ptr<ImageSaver>                     _imageSaver;
+    std::unique_ptr<MirrorModeManager>              _mirrorModeManager;
     std::unique_ptr<Vision::Benchmark>              _benchmark;
-    std::unique_ptr<Vision::ObjectDetector>         _generalObjectDetector;
     
-    TimeStamp_t                   _generalObjectDetectionTimestamp = 0;
+    std::map<std::string, std::unique_ptr<NeuralNets::NeuralNetRunner>> _neuralNetRunners;
     
-    // Tool code stuff
-    TimeStamp_t                   _firstReadToolCodeTime_ms = 0;
-    const TimeStamp_t             kToolCodeMotionTimeout_ms = 1000;
-    std::vector<Vision::Image>    _toolCodeImages;
-    bool                          _isReadingToolCode;
+    Vision::CompressedImage _compressedDisplayImg;
+    s32 _imageCompressQuality = 0;
     
     Result UpdatePoseData(const VisionPoseData& newPoseData);
     Radians GetCurrentHeadAngle();
@@ -342,43 +293,66 @@ namespace Cozmo {
       Count
     };
     
+    // Updates the rolling shutter corrector
+    // Will only recompute compensation once per timestamp, so can be called multiple times
+    void UpdateRollingShutter(const VisionPoseData& poseData, const Vision::ImageCache& imageCache);
+
+    // Uses grayscale
     Result ApplyCLAHE(Vision::ImageCache& imageCache, const MarkerDetectionCLAHE useCLAHE, Vision::Image& claheImage);
     
-    Result DetectMarkersWithCLAHE(Vision::ImageCache& imageCache,
-                                  const Vision::Image& claheImage,
-                                  std::vector<Anki::Rectangle<s32>>& detectionRects,
-                                  MarkerDetectionCLAHE useCLAHE);
+    Result DetectMarkers(Vision::ImageCache& imageCache,
+                         const Vision::Image& claheImage,
+                         std::vector<Anki::Rectangle<s32>>& detectionRects,
+                         MarkerDetectionCLAHE useCLAHE,
+                         const VisionPoseData& poseData);
     
-    static u8 ComputeMean(const Vision::Image& inputImageGray, const s32 sampleInc);
+    // Uses grayscale
+    static u8 ComputeMean(Vision::ImageCache& imageCache, const s32 sampleInc);
     
-    Result DetectFaces(const Vision::Image& grayImage,
-                       std::vector<Anki::Rectangle<s32>>& detectionRects);
-                       
-    Result DetectPets(const Vision::Image& grayImage,
+    
+    // Used for UpdateCameraParams below to keep up with regions to use for metering, based on detected markers/faces
+    // The TimeStamp is used to keep metering from recent detections briefly, even after we lose them
+    using DetectionRectsByMode = std::map<VisionMode, std::vector<Rectangle<s32>>>;
+    DetectionRectsByMode _meteringRegions;
+    TimeStamp_t          _lastMeteringTimestamp_ms = 0;
+    
+    void UpdateMeteringRegions(TimeStamp_t t, DetectionRectsByMode&& detections);
+    
+    // Uses color or grayscale
+    Result UpdateCameraParams(Vision::ImageCache& imageCache);
+    
+    // Will use color if not empty, or gray otherwise
+    Result DetectLaserPoints(Vision::ImageCache& imageCache);
+
+    // Uses grayscale
+    Result DetectFaces(Vision::ImageCache& imageCache,
+                       std::vector<Anki::Rectangle<s32>>& detectionRects,
+                       const bool useCropping);
+    
+    // Uses grayscale
+    Result DetectPets(Vision::ImageCache& imageCache,
                       std::vector<Anki::Rectangle<s32>>& ignoreROIs);
     
     // Will use color if not empty, or gray otherwise
     Result DetectMotion(Vision::ImageCache& imageCache);
 
+    // Uses color
+    Result DetectBrightColors(Vision::ImageCache& imageCache);
+
+    // Uses grayscale
     Result DetectIllumination(Vision::ImageCache& imageCache);
 
-    Result UpdateOverheadMap(const Vision::ImageRGB& image);
+    // Uses color
+    Result UpdateOverheadMap(Vision::ImageCache& image);
 
-    Result UpdateGroundPlaneClassifier(const Vision::ImageRGB& image);
+    // Uses colors
+    Result UpdateGroundPlaneClassifier(Vision::ImageCache& image);
     
-    void CheckForGeneralObjectDetections();
+    void CheckForNeuralNetResults();
+    void AddFakeDetections(const TimeStamp_t atTimestamp, const std::set<VisionMode>& modes); // For debugging
     
-    Result ReadToolCode(const Vision::Image& image);
-    
-    bool ShouldProcessVisionMode(VisionMode mode);
-    
-    Result EnableMode(VisionMode whichMode, bool enabled);
-
     Result SaveSensorData() const;
-    
-    // Populates whiteBalanceGains in _currentResult with adjusted values
-    Result CheckWhiteBalance(const Vision::ImageRGB& img);
-    
+
     // Contrast-limited adaptive histogram equalization (CLAHE)
     cv::Ptr<cv::CLAHE> _clahe;
     s32 _lastClaheTileSize;
@@ -390,10 +364,24 @@ namespace Cozmo {
     std::queue<VisionProcessingResult> _results;
     VisionProcessingResult _currentResult;
 
-    std::string GetFileNameBasedOnFrameNumber(const char *extension) const;
+    // Image compositor settings, 
+    // Used to manage the cycles of Reset()
+    //  and MarkerDetection runs
+
+    // Number of frames composited in order to mark the image
+    //  as ready to be used in MarkerDetection.
+    u32 _imageCompositorReadyPeriod = 0;
+
+    // Number of frames composited after which the image is Reset
+    // Note: if set to zero, the image is never reset
+    u32 _imageCompositorResetPeriod = 0;
+
+    // Size of images broadcasted to the Viz
+    Vision::ImageCacheSize _vizImageBroadcastSize = Vision::ImageCacheSize::Half;
+
 }; // class VisionSystem
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMO_BASESTATION_VISIONSYSTEM_H

@@ -20,7 +20,7 @@
 #include "util/cladHelpers/cladFromJSONHelpers.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 const char* kIdleAnimationKey            = "idleAnimation";
@@ -39,7 +39,7 @@ const char* kDevTestUtteranceKey         = "DEV_TEST_UTTERANCE";
 
 #define SET_STATE(s) do{ \
                           _dVars.state = State::s; \
-                          PRINT_NAMED_INFO("BehaviorTextToSpeechLoop.State", "State = %s", #s); \
+                          PRINT_CH_INFO("Behaviors", "BehaviorTextToSpeechLoop.State", "State = %s", #s); \
                         } while(0);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,12 +57,14 @@ BehaviorTextToSpeechLoop::InstanceConfig::InstanceConfig()
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-BehaviorTextToSpeechLoop::DynamicVariables::DynamicVariables() 
+BehaviorTextToSpeechLoop::DynamicVariables::DynamicVariables()
 : textToSay("")
 , state(State::IdleLoop)
 , utteranceID(kInvalidUtteranceID)
 , utteranceState(UtteranceState::Invalid)
 , hasSentPlayCommand(false)
+, cancelOnNextUpdate(false)
+, cancelOnNextLoop(false)
 {
 };
 
@@ -78,10 +80,10 @@ BehaviorTextToSpeechLoop::BehaviorTextToSpeechLoop(const Json::Value& config)
     _iConfig.idleDuringTTSGeneration = true;
   }
 
-  JsonTools::GetCladEnumFromJSON(config, kGetInAnimationKey, _iConfig.getInTrigger, debugName);
+  JsonTools::GetCladEnumFromJSON(config, kGetInAnimationKey, _iConfig.getInTrigger, debugName, false);
   JsonTools::GetCladEnumFromJSON(config, kLoopAnimationKey, _iConfig.loopTrigger, debugName);
-  JsonTools::GetCladEnumFromJSON(config, kGetOutAnimationKey, _iConfig.getOutTrigger, debugName);
-  JsonTools::GetCladEnumFromJSON(config, kEmergencyGetOutAnimationKey, _iConfig.emergencyGetOutTrigger, debugName);
+  JsonTools::GetCladEnumFromJSON(config, kGetOutAnimationKey, _iConfig.getOutTrigger, debugName, false);
+  JsonTools::GetCladEnumFromJSON(config, kEmergencyGetOutAnimationKey, _iConfig.emergencyGetOutTrigger, debugName, false);
 
   // TODO:(str) we will eventually need to support anim keyframe driven tts
   // Uncomment when the TTSCoordinator can handle that case
@@ -92,7 +94,7 @@ BehaviorTextToSpeechLoop::BehaviorTextToSpeechLoop(const Json::Value& config)
   _iConfig.tracksToLock = lockTreads
                           ? static_cast<uint8_t>(AnimTrackFlag::BODY_TRACK)
                           : static_cast<uint8_t>(AnimTrackFlag::NO_TRACKS);
-  
+
   JsonTools::GetValueOptional(config, kDevTestUtteranceKey, _iConfig.devTestUtteranceString);
 }
 
@@ -120,27 +122,56 @@ BehaviorTextToSpeechLoop::~BehaviorTextToSpeechLoop()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorTextToSpeechLoop::SetTextToSay(const std::string& textToSay, const SayTextIntent& intent)
+void BehaviorTextToSpeechLoop::SetTextToSay(const std::string& textToSay,
+                                            const UtteranceReadyCallback readyCallback,
+                                            const AudioTtsProcessingStyle style)
 {
   _dVars.textToSay = textToSay;
 
-  auto callback = [this](const UtteranceState& utteranceState)
+  auto callback = [this, readyCallback{std::move(readyCallback)}](const UtteranceState& utteranceState)
   {
+    const bool wasGenerating = (UtteranceState::Generating == _dVars.utteranceState);
     OnUtteranceUpdated(utteranceState);
+
+    // could move this into OnUtteranceUpdated(), but felt it didn't make any difference for now ...
+    // if we were generating the utterance and now we've moved on, send the callback to let our user know
+    const bool isGenerating = (UtteranceState::Generating == _dVars.utteranceState);
+    if(wasGenerating && !isGenerating){
+      DEV_ASSERT_MSG((UtteranceState::Ready == _dVars.utteranceState) || (UtteranceState::Invalid == _dVars.utteranceState),
+                     "BehaviorTextToSpeechLoop.CreateUtterance",
+                     "Utterance state changed from [Generating] to [%d], this should not be possible",
+                     (int)_dVars.utteranceState);
+
+      if(readyCallback) {
+        readyCallback(UtteranceState::Ready == _dVars.utteranceState);
+      }
+    }
   };
 
   UtteranceTriggerType triggerType = UtteranceTriggerType::Manual;
   if(_iConfig.triggeredByAnim){
     triggerType = UtteranceTriggerType::KeyFrame;
   }
-  _dVars.utteranceID = GetBEI().GetTextToSpeechCoordinator().CreateUtterance(_dVars.textToSay,
-                                                                             intent,
-                                                                             triggerType,
-                                                                             callback);
+
+  auto & ttsCoordinator = GetBEI().GetTextToSpeechCoordinator();
+  _dVars.utteranceID = ttsCoordinator.CreateUtterance(_dVars.textToSay, triggerType, style, callback);
+
+  // if we failed to created the utterance, let the callback know so they aren't waiting forever ...
+  if((kInvalidUtteranceID == _dVars.utteranceID) && readyCallback){
+    readyCallback(false);
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool BehaviorTextToSpeechLoop::WantsToBeActivatedBehavior() const 
+void BehaviorTextToSpeechLoop::ClearTextToSay()
+{
+  if(kInvalidUtteranceID != _dVars.utteranceID) {
+    GetBEI().GetTextToSpeechCoordinator().CancelUtterance(_dVars.utteranceID);
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool BehaviorTextToSpeechLoop::WantsToBeActivatedBehavior() const
 {
   return ((kInvalidUtteranceID != _dVars.utteranceID) || !_iConfig.devTestUtteranceString.empty());
 }
@@ -150,15 +181,20 @@ void BehaviorTextToSpeechLoop::OnBehaviorActivated()
 {
   // For a standalone test behavior, exampleTextToSpeechLoop
   if(!_iConfig.devTestUtteranceString.empty()){
-    SetTextToSay(_iConfig.devTestUtteranceString, SayTextIntent::Unprocessed);
+    SetTextToSay(_iConfig.devTestUtteranceString, {}, AudioTtsProcessingStyle::Unprocessed);
   }
 
-  if(!ANKI_VERIFY(kInvalidUtteranceID != _dVars.utteranceID,
-                  "BehaviorTextToSpeechLoop.InvalidUtteranceID",
-                  "Utterance text must be set before this behavior is activated")){
-    // In practice, we should never be here, but for unit tests and realworld MISuse-cases, its best if 
+  if(kInvalidUtteranceID == _dVars.utteranceID) {
+    PRINT_NAMED_WARNING("BehaviorTextToSpeechLoop.InvalidUtteranceID",
+                        "Utterance text must be set before this behavior is activated");
+    // In practice, we should never be here, but for unit tests and realworld MISuse-cases, its best if
     // we exit smoothly rather than outright CancelSelf() here
-    TransitionToEmergencyGetOut();
+    if(AnimationTrigger::Count != _iConfig.emergencyGetOutTrigger){
+      TransitionToEmergencyGetOut();
+    } else {
+      _dVars.cancelOnNextUpdate = true;
+    }
+    return;
   }
 
   if( !_iConfig.idleDuringTTSGeneration || (UtteranceState::Ready == _dVars.utteranceState) ){
@@ -171,6 +207,11 @@ void BehaviorTextToSpeechLoop::OnBehaviorActivated()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorTextToSpeechLoop::OnBehaviorDeactivated()
 {
+  // make sure we clean up our utterance data else we'll leak the wav data
+  if((UtteranceState::Invalid != _dVars.utteranceState) && (UtteranceState::Finished != _dVars.utteranceState)){
+    GetBEI().GetTextToSpeechCoordinator().CancelUtterance(_dVars.utteranceID);
+  }
+
   _dVars = DynamicVariables();
 }
 
@@ -179,6 +220,10 @@ void BehaviorTextToSpeechLoop::BehaviorUpdate()
 {
   if(!IsActivated()){
     return;
+  }
+
+  if(_dVars.cancelOnNextUpdate){
+    CancelSelf();
   }
 
   if(State::EmergencyGetOut == _dVars.state){
@@ -210,13 +255,18 @@ void BehaviorTextToSpeechLoop::BehaviorUpdate()
        !_dVars.hasSentPlayCommand){
       PlayUtterance();
     } else if (UtteranceState::Finished == _dVars.utteranceState){
-      PRINT_NAMED_INFO("BehaviorTextToSpeechLoop.Update.UtteranceCompleted",
+      PRINT_CH_INFO("Behaviors", "BehaviorTextToSpeechLoop.Update.UtteranceCompleted",
                        "Utterance %d finished playing",
                        _dVars.utteranceID);
       CancelDelegates(false);
       TransitionToGetOut();
     } else if(!IsControlDelegated()){
-      TransitionToSpeakingLoop();
+      if(!_dVars.cancelOnNextLoop ){
+        TransitionToSpeakingLoop();
+      } else {
+        // in speaking loop but we were told to interrupt, so exit gracefully
+        TransitionToGetOut();
+      }
     }
   }
 }
@@ -238,8 +288,13 @@ void BehaviorTextToSpeechLoop::TransitionToGetIn()
     }
     TransitionToSpeakingLoop();
   };
-  DelegateIfInControl(new TriggerLiftSafeAnimationAction(_iConfig.getInTrigger, 1, true, _iConfig.tracksToLock),
-                      callback);
+
+  if(AnimationTrigger::Count == _iConfig.getInTrigger){
+    callback();
+  } else {
+    DelegateIfInControl(new TriggerLiftSafeAnimationAction(_iConfig.getInTrigger, 1, true, _iConfig.tracksToLock),
+                        callback);
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,15 +308,19 @@ void BehaviorTextToSpeechLoop::TransitionToSpeakingLoop()
 void BehaviorTextToSpeechLoop::TransitionToGetOut()
 {
   SET_STATE(GetOut);
-  DelegateIfInControl(new TriggerLiftSafeAnimationAction(_iConfig.getOutTrigger, 1, true, _iConfig.tracksToLock),
-                      [this](){ CancelSelf(); } );
+  if(AnimationTrigger::Count == _iConfig.getOutTrigger){
+    CancelSelf();
+  } else {
+    DelegateIfInControl(new TriggerLiftSafeAnimationAction(_iConfig.getOutTrigger, 1, true, _iConfig.tracksToLock),
+                        [this](){ CancelSelf(); } );
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorTextToSpeechLoop::TransitionToEmergencyGetOut()
 {
   SET_STATE(EmergencyGetOut);
-  GetBEI().GetTextToSpeechCoordinator().CancelUtterance(_dVars.utteranceID);
+  ClearTextToSay();
 
   if(AnimationTrigger::Count == _iConfig.emergencyGetOutTrigger){
     CancelSelf();
@@ -287,10 +346,31 @@ void BehaviorTextToSpeechLoop::PlayUtterance()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool BehaviorTextToSpeechLoop::IsUtteranceReady() const
+{
+  return (UtteranceState::Ready == _dVars.utteranceState);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorTextToSpeechLoop::OnUtteranceUpdated(const UtteranceState& state)
 {
   _dVars.utteranceState = state;
 }
 
-} // namespace Cozmo
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorTextToSpeechLoop::Interrupt( bool immediate )
+{
+  if(immediate){
+    CancelDelegates(false);
+    TransitionToEmergencyGetOut();
+  } else {
+    // we've been told to cancel our TTS, but there's no hurry, so ...
+    // + cancel TTS immediately so it feels responsive
+    // + transition into the get out anim after the next looping anim so that the anims transition properly
+    ClearTextToSay();
+    _dVars.cancelOnNextLoop = true;
+  }
+}
+
+} // namespace Vector
 } // namespace Anki

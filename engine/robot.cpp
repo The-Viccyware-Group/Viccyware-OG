@@ -1,4 +1,3 @@
-
 //
 //  robot.cpp
 //  Products_Cozmo
@@ -9,104 +8,93 @@
 
 #include "engine/robot.h"
 #include "camera/cameraService.h"
+#include "whiskeyToF/tof.h"
 
-#include "coretech/common/engine/math/point_impl.h"
 #include "coretech/common/engine/math/poseOriginList.h"
-#include "coretech/common/engine/math/quad_impl.h"
-#include "coretech/common/engine/utils/data/dataPlatform.h"
-#include "coretech/common/engine/utils/timer.h"
-#include "engine/actions/actionContainers.h"
+
+#include "cannedAnimLib/cannedAnims/cannedAnimationLoader.h"
+
 #include "engine/actions/animActions.h"
-#include "engine/actions/basicActions.h"
-#include "engine/actions/sayTextAction.h"
-#include "engine/activeCube.h"
-#include "engine/activeObjectHelpers.h"
 #include "engine/aiComponent/aiComponent.h"
-#include "engine/aiComponent/behaviorComponent/behaviorComponent.h"
-#include "engine/aiComponent/freeplayDataTracker.h"
-#include "engine/ankiEventUtil.h"
 #include "engine/audio/engineRobotAudioClient.h"
-#include "engine/block.h"
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/charger.h"
+#include "engine/components/accountSettingsManager.h"
 #include "engine/components/animationComponent.h"
-#include "engine/components/batteryComponent.h"
+#include "engine/components/battery/batteryComponent.h"
 #include "engine/components/blockTapFilterComponent.h"
-#include "engine/components/bodyLightComponent.h"
+#include "engine/components/backpackLights/engineBackpackLightComponent.h"
 #include "engine/components/carryingComponent.h"
+#include "engine/components/cubes/appCubeConnectionSubscriber.h"
 #include "engine/components/cubes/cubeAccelComponent.h"
+#include "engine/components/cubes/cubeBatteryComponent.h"
 #include "engine/components/cubes/cubeCommsComponent.h"
-#include "engine/components/cubes/cubeLightComponent.h"
+#include "engine/components/cubes/cubeConnectionCoordinator.h"
+#include "engine/components/cubes/cubeInteractionTracker.h"
+#include "engine/components/cubes/cubeLights/cubeLightComponent.h"
+#include "engine/components/dataAccessorComponent.h"
 #include "engine/components/dockingComponent.h"
-#include "engine/components/inventoryComponent.h"
+#include "engine/components/habitatDetectorComponent.h"
+#include "engine/components/jdocsManager.h"
+#include "engine/components/localeComponent.h"
 #include "engine/components/mics/beatDetectorComponent.h"
+#include "engine/components/mics/micComponent.h"
 #include "engine/components/movementComponent.h"
 #include "engine/components/nvStorageComponent.h"
 #include "engine/components/pathComponent.h"
-#include "engine/components/progressionUnlockComponent.h"
+#include "engine/components/photographyManager.h"
+#include "engine/components/powerStateManager.h"
 #include "engine/components/publicStateBroadcaster.h"
+#include "engine/components/robotHealthReporter.h"
+#include "engine/components/robotStatsTracker.h"
 #include "engine/components/sdkComponent.h"
+#include "engine/components/settingsCommManager.h"
+#include "engine/components/settingsManager.h"
 #include "engine/components/sensors/cliffSensorComponent.h"
+#include "engine/components/sensors/imuComponent.h"
 #include "engine/components/sensors/proxSensorComponent.h"
+#include "engine/components/sensors/rangeSensorComponent.h"
 #include "engine/components/sensors/touchSensorComponent.h"
 #include "engine/components/textToSpeech/textToSpeechCoordinator.h"
-#include "engine/components/dataAccessorComponent.h"
+#include "engine/components/userEntitlementsManager.h"
+#include "engine/components/variableSnapshot/variableSnapshotComponent.h"
 #include "engine/components/visionComponent.h"
 #include "engine/components/visionScheduleMediator/visionScheduleMediator.h"
-#include "engine/cozmoContext.h"
 #include "engine/drivingAnimationHandler.h"
-#include "engine/externalInterface/externalInterface.h"
 #include "engine/faceWorld.h"
 #include "engine/fullRobotPose.h"
-#include "engine/components/mics/micComponent.h"
 #include "engine/moodSystem/moodManager.h"
 #include "engine/moodSystem/stimulationFaceDisplay.h"
 #include "engine/navMap/mapComponent.h"
-#include "engine/objectPoseConfirmer.h"
 #include "engine/petWorld.h"
-#include "engine/ramp.h"
+#include "engine/receptiveSocialPresenceEstimator/socialPresenceEstimator.h"
 #include "engine/robotDataLoader.h"
 #include "engine/robotGyroDriftDetector.h"
-#include "engine/robotIdleTimeoutComponent.h"
-#include "engine/robotInterface/messageHandler.h"
 #include "engine/robotManager.h"
 #include "engine/robotStateHistory.h"
 #include "engine/robotToEngineImplMessaging.h"
 #include "engine/viz/vizManager.h"
 
-
-#include "anki/cozmo/shared/cozmoConfig.h"
-#include "anki/cozmo/shared/cozmoEngineConfig.h"
-#include "coretech/vision/engine/visionMarker.h"
-#include "clad/externalInterface/messageEngineToGame.h"
-#include "clad/robotInterface/messageEngineToRobot.h"
-#include "clad/types/gameStatusFlag.h"
-#include "clad/types/robotStatusAndActions.h"
-#include "util/console/consoleInterface.h"
 #include "util/cpuProfiler/cpuProfiler.h"
-#include "util/fileUtils/fileUtils.h"
-#include "util/helpers/ankiDefines.h"
-#include "util/helpers/templateHelpers.h"
+#include "util/environment/locale.h"
+#include "util/logging/DAS.h"
 #include "util/logging/logging.h"
-#include "util/transport/reliableConnection.h"
+#include "util/messageProfiler/messageProfiler.h"
 
-#include "anki/cozmo/shared/factory/emrHelper.h"
+#include "osState/osState.h"
+
 #include "anki/cozmo/shared/factory/faultCodes.h"
 
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp" // For imwrite() in ProcessImage
+// Giving this its own local define, in case we want to control it independently of DEV_CHEATS / SHIPPING, etc.
+#define ENABLE_DRAWING ANKI_DEV_CHEATS
 
-#include <fstream>
-#include <regex>
-#include <dirent.h>
-#include <sys/stat.h>
-
-#define LOG_CHANNEL "RobotState"
+#define LOG_CHANNEL "Robot"
 
 #define IS_STATUS_FLAG_SET(x) ((msg.status & (uint32_t)RobotStatusFlag::x) != 0)
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 CONSOLE_VAR(bool, kDebugPossibleBlockInteraction, "Robot", false);
 
@@ -115,16 +103,6 @@ CONSOLE_VAR(bool, kUseVisionOnlyWhileOnTreads,    "Robot", false);
 
 // Enable to enable example code of face image drawing
 CONSOLE_VAR(bool, kEnableTestFaceImageRGBDrawing,  "Robot", false);
-
-// TEMP support for 'old' chargers with black stripe and white body (VIC-2755)
-// Set to true to allow the robot to dock with older white chargers (that have a light-on-dark marker sticker)
-CONSOLE_VAR(bool, kChargerStripeIsBlack, "Robot",
-#ifdef SIMULATOR
-            false  // Simulated chargers are gray with white stripe
-#else
-            true   // *Most* real chargers are white with a sticker, and thus have a black stripe
-#endif
-            );
 
 #if REMOTE_CONSOLE_ENABLED
 
@@ -138,59 +116,122 @@ static void PlayAnimationByName(ConsoleFunctionContextRef context)
 {
   if (_thisRobot != nullptr) {
     const char* animName = ConsoleArg_Get_String(context, "animName");
-    _thisRobot->GetActionList().QueueAction(QueueActionPosition::NOW,
-                                            new PlayAnimationAction(animName));
+    if (animName) {
+      int numLoops = ConsoleArg_GetOptional_Int(context, "numLoops", 1);
+      bool renderInEyeHue = ConsoleArg_GetOptional_Bool(context, "renderInEyeHue", true);
+      auto* action = new PlayAnimationAction(animName, numLoops);
+      action->SetRenderInEyeHue(renderInEyeHue);
+      _thisRobot->GetActionList().QueueAction(QueueActionPosition::NOW, action);
+    }
   }
 }
 
-CONSOLE_FUNC(PlayAnimationByName, "PlayAnimationByName", const char* animName);
+static void AddAnimation(ConsoleFunctionContextRef context)
+{
+  if (_thisRobot != nullptr) {
+    const char* animFile = ConsoleArg_Get_String(context, "animFile");
+    if (animFile) {
+      const std::string animationFolder = _thisRobot->GetContextDataPlatform()->pathToResource(Anki::Util::Data::Scope::Resources, "/assets/animations/");
+      std::string animationPath = animationFolder + animFile;
 
-// Perform SayTextAction from debug console
+      auto* robotDataLoader = _thisRobot->GetContext()->GetDataLoader();
+      if (robotDataLoader != nullptr) {
+        auto* animContainer = robotDataLoader->GetCannedAnimationContainer();
+        if (animContainer != nullptr) {
+
+          auto platform = _thisRobot->GetContextDataPlatform();
+          auto spriteSequenceContainer = _thisRobot->GetComponent<DataAccessorComponent>().GetSpriteSequenceContainer();
+          std::atomic<float> loadingCompleteRatio(0);
+          std::atomic<bool> abortLoad(false);
+          CannedAnimationLoader animLoader(platform, spriteSequenceContainer, loadingCompleteRatio, abortLoad);
+
+          animLoader.LoadAnimationIntoContainer(animationPath.c_str(), animContainer);
+          LOG_INFO("Robot.AddAnimation", "Loaded animation from %s", animationPath.c_str());
+        }
+      }
+    }
+  }
+}
+
+CONSOLE_FUNC(PlayAnimationByName, "Animation", const char* animName, optional int numLoops, optional bool renderInEyeHue);
+CONSOLE_FUNC(AddAnimation, "Animation", const char* animFile);
+
+static void PrintBodyData(ConsoleFunctionContextRef context)
+{
+  if (_thisRobot != nullptr) {
+    // 0 means disable printing
+    const uint32_t period_tics = ConsoleArg_Get_UInt(context, "printPeriod_tics");
+    const bool motors = ConsoleArg_GetOptional_Bool(context, "motors", true);
+    const bool prox = ConsoleArg_GetOptional_Bool(context, "prox", false);
+    const bool battery = ConsoleArg_GetOptional_Bool(context, "battery", false);
+    _thisRobot->SendMessage(RobotInterface::EngineToRobot(RobotInterface::PrintBodyData(period_tics, motors, prox, battery)));
+    LOG_INFO("Robot.PrintBodyData", "Period: %d tic, (m: %d, p: %d, b: %d)", period_tics, motors, prox, battery);
+  }
+}
+
+CONSOLE_FUNC(PrintBodyData, "Syscon", uint32_t printPeriod_tics, optional bool motors, optional bool prox, optional bool battery);
+
+// Perform Text to Speech Coordinator from debug console
 namespace {
+// TTS console group
+constexpr const char * kTextToSpeechPath = "TextToSpeech";
 
-constexpr const char * kSayTextPath = "SayTextAction";
-constexpr const char * kVoiceStyles = "Unprocessed,CozmoProcessing_Name,CozmoProcessing_Name_Question,Sentence";
+// NOTE: Need to keep kVoiceStyles in sync with AudioMetaData::SwitchState::Robot_Vic_External_Processing in
+//       clad/audio/audioSwitchTypes.clad
+constexpr const char * kVoiceStyles = "Default_Processed,Unprocessed";
 
-CONSOLE_VAR_ENUM(u8, kVoiceStyle, kSayTextPath, 0, kVoiceStyles);
-CONSOLE_VAR_RANGED(f32, kDurationScalar, kSayTextPath, 1.f, 0.25f, 4.f);
-CONSOLE_VAR_RANGED(f32, kPitchScalar, kSayTextPath, 0.f, -1.f, 1.f);
+CONSOLE_VAR_ENUM(u8, kVoiceStyle, kTextToSpeechPath, 0, kVoiceStyles);
+CONSOLE_VAR_RANGED(f32, kDurationScalar, kTextToSpeechPath, 1.f, 0.25f, 4.f);
+CONSOLE_VAR_RANGED(f32, kPitchScalar, kTextToSpeechPath, 0.f, -1.f, 1.f);
 
 void SayText(ConsoleFunctionContextRef context)
 {
   auto * robot = _thisRobot;
   if (robot == nullptr) {
-    LOG_ERROR("Robot.SayText.NoRobot", "No robot connected");
+    LOG_ERROR("Robot.TtSCoordinator.NoRobot", "No robot connected");
     return;
   }
 
   const char * text = ConsoleArg_Get_String(context, "text");
   if (text == nullptr) {
-    LOG_ERROR("Robot.SayText.NoText", "No text string");
+    LOG_ERROR("Robot.TtSCoordinator.NoText", "No text string");
     return;
   }
 
-  LOG_INFO("Robot.SayText", "text(%s) style(%hhu) duration(%f) pitch(%f)",
-           Util::HidePersonallyIdentifiableInfo(text), kVoiceStyle, kDurationScalar, kPitchScalar);
+  // VIC-4364 Replace `_` with spaces. Hack to allows to use spaces
+  std::string textStr = text;
+  std::replace(textStr.begin(), textStr.end(), '_', ' ');
 
-  const auto style = static_cast<SayTextVoiceStyle>(kVoiceStyle);
-  auto action = std::make_unique<SayTextAction>(text, style, kDurationScalar, kPitchScalar);
-  robot->GetActionList().QueueAction(QueueActionPosition::NOW, action.release());
+  // Handle processing state
+  using TtsProcessingStyle = AudioMetaData::SwitchState::Robot_Vic_External_Processing;
+  auto style = TtsProcessingStyle::Invalid;
+  switch (kVoiceStyle) {
+    case 0:
+      style = TtsProcessingStyle::Default_Processed;
+      break;
 
-}
+    case 1:
+      style = TtsProcessingStyle::Unprocessed;
+      break;
 
-CONSOLE_FUNC(SayText, kSayTextPath, const char* text);
-
-
-static void EnableCalmPowerMode(ConsoleFunctionContextRef context)
-{
-  if (_thisRobot != nullptr) {
-    const bool enableCalm = ConsoleArg_Get_Bool(context, "enable");
-    const bool calibOnDisable = ConsoleArg_GetOptional_Bool(context, "calibOnDisable", false);
-    _thisRobot->SendMessage(RobotInterface::EngineToRobot(RobotInterface::CalmPowerMode(enableCalm, calibOnDisable)));
+    default:
+      LOG_ERROR("Robot.SayText.InvalidVoiceStyleEnum", "Unknown value");
+      break;
   }
+
+  LOG_INFO("Robot.SayText",
+           "text(%s) style(%s) durationScalar(%.2f) pitchScalar(%.2f)",
+           Util::HidePersonallyIdentifiableInfo(textStr.c_str()),
+           EnumToString(style),
+           kDurationScalar,
+           kPitchScalar);
+
+  auto & ttsCoordinator = robot->GetTextToSpeechCoordinator();
+  const auto triggerType = UtteranceTriggerType::Immediate;
+  ttsCoordinator.CreateUtterance(textStr, triggerType, style, kDurationScalar, kPitchScalar);
 }
 
-CONSOLE_FUNC(EnableCalmPowerMode, "EnableCalmPowerMode", bool enable, optional bool calibOnDisable);
+CONSOLE_FUNC(SayText, kTextToSpeechPath, const char* text);
 
 } // end namespace
 
@@ -224,22 +265,52 @@ static const float kPitchAngleOnFacePlantMax_rads = DEG_TO_RAD(-80.f);
 static const float kPitchAngleOnFacePlantMin_sim_rads = DEG_TO_RAD(110.f); //This has not been tested
 static const float kPitchAngleOnFacePlantMax_sim_rads = DEG_TO_RAD(-80.f); //This has not been tested
 
+// Too long in-air condition
+static const TimeStamp_t kInAirTooLongTimeReportTime_ms = 60000;
 
-Robot::Robot(const RobotID_t robotID, const CozmoContext* context)
+// As long as robot's orientation doesn't change by more than
+// this amount, we assume it's not being held by a person.
+// Note that if he's placed on a platform that's vibrating so
+// much that his orientation changes by more than this amount,
+// we would not be able to differentiate this from being held.
+static const float kRobotAngleChangedThresh_rad = DEG_TO_RAD(1);
+
+Robot::Robot(const RobotID_t robotID, CozmoContext* context)
 : _context(context)
 , _poseOrigins(new PoseOriginList())
 , _ID(robotID)
+, _serialNumberHead(OSState::getInstance()->GetSerialNumber())
 , _syncRobotAcked(false)
 , _lastMsgTimestamp(0)
+, _offTreadsState(OffTreadsState::OnTreads)
+, _awaitingConfirmationTreadState(OffTreadsState::OnTreads)
 , _robotAccelFiltered(0.f, 0.f, 0.f)
 {
   DEV_ASSERT(_context != nullptr, "Robot.Constructor.ContextIsNull");
 
   LOG_INFO("Robot.Robot", "Created");
 
+  // Check for /tmp/data_cleared file
+  // VIC-6069: OS needs to write this file following Clear User Data reboot
+  static const std::string dataClearedFile = "/tmp/data_cleared";
+  if (Util::FileUtils::FileExists(dataClearedFile)) {
+    DASMSG(robot_cleared_user_data, "robot.cleared_user_data", "User data was cleared");
+    DASMSG_SEND();
+    Util::FileUtils::DeleteFile(dataClearedFile);
+  }
+
+
+  // DAS message "power on"
+  float idleTime_sec;
+  auto upTime_sec = static_cast<uint32_t>(OSState::getInstance()->GetUptimeAndIdleTime(idleTime_sec));
+  DASMSG(robot_power_on, "robot.power_on", "Robot (engine) object created");
+  DASMSG_SET(i1, upTime_sec, "Uptime (seconds)");
+  DASMSG_SEND();
+
   // create all components
   {
     _components = std::make_unique<EntityType>();
+    _components->AddDependentComponent(RobotComponentID::AppCubeConnectionSubscriber,new AppCubeConnectionSubscriber());
     _components->AddDependentComponent(RobotComponentID::CozmoContextWrapper,        new ContextWrapper(context));
     _components->AddDependentComponent(RobotComponentID::BlockWorld,                 new BlockWorld());
     _components->AddDependentComponent(RobotComponentID::FaceWorld,                  new FaceWorld());
@@ -255,26 +326,28 @@ Robot::Robot(const RobotID_t robotID, const CozmoContext* context)
     _components->AddDependentComponent(RobotComponentID::Map,                        new MapComponent());
     _components->AddDependentComponent(RobotComponentID::NVStorage,                  new NVStorageComponent());
     _components->AddDependentComponent(RobotComponentID::AIComponent,                new AIComponent());
-    _components->AddDependentComponent(RobotComponentID::ObjectPoseConfirmer,        new ObjectPoseConfirmer());
     _components->AddDependentComponent(RobotComponentID::CubeLights,                 new CubeLightComponent());
-    _components->AddDependentComponent(RobotComponentID::BodyLights,                 new BodyLightComponent());
+    _components->AddDependentComponent(RobotComponentID::BackpackLights,             new BackpackLightComponent());
     _components->AddDependentComponent(RobotComponentID::CubeAccel,                  new CubeAccelComponent());
+    _components->AddDependentComponent(RobotComponentID::CubeBattery,                new CubeBatteryComponent());
     _components->AddDependentComponent(RobotComponentID::CubeComms,                  new CubeCommsComponent());
+    _components->AddDependentComponent(RobotComponentID::CubeConnectionCoordinator,  new CubeConnectionCoordinator());
+    _components->AddDependentComponent(RobotComponentID::CubeInteractionTracker,     new CubeInteractionTracker());
     _components->AddDependentComponent(RobotComponentID::GyroDriftDetector,          new RobotGyroDriftDetector());
+    _components->AddDependentComponent(RobotComponentID::HabitatDetector,            new HabitatDetectorComponent());
     _components->AddDependentComponent(RobotComponentID::Docking,                    new DockingComponent());
     _components->AddDependentComponent(RobotComponentID::Carrying,                   new CarryingComponent());
     _components->AddDependentComponent(RobotComponentID::CliffSensor,                new CliffSensorComponent());
     _components->AddDependentComponent(RobotComponentID::ProxSensor,                 new ProxSensorComponent());
+    _components->AddDependentComponent(RobotComponentID::ImuSensor,                  new ImuComponent());
+    _components->AddDependentComponent(RobotComponentID::RangeSensor,                new RangeSensorComponent());
     _components->AddDependentComponent(RobotComponentID::TouchSensor,                new TouchSensorComponent());
     _components->AddDependentComponent(RobotComponentID::Animation,                  new AnimationComponent());
     _components->AddDependentComponent(RobotComponentID::StateHistory,               new RobotStateHistory());
     _components->AddDependentComponent(RobotComponentID::MoodManager,                new MoodManager());
     _components->AddDependentComponent(RobotComponentID::StimulationFaceDisplay,     new StimulationFaceDisplay());
-    _components->AddDependentComponent(RobotComponentID::Inventory,                  new InventoryComponent());
-    _components->AddDependentComponent(RobotComponentID::ProgressionUnlock,          new ProgressionUnlockComponent());
     _components->AddDependentComponent(RobotComponentID::BlockTapFilter,             new BlockTapFilterComponent());
     _components->AddDependentComponent(RobotComponentID::RobotToEngineImplMessaging, new RobotToEngineImplMessaging());
-    _components->AddDependentComponent(RobotComponentID::RobotIdleTimeout,           new RobotIdleTimeoutComponent());
     _components->AddDependentComponent(RobotComponentID::MicComponent,               new MicComponent());
     _components->AddDependentComponent(RobotComponentID::Battery,                    new BatteryComponent());
     _components->AddDependentComponent(RobotComponentID::FullRobotPose,              new FullRobotPose());
@@ -282,6 +355,18 @@ Robot::Robot(const RobotID_t robotID, const CozmoContext* context)
     _components->AddDependentComponent(RobotComponentID::BeatDetector,               new BeatDetectorComponent());
     _components->AddDependentComponent(RobotComponentID::TextToSpeechCoordinator,    new TextToSpeechCoordinator());
     _components->AddDependentComponent(RobotComponentID::SDK,                        new SDKComponent());
+    _components->AddDependentComponent(RobotComponentID::PhotographyManager,         new PhotographyManager());
+    _components->AddDependentComponent(RobotComponentID::PowerStateManager,          new PowerStateManager());
+    _components->AddDependentComponent(RobotComponentID::SettingsCommManager,        new SettingsCommManager());
+    _components->AddDependentComponent(RobotComponentID::RobotHealthReporter,        new RobotHealthReporter());
+    _components->AddDependentComponent(RobotComponentID::SettingsManager,            new SettingsManager());
+    _components->AddDependentComponent(RobotComponentID::RobotStatsTracker,          new RobotStatsTracker());
+    _components->AddDependentComponent(RobotComponentID::VariableSnapshotComponent,  new VariableSnapshotComponent());
+    _components->AddDependentComponent(RobotComponentID::JdocsManager,               new JdocsManager());
+    _components->AddDependentComponent(RobotComponentID::AccountSettingsManager,     new AccountSettingsManager());
+    _components->AddDependentComponent(RobotComponentID::UserEntitlementsManager,    new UserEntitlementsManager());
+    _components->AddDependentComponent(RobotComponentID::LocaleComponent,            new LocaleComponent());
+    _components->AddDependentComponent(RobotComponentID::SocialPresenceEstimator,    new SocialPresenceEstimator());
     _components->InitComponents(this);
   }
 
@@ -302,8 +387,6 @@ Robot::Robot(const RobotID_t robotID, const CozmoContext* context)
 
   GetRobotToEngineImplMessaging().InitRobotMessageComponent(GetContext()->GetRobotManager()->GetMsgHandler(), this);
 
-  _lastDebugStringHash = 0;
-
   // Setting camera pose according to current head angle.
   // (Not using SetHeadAngle() because _isHeadCalibrated is initially false making the function do nothing.)
   GetVisionComponent().GetCamera().SetPose(GetCameraPose(GetComponent<FullRobotPose>().GetHeadAngle()));
@@ -313,21 +396,21 @@ Robot::Robot(const RobotID_t robotID, const CozmoContext* context)
   _thisRobot = this;
 #endif
 
-  // This will create the AndroidHAL instance if it doesn't yet exist
+  // These will create the instances if they don't yet exist
   CameraService::getInstance();
-
+  ToFSensor::getInstance();
 
 } // Constructor: Robot
 
 Robot::~Robot()
 {
+  // save variable snapshots before rest of robot components start destructing
+  _components->RemoveComponent(RobotComponentID::VariableSnapshotComponent);
+
   // VIC-1961: Remove touch sensor component before aborting all since there's a DEV_ASSERT crash
   // and we need to write data out from the touch sensor component out. This explicit destruction
   // can be removed once the DEV_ASSERT is fixed
   _components->RemoveComponent(RobotComponentID::TouchSensor);
-
-  // force an update to the freeplay data manager, so we'll send a DAS event before the tracker is destroyed
-  GetAIComponent().GetComponent<FreeplayDataTracker>().ForceUpdate();
 
   AbortAll();
 
@@ -340,10 +423,13 @@ Robot::~Robot()
   // and there's no guarantee on entity/component destruction order
   _components->RemoveComponent(RobotComponentID::Vision);
   _components->RemoveComponent(RobotComponentID::Map);
-  _components->RemoveComponent(RobotComponentID::ObjectPoseConfirmer);
   _components->RemoveComponent(RobotComponentID::PathPlanning);
 
-  PRINT_NAMED_INFO("robot.destructor", "%d", GetID());
+  // Ensure JdocsManager destructor gets called before the destructors of the
+  // four components that it needs to talk to
+  _components->RemoveComponent(RobotComponentID::JdocsManager);
+
+  LOG_INFO("Robot.Destructor", "");
 }
 
 
@@ -355,7 +441,7 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
 
   const bool isPickedUp = IS_STATUS_FLAG_SET(IS_PICKED_UP);
   const bool isFalling = IS_STATUS_FLAG_SET(IS_FALLING);
-  const TimeStamp_t currentTimestamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  const EngineTimeStamp_t currentTimestamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
 
   //////////
   // Check the robot's orientation
@@ -442,9 +528,6 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
     _awaitingConfirmationTreadState = OffTreadsState::OnTreads;
     // Allows this to be called instantly
     _timeOffTreadStateChanged_ms = currentTimestamp - kRobotTimeToConsiderOfftreads_ms;
-
-    // Check the lift to see if tool changed while we were picked up
-    //GetActionList().QueueActionNext(new ReadToolCodeAction(*this));
   }
 
   //////////
@@ -463,9 +546,9 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
     // Falling seems worthy of a DAS event
     if (_awaitingConfirmationTreadState == OffTreadsState::Falling) {
       _fallingStartedTime_ms = GetLastMsgTimestamp();
-      PRINT_NAMED_INFO("Robot.CheckAndUpdateTreadsState.FallingStarted",
+      LOG_INFO("Robot.CheckAndUpdateTreadsState.FallingStarted",
                        "t=%dms",
-                       _fallingStartedTime_ms);
+                       (TimeStamp_t)_fallingStartedTime_ms);
 
       // Stop all actions
       GetActionList().Cancel();
@@ -473,9 +556,9 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
     } else if (_offTreadsState == OffTreadsState::Falling) {
       // This is not an exact measurement of fall time since it includes some detection delays on the robot side
       // It may also include kRobotTimeToConsiderOfftreads_ms depending on how the robot lands
-      PRINT_NAMED_INFO("Robot.CheckAndUpdateTreadsState.FallingStopped",
+      LOG_INFO("Robot.CheckAndUpdateTreadsState.FallingStopped",
                        "t=%dms, duration=%dms",
-                       GetLastMsgTimestamp(), GetLastMsgTimestamp() - _fallingStartedTime_ms);
+                       (TimeStamp_t)GetLastMsgTimestamp(), (TimeStamp_t)(GetLastMsgTimestamp() - _fallingStartedTime_ms));
       _fallingStartedTime_ms = 0;
     }
 
@@ -493,15 +576,13 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
         GetVisionComponent().Pause(false);
       }
 
-      DEV_ASSERT(!IsLocalized(), "Robot should be delocalized when first put back down!");
-
-      // If we are not localized and there is nothing else left in the world that
-      // we could localize to, then go ahead and mark us as localized (via
-      // odometry alone)
-      if (false == GetBlockWorld().AnyRemainingLocalizableObjects()) {
+      // If we are not localized and there is nothing else left in the world (in any origin) that we could localize to,
+      // then go ahead and mark us as localized (via odometry alone)
+      if (!IsLocalized() &&
+          !GetBlockWorld().AnyRemainingLocalizableObjects(PoseOriginList::UnknownOriginID)) {
         LOG_INFO("Robot.UpdateOfftreadsState.NoMoreRemainingLocalizableObjects",
-                 "Marking previously-unlocalized robot %d as localized to odometry because "
-                 "there are no more objects to localize to in the world.", GetID());
+                 "Marking previously-unlocalized robot as localized to odometry because "
+                 "there are no more objects to localize to in the world.");
         SetLocalizedTo(nullptr); // marks us as localized to odometry only
       }
     }
@@ -514,28 +595,44 @@ bool Robot::CheckAndUpdateTreadsState(const RobotState& msg)
       GetCarryingComponent().SetCarriedObjectAsUnattached(clearObjects);
     }
 
-    // if the robot was on the charging platform and its state changes it's not on the platform anymore
-    if (_offTreadsState != OffTreadsState::OnTreads)
-    {
-      GetBatteryComponent().SetOnChargerPlatform(false);
-    }
-
     offTreadsStateChanged = true;
   }
 
-  // Send viz message with current treads states
-  const bool awaitingNewTreadsState = (_offTreadsState != _awaitingConfirmationTreadState);
-  const auto vizManager = GetContext()->GetVizManager();
-  vizManager->SetText(VizManager::OFF_TREADS_STATE,
-                      NamedColors::GREEN,
-                      "OffTreadsState: %s  %s",
-                      EnumToString(_offTreadsState),
-                      awaitingNewTreadsState ? EnumToString(_awaitingConfirmationTreadState) : "");
+  //////////////////////////////////
+  // Too long InAir DAS message
+  //////////////////////////////////
+  // Check if robot is stuck in-air for a long time, but is likely not being held.
+  // Might be indicative of a vibrating surface or overly sensitive conditions
+  // for staying in the picked up state.
+  static bool        reportedInAirTooLong      = false;
+  static EngineTimeStamp_t inAirTooLongReportTime_ms = 0;
+  static Radians     lastStableRobotAngle_rad  = msg.pose.angle;
 
-  if (offTreadsStateChanged) {
-    // pause the freeplay tracking if we are not on the treads
-    const bool isPaused = (_offTreadsState != OffTreadsState::OnTreads);
-    GetAIComponent().GetComponent<FreeplayDataTracker>().SetFreeplayPauseFlag(isPaused, FreeplayPauseFlag::OffTreads);
+  if (!reportedInAirTooLong) {
+
+    // Schedule reporting of DAS message when InAir, but reset
+    // timer if robot orientation changes indicating that it's probably
+    // still being held.
+    const bool robotAngleChanged = (lastStableRobotAngle_rad - msg.pose.angle).getAbsoluteVal().ToFloat() > kRobotAngleChangedThresh_rad;
+    if ((_offTreadsState == OffTreadsState::InAir) && robotAngleChanged) {
+      inAirTooLongReportTime_ms = currentTimestamp + kInAirTooLongTimeReportTime_ms;
+      lastStableRobotAngle_rad = msg.pose.angle;
+    }
+
+    if ((inAirTooLongReportTime_ms > 0) &&
+        (inAirTooLongReportTime_ms < currentTimestamp)) {
+      DASMSG(robot_too_long_in_air, "robot.too_long_in_air",
+            "Robot has been in InAir picked up state for too long. Vibrating surface?");
+      DASMSG_SEND();
+      reportedInAirTooLong = true;
+    }
+  }
+
+  // Reset reporting flag when no longer picked up
+  const bool cliffDetected = GetCliffSensorComponent().IsCliffDetected();
+  if (_offTreadsState == OffTreadsState::OnTreads || cliffDetected) {
+    reportedInAirTooLong = false;
+    inAirTooLongReportTime_ms = 0;
   }
 
   return offTreadsStateChanged;
@@ -587,8 +684,9 @@ void Robot::Delocalize(bool isCarryingObject)
                  worldOriginID, worldOrigin.GetID());
 
   // Log delocalization, new origin name, and num origins to DAS
-  PRINT_NAMED_INFO("Robot.Delocalize", "Delocalizing robot %d. New origin: %s. NumOrigins=%zu",
-                   GetID(), worldOrigin.GetName().c_str(), GetPoseOriginList().GetSize());
+  LOG_INFO("Robot.Delocalize",
+           "Delocalizing robot. New origin: %s. NumOrigins=%zu",
+           worldOrigin.GetName().c_str(), GetPoseOriginList().GetSize());
 
   GetComponent<FullRobotPose>().GetPose().SetRotation(0, Z_AXIS_3D());
   GetComponent<FullRobotPose>().GetPose().SetTranslation({0.f, 0.f, 0.f});
@@ -612,24 +710,20 @@ void Robot::Delocalize(bool isCarryingObject)
     // Need to update the robot's pose history with our new origin and pose frame IDs
     LOG_INFO("Robot.Delocalize.SendingNewOriginID",
              "Sending new localization update at t=%u, with pose frame %u and origin ID=%u",
-             GetLastMsgTimestamp(),
+             (TimeStamp_t)GetLastMsgTimestamp(),
              GetPoseFrameID(),
              worldOrigin.GetID());
     SendAbsLocalizationUpdate(GetComponent<FullRobotPose>().GetPose(), GetLastMsgTimestamp(), GetPoseFrameID());
   }
 
   // Update VizText
-  GetContext()->GetVizManager()->SetText(VizManager::LOCALIZED_TO, NamedColors::YELLOW,
+  GetContext()->GetVizManager()->SetText(TextLabelType::LOCALIZED_TO, NamedColors::YELLOW,
                                          "LocalizedTo: <nothing>");
-  GetContext()->GetVizManager()->SetText(VizManager::WORLD_ORIGIN, NamedColors::YELLOW,
+  GetContext()->GetVizManager()->SetText(TextLabelType::WORLD_ORIGIN, NamedColors::YELLOW,
                                          "WorldOrigin[%lu]: %s",
                                          GetPoseOriginList().GetSize(),
                                          worldOrigin.GetName().c_str());
   GetContext()->GetVizManager()->EraseAllVizObjects();
-
-
-  // clear the pose confirmer now that we've changed pose origins
-  GetObjectPoseConfirmer().Clear();
 
   // Sanity check carrying state
   if (isCarryingObject != GetCarryingComponent().IsCarryingObject())
@@ -647,18 +741,18 @@ void Robot::Delocalize(bool isCarryingObject)
   if (GetCarryingComponent().IsCarryingObject())
   {
     // Carried objects are in the pose chain of the robot, whose origin has now changed.
-    // Thus the carried objects' actual origin no longer matches the way they are stored
+    // Thus the carried object's actual origin no longer matches the way they are stored
     // in BlockWorld.
-    for(auto const& objectID : GetCarryingComponent().GetCarryingObjects())
+    const auto& objectID = GetCarryingComponent().GetCarryingObjectID();
+    const Result result = GetBlockWorld().UpdateObjectOrigin(objectID, oldOriginID);
+    if(RESULT_OK != result)
     {
-      const Result result = GetBlockWorld().UpdateObjectOrigin(objectID, oldOriginID);
-      if(RESULT_OK != result)
-      {
-        LOG_WARNING("Robot.Delocalize.UpdateObjectOriginFailed", "Object %d", objectID.GetValue());
-      }
-
+      LOG_WARNING("Robot.Delocalize.UpdateObjectOriginFailed", "Object %d", objectID.GetValue());
     }
   }
+
+  // If we don't know where we are, we can't know where we are going.
+  GetPathComponent().Abort();
 
   // notify blockworld
   GetBlockWorld().OnRobotDelocalized(worldOriginID);
@@ -675,16 +769,28 @@ void Robot::Delocalize(bool isCarryingObject)
   // any system can listen to this
   Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotDelocalized()));
 
+  DASMSG(robot_delocalized,
+         "robot.delocalized",
+         "The robot has delocalized. This event occurs any time the robot delocalizes.");
+  DASMSG_SET(i1, isCarryingObject, "1 if carrying an object, null if not");
+  DASMSG_SEND();
+
 } // Delocalize()
 
 Result Robot::SetLocalizedTo(const ObservableObject* object)
 {
   if (object == nullptr) {
-    GetContext()->GetVizManager()->SetText(VizManager::LOCALIZED_TO, NamedColors::YELLOW,
+    GetContext()->GetVizManager()->SetText(TextLabelType::LOCALIZED_TO, NamedColors::YELLOW,
                                            "LocalizedTo: Odometry");
     _localizedToID.UnSet();
     _isLocalized = true;
     return RESULT_OK;
+  }
+
+  // Do not allow localizing if we're not on treads
+  if (_offTreadsState != OffTreadsState::OnTreads) {
+    LOG_ERROR("Robot.SetLocalizedTo.OffTreads", "Cannot localize while off treads");
+    return RESULT_FAIL;
   }
 
   if (object->GetID().IsUnknown()) {
@@ -693,7 +799,7 @@ Result Robot::SetLocalizedTo(const ObservableObject* object)
   }
 
   // Find the closest, most recently observed marker on the object
-  TimeStamp_t mostRecentObsTime = 0;
+  RobotTimeStamp_t mostRecentObsTime = 0;
   for(const auto& marker : object->GetMarkers()) {
     if(marker.GetLastObservedTime() >= mostRecentObsTime) {
       Pose3d markerPoseWrtCamera;
@@ -718,10 +824,10 @@ Result Robot::SetLocalizedTo(const ObservableObject* object)
   GetAIComponent().OnRobotRelocalized();
 
   // Update VizText
-  GetContext()->GetVizManager()->SetText(VizManager::LOCALIZED_TO, NamedColors::YELLOW,
+  GetContext()->GetVizManager()->SetText(TextLabelType::LOCALIZED_TO, NamedColors::YELLOW,
                                          "LocalizedTo: %s_%d",
                                          ObjectTypeToString(object->GetType()), _localizedToID.GetValue());
-  GetContext()->GetVizManager()->SetText(VizManager::WORLD_ORIGIN, NamedColors::YELLOW,
+  GetContext()->GetVizManager()->SetText(TextLabelType::WORLD_ORIGIN, NamedColors::YELLOW,
                                          "WorldOrigin[%lu]: %s",
                                          GetPoseOriginList().GetSize(),
                                          GetWorldOrigin().GetName().c_str());
@@ -758,13 +864,6 @@ void UpdateFaceImageRGBExample(Robot& robot)
     if (--framesToSend < 0) {
       return;
     }
-  }
-
-  // Throttle frames
-  // Don't send if the number of procAnim keyframes gets large enough
-  // (One keyframe == 33ms)
-  if (robot.GetAnimationComponent().GetAnimState_NumProcAnimFaceKeyframes() > 30) {
-    return;
   }
 
   // Move 'X' through the image
@@ -853,17 +952,18 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   // Update robot pitch angle
   GetComponent<FullRobotPose>().SetPitchAngle(Radians(msg.pose.pitch_angle));
 
-  // Update sensor components:
-  GetCliffSensorComponent().NotifyOfRobotState(msg);
-  GetProxSensorComponent().NotifyOfRobotState(msg);
-  GetTouchSensorComponent().NotifyOfRobotState(msg);
-
-  // update current path segment in the path component
-  GetPathComponent().UpdateCurrentPathSegment(msg.currPathSegment);
+  // Update robot roll angle
+  GetComponent<FullRobotPose>().SetRollAngle(Radians(msg.pose.roll_angle));
 
   // Update IMU data
   _robotAccel = msg.accel;
   _robotGyro = msg.gyro;
+
+  for (auto imuDataFrame : msg.imuData) {
+    if (imuDataFrame.timestamp > 0) {
+      GetImuComponent().AddData(std::move(imuDataFrame));
+    }
+  }
 
   _robotAccelMagnitude = sqrtf(_robotAccel.x * _robotAccel.x
                              + _robotAccel.y * _robotAccel.y
@@ -886,6 +986,22 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   const bool wasTreadsStateUpdated = CheckAndUpdateTreadsState(msg);
   const bool isDelocalizing = wasTreadsStateUpdated && (prevOffTreadsState == OffTreadsState::OnTreads || _offTreadsState == OffTreadsState::OnTreads);
 
+  if( isDelocalizing && (prevOffTreadsState == OffTreadsState::OnTreads) )
+  {
+    // Robot is delocalized, and not because it was put back down. Tell the map component to send relevant info about the
+    // previous map. This is commanded here instead of map component's CreateLocalizedMemoryMap so that the map info from when
+    // the robot is in the air is not sent when the robot is put back down, since MapComponent doesn't (need to) track OffTreadsState
+    GetMapComponent().SendDASInfoAboutCurrentMap();
+  }
+
+  if (wasTreadsStateUpdated)
+  {
+    DASMSG(robot_offtreadsstatechanged, "robot.offtreadsstatechanged", "The robot off treads state changed");
+    DASMSG_SET(s1, OffTreadsStateToString(_offTreadsState), "New state");
+    DASMSG_SET(s2, OffTreadsStateToString(prevOffTreadsState), "Previous state");
+    DASMSG_SEND();
+  }
+
   // this flag can have a small delay with respect to when we actually picked up the block, since Engine notifies
   // the robot, and the robot updates on the next state update. But that delay guarantees that the robot knows what
   // we think it's true, rather than mixing timestamps of when it started carrying vs when the robot knows that it was
@@ -894,19 +1010,22 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   //robot->SetCarryingBlock( isCarryingObject ); // Still needed?
   GetDockingComponent().SetPickingOrPlacing(IS_STATUS_FLAG_SET(IS_PICKING_OR_PLACING));
   _isPickedUp = IS_STATUS_FLAG_SET(IS_PICKED_UP);
+  const bool wasBeingHeld = _isBeingHeld;
+  _isBeingHeld = IS_STATUS_FLAG_SET(IS_BEING_HELD);
+  if ( wasBeingHeld != _isBeingHeld ) {
+    _timeHeldStateChanged_ms = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  }
   _powerButtonPressed = IS_STATUS_FLAG_SET(IS_BUTTON_PRESSED);
+
+  const bool isHeadMoving = !IS_STATUS_FLAG_SET(HEAD_IN_POS);
+  const bool areWheelsMoving = IS_STATUS_FLAG_SET(ARE_WHEELS_MOVING);
+  _hasMovedSinceLocalization |= (isHeadMoving || areWheelsMoving || _offTreadsState != OffTreadsState::OnTreads);
 
   // Save the entire flag for sending to game
   _lastStatusFlags = msg.status;
 
-  GetBatteryComponent().NotifyOfRobotState(msg);
-
-  GetMoveComponent().NotifyOfRobotState(msg);
-
   _leftWheelSpeed_mmps = msg.lwheel_speed_mmps;
   _rightWheelSpeed_mmps = msg.rwheel_speed_mmps;
-
-  _hasMovedSinceLocalization |= (GetMoveComponent().IsCameraMoving() || _offTreadsState != OffTreadsState::OnTreads);
 
   if (isDelocalizing)
   {
@@ -919,119 +1038,63 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
     DEV_ASSERT(msg.pose_frame_id <= GetPoseFrameID(), "Robot.UpdateFullRobotState.FrameFromFuture");
     const bool frameIsCurrent = msg.pose_frame_id == GetPoseFrameID();
 
-    Pose3d newPose;
+    // This is "normal" mode, where we update pose history based on the
+    // reported odometry from the physical robot
 
-    if (IsOnRamp()) {
-// Unsupported, remove in new PR
-//
-//      // Sanity check:
-//      DEV_ASSERT(_rampID.IsSet(), "Robot.UpdateFullRobotState.InvalidRampID");
-//
-//      // Don't update pose history while on a ramp.
-//      // Instead, just compute how far the robot thinks it has gone (in the plane)
-//      // and compare that to where it was when it started traversing the ramp.
-//      // Adjust according to the angle of the ramp we know it's on.
-//
-//      const f32 distanceTraveled = (Point2f(msg.pose.x, msg.pose.y) - _rampStartPosition).Length();
-//
-//      Ramp* ramp = dynamic_cast<Ramp*>(GetBlockWorld().GetLocatedObjectByID(_rampID, ObjectFamily::Ramp));
-//      if(ramp == nullptr) {
-//        PRINT_NAMED_ERROR("Robot.UpdateFullRobotState.NoRampWithID",
-//                          "Updating robot %d's state while on a ramp, but Ramp object with ID=%d not found in the world.",
-//                          _ID, _rampID.GetValue());
-//        return RESULT_FAIL;
-//      }
-//
-//      // Progress must be along ramp's direction (init assuming ascent)
-//      Radians headingAngle = ramp->GetPose().GetRotationAngle<'Z'>();
-//
-//      // Initialize tilt angle assuming we are ascending
-//      Radians tiltAngle = ramp->GetAngle();
-//
-//      switch(_rampDirection)
-//      {
-//        case Ramp::DESCENDING:
-//          tiltAngle    *= -1.f;
-//          headingAngle += M_PI_F;
-//          break;
-//        case Ramp::ASCENDING:
-//          break;
-//
-//        default:
-//          PRINT_NAMED_ERROR("Robot.UpdateFullRobotState.UnexpectedRampDirection",
-//                            "Robot is on a ramp, expecting the ramp direction to be either "
-//                            "ASCEND or DESCENDING, not %d", _rampDirection);
-//          return RESULT_FAIL;
-//      }
-//
-//      const f32 heightAdjust = distanceTraveled*sin(tiltAngle.ToFloat());
-//      const Point3f newTranslation(_rampStartPosition.x() + distanceTraveled*cos(headingAngle.ToFloat()),
-//                                   _rampStartPosition.y() + distanceTraveled*sin(headingAngle.ToFloat()),
-//                                   _rampStartHeight + heightAdjust);
-//
-//      const RotationMatrix3d R_heading(headingAngle, Z_AXIS_3D());
-//      const RotationMatrix3d R_tilt(tiltAngle, Y_AXIS_3D());
-//
-//      newPose = Pose3d(R_tilt*R_heading, newTranslation, GetComponent<FullRobotPose>().GetPose().GetParent());
-//      //SetPose(newPose); // Done by UpdateCurrPoseFromHistory() below
+    // Ignore physical robot's notion of z from the message? (msg.pose_z)
+    f32 pose_z = 0.f;
 
+
+    // Need to put the odometry update in terms of the current robot origin
+    if (!GetPoseOriginList().ContainsOriginID(msg.pose_origin_id))
+    {
+      LOG_WARNING("Robot.UpdateFullRobotState.BadOriginID",
+                  "Received RobotState with originID=%u, only %zu pose origins available",
+                  msg.pose_origin_id, GetPoseOriginList().GetSize());
+      return RESULT_FAIL;
+    }
+
+    const Pose3d& origin = GetPoseOriginList().GetOriginByID(msg.pose_origin_id);
+
+    // Initialize new pose to be within the reported origin
+    Pose3d newPose(msg.pose.angle, Z_AXIS_3D(), {msg.pose.x, msg.pose.y, msg.pose.z}, origin);
+
+    // It's possible the pose origin to which this update refers has since been
+    // rejiggered and is now the child of another origin. To add to history below,
+    // we must first flatten it. We do all this before "fixing" pose_z because pose_z
+    // will be w.r.t. robot origin so we want newPose to already be as well.
+    newPose = newPose.GetWithRespectToRoot();
+
+    if(msg.pose_frame_id == GetPoseFrameID()) {
+      // Frame IDs match. Use the robot's current Z (but w.r.t. world origin)
+      pose_z = GetPose().GetWithRespectToRoot().GetTranslation().z();
     } else {
-      // This is "normal" mode, where we update pose history based on the
-      // reported odometry from the physical robot
-
-      // Ignore physical robot's notion of z from the message? (msg.pose_z)
-      f32 pose_z = 0.f;
-
-
-      // Need to put the odometry update in terms of the current robot origin
-      if (!GetPoseOriginList().ContainsOriginID(msg.pose_origin_id))
-      {
-        LOG_WARNING("Robot.UpdateFullRobotState.BadOriginID",
-                    "Received RobotState with originID=%u, only %zu pose origins available",
-                    msg.pose_origin_id, GetPoseOriginList().GetSize());
-        return RESULT_FAIL;
-      }
-
-      const Pose3d& origin = GetPoseOriginList().GetOriginByID(msg.pose_origin_id);
-
-      // Initialize new pose to be within the reported origin
-      newPose = Pose3d(msg.pose.angle, Z_AXIS_3D(), {msg.pose.x, msg.pose.y, msg.pose.z}, origin);
-
-      // It's possible the pose origin to which this update refers has since been
-      // rejiggered and is now the child of another origin. To add to history below,
-      // we must first flatten it. We do all this before "fixing" pose_z because pose_z
-      // will be w.r.t. robot origin so we want newPose to already be as well.
-      newPose = newPose.GetWithRespectToRoot();
-
-      if(msg.pose_frame_id == GetPoseFrameID()) {
-        // Frame IDs match. Use the robot's current Z (but w.r.t. world origin)
-        pose_z = GetPose().GetWithRespectToRoot().GetTranslation().z();
-      } else {
-        // This is an old odometry update from a previous pose frame ID. We
-        // need to look up the correct Z value to use for putting this
-        // message's (x,y) odometry info into history. Since it comes from
-        // pose history, it will already be w.r.t. world origin, since that's
-        // how we store everything in pose history.
-        HistRobotState histState;
-        lastResult = GetStateHistory()->GetLastStateWithFrameID(msg.pose_frame_id, histState);
-        if (lastResult != RESULT_OK) {
-          LOG_ERROR("Robot.UpdateFullRobotState.GetLastPoseWithFrameIdError",
-                    "Failed to get last pose from history with frame ID=%d",
-                    msg.pose_frame_id);
-          return lastResult;
+      // This is an old odometry update from a previous pose frame ID. We
+      // need to look up the correct Z value to use for putting this
+      // message's (x,y) odometry info into history. Since it comes from
+      // pose history, it will already be w.r.t. world origin, since that's
+      // how we store everything in pose history.
+      HistRobotState histState;
+      lastResult = GetStateHistory()->GetLastStateWithFrameID(msg.pose_frame_id, histState);
+      if (lastResult != RESULT_OK) {
+        // Don't print warning if frame_id 0 because this can sometimes happen on startup
+        if (msg.pose_frame_id != 0) {
+          LOG_WARNING("Robot.UpdateFullRobotState.GetLastPoseWithFrameIdError",
+                      "Failed to get last pose from history with frame ID=%d",
+                      msg.pose_frame_id);
         }
-        pose_z = histState.GetPose().GetWithRespectToRoot().GetTranslation().z();
+        return lastResult;
       }
+      pose_z = histState.GetPose().GetWithRespectToRoot().GetTranslation().z();
+    }
 
-      newPose.SetTranslation({newPose.GetTranslation().x(), newPose.GetTranslation().y(), pose_z});
+    newPose.SetTranslation({newPose.GetTranslation().x(), newPose.GetTranslation().y(), pose_z});
 
-    } // if/else on ramp
 
     // Add to history
     const HistRobotState histState(newPose,
                                    msg,
-                                   GetProxSensorComponent().GetLatestProxData(),
-                                   GetCliffSensorComponent().GetCliffDetectedFlags() );
+                                   GetProxSensorComponent().GetLatestProxData() );
     lastResult = GetStateHistory()->AddRawOdomState(msg.timestamp, histState);
 
     if (lastResult != RESULT_OK) {
@@ -1078,6 +1141,21 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
 
   }
 
+
+  // Update sensor components:
+  GetBatteryComponent().NotifyOfRobotState(msg);
+  GetMoveComponent().NotifyOfRobotState(msg);
+  GetCliffSensorComponent().NotifyOfRobotState(msg);
+  GetProxSensorComponent().NotifyOfRobotState(msg);
+  GetTouchSensorComponent().NotifyOfRobotState(msg);
+
+  // Update processed proxSensorData in history after ProxSensorComponent was updated
+  GetStateHistory()->UpdateProxSensorData(msg.timestamp, GetProxSensorComponent().GetLatestProxData());
+
+  // update current path segment in the path component
+  GetPathComponent().UpdateCurrentPathSegment(msg.currPathSegment);
+
+
 # pragma clang diagnostic push
 # pragma clang diagnostic ignored "-Wdeprecated-declarations"
   GetComponent<RobotGyroDriftDetector>().DetectGyroDrift(msg);
@@ -1085,7 +1163,7 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   GetComponent<RobotGyroDriftDetector>().DetectBias(msg);
 
   /*
-    PRINT_NAMED_INFO("Robot.UpdateFullRobotState.OdometryUpdate",
+    LOG_INFO("Robot.UpdateFullRobotState.OdometryUpdate",
     "Robot %d's pose updated to (%.3f, %.3f, %.3f) @ %.1fdeg based on "
     "msg at time=%d, frame=%d saying (%.3f, %.3f) @ %.1fdeg\n",
     _ID, GetComponent<FullRobotPose>().GetPose().GetTranslation().x(), GetComponent<FullRobotPose>().GetPose().GetTranslation().y(), GetComponent<FullRobotPose>().GetPose().GetTranslation().z(),
@@ -1098,21 +1176,21 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   // TODO: Should this just be a different message? Or one that includes the state message from the robot?
   RobotState stateMsg(msg);
 
-  const float imageFrameRate = 1000.0f / GetVisionComponent().GetFramePeriod_ms();
-  const float imageProcRate = 1000.0f / GetVisionComponent().GetProcessingPeriod_ms();
+  const u16 imageFramePeriod_ms = Util::numeric_cast<u16>( GetVisionComponent().GetFramePeriod_ms() );
+  const u16 imageProcPeriod_ms  = Util::numeric_cast<u16>( GetVisionComponent().GetProcessingPeriod_ms() );
 
   // Send state to visualizer for displaying
-  GetContext()->GetVizManager()->SendRobotState(
-    stateMsg,
-    (u8)MIN(((u8)imageFrameRate), std::numeric_limits<u8>::max()),
-    (u8)MIN(((u8)imageProcRate), std::numeric_limits<u8>::max()),
-    GetAnimationComponent().GetAnimState_NumProcAnimFaceKeyframes(),
-    GetAnimationComponent().GetAnimState_LockedTracks(),
-    GetAnimationComponent().GetAnimState_TracksInUse(),
-    _robotImuTemperature_degC,
-    GetCliffSensorComponent().GetCliffDetectThresholds(),
-    GetBatteryComponent().GetBatteryVolts()
-    );
+  VizInterface::RobotStateMessage vizState(stateMsg,
+                                           _robotImuTemperature_degC,
+                                           GetCliffSensorComponent().GetCliffDetectThresholds(),
+                                           imageFramePeriod_ms,
+                                           imageProcPeriod_ms,
+                                           GetMoveComponent().GetLockedTracks(),
+                                           GetAnimationComponent().GetAnimState_TracksInUse(),
+                                           GetBatteryComponent().GetBatteryVolts(),
+                                           _offTreadsState,
+                                           _awaitingConfirmationTreadState);
+  GetContext()->GetVizManager()->SendRobotState(std::move(vizState));
 
   return lastResult;
 
@@ -1123,50 +1201,10 @@ bool Robot::HasReceivedRobotState() const
   return _newStateMsgAvailable;
 }
 
-
-void Robot::SetPhysicalRobot(bool isPhysical)
-{
-  // TODO: Move somewhere else? This might not the best place for this, but it's where we
-  // know whether or not we're talking to a physical robot or not so do things that depend on that here.
-  // Assumes this function is only called once following connection.
-
-  // Connect to active objects in saved blockpool, but only for physical robots.
-  // For sim robots we make blocks connect automatically by sending BlockPoolEnabledMessage from UiGameController.
-  // (Note that when using Unity+Webots, that message is not sent.)
-  if (isPhysical) {
-    if (GetContext()->GetDataPlatform() != nullptr) {
-      // TODO: init cube comms connection stuff?
-      //_blockFilter->Init(GetContext()->GetDataPlatform()->pathToResource(Util::Data::Scope::External, "blockPool.txt"));
-    }
-  }
-
-
-  _isPhysical = isPhysical;
-
-  // Modify net timeout depending on robot type - simulated robots shouldn't timeout so we can pause and debug
-  // them We do this regardless of previous state to ensure it works when adding 1st simulated robot (as
-  // _isPhysical already == false in that case) Note: We don't do this on phone by default, they also have a
-  // remote connection to the simulator so removing timeout would force user to restart both sides each time.
-  #if !(defined(ANKI_PLATFORM_IOS) || defined(ANKI_PLATFORM_ANDROID))
-  {
-    static const double kPhysicalRobotNetConnectionTimeoutInMS =
-      Anki::Util::ReliableConnection::GetConnectionTimeoutInMS(); // grab default on 1st call
-    const double kSimulatedRobotNetConnectionTimeoutInMS = FLT_MAX;
-    const double netConnectionTimeoutInMS =
-      isPhysical ? kPhysicalRobotNetConnectionTimeoutInMS : kSimulatedRobotNetConnectionTimeoutInMS;
-    LOG_INFO("Robot.SetPhysicalRobot", "ReliableConnection::SetConnectionTimeoutInMS(%f) for %s Robot",
-             netConnectionTimeoutInMS, isPhysical ? "Physical" : "Simulated");
-    Anki::Util::ReliableConnection::SetConnectionTimeoutInMS(netConnectionTimeoutInMS);
-  }
-  #endif // !(ANKI_PLATFORM_IOS || ANKI_PLATFORM_ANDROID)
-
-  GetVisionComponent().SetPhysicalRobot(_isPhysical);
-}
-
-Result Robot::GetHistoricalCamera(TimeStamp_t t_request, Vision::Camera& camera) const
+Result Robot::GetHistoricalCamera(RobotTimeStamp_t t_request, Vision::Camera& camera) const
 {
   HistRobotState histState;
-  TimeStamp_t t;
+  RobotTimeStamp_t t;
   Result result = GetStateHistory()->GetRawStateAt(t_request, t, histState);
   if (RESULT_OK != result)
   {
@@ -1177,7 +1215,7 @@ Result Robot::GetHistoricalCamera(TimeStamp_t t_request, Vision::Camera& camera)
   return RESULT_OK;
 }
 
-Pose3d Robot::GetHistoricalCameraPose(const HistRobotState& histState, TimeStamp_t t) const
+Pose3d Robot::GetHistoricalCameraPose(const HistRobotState& histState, RobotTimeStamp_t t) const
 {
   // Compute pose from robot body to camera
   // Start with canonical (untilted) headPose
@@ -1193,7 +1231,7 @@ Pose3d Robot::GetHistoricalCameraPose(const HistRobotState& histState, TimeStamp
   // Set parent pose to be the historical robot pose
   camPose.SetParent(histState.GetPose());
 
-  camPose.SetName("PoseHistoryCamera_" + std::to_string(t));
+  camPose.SetName("PoseHistoryCamera_" + std::to_string((TimeStamp_t)t));
 
   return camPose;
 }
@@ -1211,7 +1249,7 @@ u32 Robot::GetDisplayHeightInPixels() const
   return FACE_DISPLAY_HEIGHT;
 }
 
-Vision::Camera Robot::GetHistoricalCamera(const HistRobotState& histState, TimeStamp_t t) const
+Vision::Camera Robot::GetHistoricalCamera(const HistRobotState& histState, RobotTimeStamp_t t) const
 {
   Vision::Camera camera(GetVisionComponent().GetCamera());
 
@@ -1226,76 +1264,46 @@ Result Robot::Update()
 {
   ANKI_CPU_PROFILE("Robot::Update");
 
-  const float currentTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-
-  // Check for syncRobotAck taking too long to arrive
-  if (_syncRobotSentTime_sec > 0.0f && currentTime > _syncRobotSentTime_sec + kMaxSyncRobotAckDelay_sec) {
-    LOG_WARNING("Robot.Update.SyncRobotAckNotReceived", "");
-    _syncRobotSentTime_sec = 0.0f;
-  }
+  _cpuStats.Update();
 
   //////////// CameraService Update ////////////
   CameraService::getInstance()->Update();
 
-  const Result factoryRes = UpdateStartupChecks();
-  if(factoryRes != RESULT_OK)
+  auto* tof = ToFSensor::getInstance();
+  if(tof != nullptr)
+  {
+    tof->Update();
+  }
+
+  Result factoryRes;
+  const bool checkDone = UpdateStartupChecks(factoryRes);
+  if(!checkDone)
+  {
+    return RESULT_OK;
+  }
+  else if(factoryRes != RESULT_OK)
   {
     return factoryRes;
   }
-  
+
   if (!_gotStateMsgAfterRobotSync)
   {
     LOG_DEBUG("Robot.Update", "Waiting for first full robot state to be handled");
     return RESULT_OK;
   }
 
-  static bool wasChargerStripeIsBlack = kChargerStripeIsBlack;
-  if (kChargerStripeIsBlack != wasChargerStripeIsBlack) {
-    SendMessage(RobotInterface::EngineToRobot(RobotInterface::ChargerDockingStripeColor(kChargerStripeIsBlack)));
-    wasChargerStripeIsBlack = kChargerStripeIsBlack;
+  const bool trackingPowerButtonPress = (_timePowerButtonPressed_ms != 0);
+  // Keep track of how long the power button has been pressed
+  if(!trackingPowerButtonPress && _powerButtonPressed){
+    _timePowerButtonPressed_ms = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  }else if(trackingPowerButtonPress && !_powerButtonPressed){
+    _timePowerButtonPressed_ms = 0;
   }
 
 #if(0)
   ActiveBlockLightTest(1);
   return RESULT_OK;
 #endif
-
-  GetContext()->GetVizManager()->SendStartRobotUpdate();
-
-  /* DEBUG
-     const float currentTime_sec = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-     static float lastUpdateTime = currentTime_sec;
-
-     const float updateTimeDiff = currentTime_sec - lastUpdateTime;
-     if(updateTimeDiff > 1.0f) {
-       PRINT_NAMED_WARNING("Robot.Update", "Gap between robot update calls = %f\n", updateTimeDiff);
-     }
-     lastUpdateTime = currentTime_sec;
-  */
-
-  // Check if we have driven off the charger platform - this has to happen before the behaviors which might
-  // need this information. This state is useful for knowing not to play a cliff react when just driving off
-  // the charger.
-
-  if (GetBatteryComponent().IsOnChargerPlatform() && _offTreadsState == OffTreadsState::OnTreads) {
-    BlockWorldFilter filter;
-    filter.SetAllowedFamilies({ObjectFamily::Charger});
-    // Assuming there is only one charger in the world
-    const ObservableObject* charger = GetBlockWorld().FindLocatedMatchingObject(filter);
-
-    if (nullptr != charger)
-    {
-      const bool isOnChargerPlatform = charger->GetBoundingQuadXY().Intersects(GetBoundingQuadXY());
-      if( !isOnChargerPlatform )
-      {
-        GetBatteryComponent().SetOnChargerPlatform(false);
-      }
-    }
-    else {
-      // if we can't connect / talk to the charger, consider the robot to be off the platform
-      GetBatteryComponent().SetOnChargerPlatform(false);
-    }
-  }
 
   _components->UpdateComponents();
 
@@ -1306,7 +1314,10 @@ Result Robot::Update()
     _needToSendLocalizationUpdate = false;
   }
 
+#if ENABLE_DRAWING
   /////////// Update visualization ////////////
+  ANKI_CPU_PROFILE_START(prof_UpdateVis, "UpdateVisualization");
+
   // Draw All Objects by calling their Visualize() methods.
   GetBlockWorld().DrawAllObjects();
 
@@ -1318,7 +1329,7 @@ Result Robot::Update()
 
   // Full Webots CozmoBot model
   if (IsPhysical()) {
-    GetContext()->GetVizManager()->DrawRobot(GetID(), robotPoseWrtOrigin, GetComponent<FullRobotPose>().GetHeadAngle(), GetComponent<FullRobotPose>().GetLiftAngle());
+    GetContext()->GetVizManager()->DrawRobot(robotPoseWrtOrigin, GetComponent<FullRobotPose>().GetHeadAngle(), GetComponent<FullRobotPose>().GetLiftAngle());
   }
 
   // Robot bounding box
@@ -1344,52 +1355,13 @@ Result Robot::Update()
   vizPose, ROBOT_BOUNDING_QUAD_COLOR);
   */
 
-  GetContext()->GetVizManager()->SendEndRobotUpdate();
-
-  // update time since last image received
-  _timeSinceLastImage_s = std::max(0.0, currentTime - GetRobotToEngineImplMessaging().GetLastImageReceivedTime());
-
-  // Sending debug string to game and viz
-  char buffer [128];
-
-  const float updateRatePerSec = 1.0f / (currentTime - _prevCurrentTime_sec);
-  _prevCurrentTime_sec = currentTime;
-
-  // So we can have an arbitrary number of data here that is likely to change want just hash it all
-  // together if anything changes without spamming
-  snprintf(buffer, sizeof(buffer),
-           "%c%c%c%c%c%c %2dHz %s",
-           GetMoveComponent().IsLiftMoving() ? 'L' : ' ',
-           GetMoveComponent().IsHeadMoving() ? 'H' : ' ',
-           GetMoveComponent().IsMoving() ? 'B' : ' ',
-           GetCarryingComponent().IsCarryingObject() ? 'C' : ' ',
-           GetBatteryComponent().IsOnChargerPlatform() ? 'P' : ' ',
-           GetNVStorageComponent().HasPendingRequests() ? 'R' : ' ',
-           // SimpleMoodTypeToString(GetMoodManager().GetSimpleMood()),
-           // _movementComponent.AreAnyTracksLocked((u8)AnimTrackFlag::LIFT_TRACK) ? 'L' : ' ',
-           // _movementComponent.AreAnyTracksLocked((u8)AnimTrackFlag::HEAD_TRACK) ? 'H' : ' ',
-           // _movementComponent.AreAnyTracksLocked((u8)AnimTrackFlag::BODY_TRACK) ? 'B' : ' ',
-           (u8)MIN(((u8)updateRatePerSec), std::numeric_limits<u8>::max()),
-           //currentActivityName.c_str(),
-           _behaviorDebugStr.c_str());
-
-  std::hash<std::string> hasher;
-  size_t curr_hash = hasher(std::string(buffer));
-  if (_lastDebugStringHash != curr_hash)
-  {
-    SendDebugString(buffer);
-    _lastDebugStringHash = curr_hash;
-  }
-
   if (kDebugPossibleBlockInteraction) {
     // print a bunch of info helpful for debugging block states
     BlockWorldFilter filter;
-    filter.SetAllowedFamilies({ObjectFamily::LightCube});
+    filter.SetFilterFcn(&BlockWorldFilter::IsLightCubeFilter);
     std::vector<ObservableObject*> matchingObjects;
     GetBlockWorld().FindLocatedMatchingObjects(filter, matchingObjects); // note this doesn't retrieve unknowns anymore
     for( const auto obj : matchingObjects ) {
-        const ObservableObject* topObj __attribute__((unused)) =
-            GetBlockWorld().FindLocatedObjectOnTopOf(*obj, STACKED_HEIGHT_TOL_MM);
         Pose3d relPose;
         bool gotRelPose __attribute__((unused)) =
             obj->GetPose().GetWithRespectTo(GetPose(), relPose);
@@ -1405,22 +1377,43 @@ Result Robot::Update()
         }
 
         LOG_DEBUG("Robot.ObjectInteractionState",
-                  "block:%d poseState:%8s moving?%d RestingFlat?%d carried?%d poseWRT?%d objOnTop:%d"
+                  "block:%d poseState:%8s moving?%d RestingFlat?%d carried?%d poseWRT?%d"
                   " z=%6.2f UpAxis:%s CanStack?%d CanPickUp?%d FromGround?%d",
                   obj->GetID().GetValue(),
                   PoseStateToString( obj->GetPoseState() ),
                   obj->IsMoving(),
                   obj->IsRestingFlat(),
                   (GetCarryingComponent().IsCarryingObject() && GetCarryingComponent().
-                   GetCarryingObject() == obj->GetID()),
+                   GetCarryingObjectID() == obj->GetID()),
                   gotRelPose,
-                  topObj ? topObj->GetID().GetValue() : -1,
                   relPose.GetTranslation().z(),
                   axisStr,
                   GetDockingComponent().CanStackOnTopOfObject(*obj),
                   GetDockingComponent().CanPickUpObject(*obj),
                   GetDockingComponent().CanPickUpObjectFromGround(*obj));
     }
+  }
+  ANKI_CPU_PROFILE_STOP(prof_UpdateVis);
+#endif  // ENABLE_DRAWING
+
+  // Send a message indicating we are fully loaded and capable of running
+  // after the first tick
+  if(!_sentEngineLoadedMsg)
+  {
+    _sentEngineLoadedMsg = true;
+    SendRobotMessage<RobotInterface::EngineFullyLoaded>();
+
+    auto onCharger  = GetBatteryComponent().IsOnChargerContacts() ? 1 : 0;
+    auto battery_mV = static_cast<uint32_t>(GetBatteryComponent().GetBatteryVolts() * 1000);
+
+    LOG_INFO("Robot.Update.EngineFullyLoaded",
+             "OnCharger: %d, Battery_mV: %d",
+             onCharger, battery_mV);
+
+    DASMSG(robot_engine_ready, "robot.engine_ready", "All robot processes are ready");
+    DASMSG_SET(i1, onCharger,  "On charger status");
+    DASMSG_SET(i2, battery_mV, "Battery voltage (mV)");
+    DASMSG_SEND();
   }
 
   return RESULT_OK;
@@ -1430,11 +1423,11 @@ Result Robot::Update()
 static f32 ClipHeadAngle(f32 head_angle)
 {
   if (head_angle < MIN_HEAD_ANGLE - HEAD_ANGLE_LIMIT_MARGIN) {
-    //PRINT_NAMED_WARNING("Robot.HeadAngleOOB", "Head angle (%f rad) too small.\n", head_angle);
+    //LOG_WARNING("Robot.HeadAngleOOB", "Head angle (%f rad) too small.\n", head_angle);
     return MIN_HEAD_ANGLE;
   }
   else if (head_angle > MAX_HEAD_ANGLE + HEAD_ANGLE_LIMIT_MARGIN) {
-    //PRINT_NAMED_WARNING("Robot.HeadAngleOOB", "Head angle (%f rad) too large.\n", head_angle);
+    //LOG_WARNING("Robot.HeadAngleOOB", "Head angle (%f rad) too large.\n", head_angle);
     return MAX_HEAD_ANGLE;
   }
 
@@ -1451,7 +1444,7 @@ Result Robot::SetNewPose(const Pose3d& newPose)
   //  because it's possible we did not put the last-received state message into
   //  history (if it had old frame ID), but we still want the latest time we
   //  can get.
-  const TimeStamp_t timeStamp = GetLastMsgTimestamp();
+  const RobotTimeStamp_t timeStamp = GetLastMsgTimestamp();
 
   return AddVisionOnlyStateToHistory(timeStamp, GetComponent<FullRobotPose>().GetPose(), GetComponent<FullRobotPose>().GetHeadAngle(), GetComponent<FullRobotPose>().GetLiftAngle());
 }
@@ -1496,10 +1489,14 @@ void Robot::SetHeadAngle(const f32& angle)
     GetVisionComponent().GetCamera().SetPose(GetCameraPose(GetComponent<FullRobotPose>().GetHeadAngle()));
     if(clippedHeadAngle != angle){
       LOG_WARNING("Robot.GetCameraHeadPose.HeadAngleOOB",
-                  "Angle %.3frad / %.1f (TODO: Send correction or just recalibrate?)",
+                  "Angle %.3frad / %.1f",
                   angle, RAD_TO_DEG(angle));
     }
   }
+
+  // note: moving the motor inside bounds shouldn't erase previous state
+  _isHeadMotorOutOfBounds |= angle < (MIN_HEAD_ANGLE-HEAD_ANGLE_LIMIT_MARGIN) ||
+                             angle > (MAX_HEAD_ANGLE+HEAD_ANGLE_LIMIT_MARGIN);
 
 } // SetHeadAngle()
 
@@ -1507,11 +1504,19 @@ void Robot::SetHeadAngle(const f32& angle)
 void Robot::SetHeadCalibrated(bool isCalibrated)
 {
   _isHeadCalibrated = isCalibrated;
+  if(_isHeadCalibrated) {
+    // clears the out of bounds flag when set to calibrated
+    _isHeadMotorOutOfBounds = false;
+  }
 }
 
 void Robot::SetLiftCalibrated(bool isCalibrated)
 {
   _isLiftCalibrated = isCalibrated;
+  if(_isLiftCalibrated) {
+    // clears the out of bounds flag when set to calibrated
+    _isLiftMotorOutOfBounds = false;
+  }
 }
 
 bool Robot::IsHeadCalibrated() const
@@ -1537,6 +1542,10 @@ void Robot::ComputeLiftPose(const f32 atAngle, Pose3d& liftPose)
 
 void Robot::SetLiftAngle(const f32& angle)
 {
+  // note: moving the motor inside bounds shouldn't erase previous state
+  _isLiftMotorOutOfBounds |=  angle < (MIN_LIFT_ANGLE-LIFT_ANGLE_LIMIT_MARGIN) ||
+                              angle > (MAX_LIFT_ANGLE+LIFT_ANGLE_LIMIT_MARGIN);
+
   // TODO: Add lift angle limits?
   GetComponent<FullRobotPose>().SetLiftAngle(angle);
 
@@ -1550,11 +1559,33 @@ Radians Robot::GetPitchAngle() const
   return GetComponent<FullRobotPose>().GetPitchAngle();
 }
 
+Radians Robot::GetRollAngle() const
+{
+  return GetComponent<FullRobotPose>().GetRollAngle();
+}
+
 bool Robot::WasObjectTappedRecently(const ObjectID& objectID) const
 {
   return GetComponent<BlockTapFilterComponent>().ShouldIgnoreMovementDueToDoubleTap(objectID);
 }
 
+TimeStamp_t Robot::GetTimeSincePowerButtonPressed_ms() const {
+  // this is a time difference, so could be any type, but to avoid someone thinking that all
+  // power button times are robot times, this returns an engine timestmap to match _timePowerButtonPressed_ms
+  return _timePowerButtonPressed_ms == 0 ? 0 :
+          TimeStamp_t(BaseStationTimer::getInstance()->GetCurrentTimeStamp() - _timePowerButtonPressed_ms);
+}
+
+void Robot::HandlePokeEvent() {
+  _timeLastPoked = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  LOG_INFO("Robot.HandlePokeEvent", "Last poke event timestamp recorded as %u", static_cast<u32>(_timeLastPoked));
+}
+
+EngineTimeStamp_t Robot::GetTimeSinceLastPoke_ms() const {
+  // If the robot has never reported being poked, then set the time difference to the maximum allowable value
+  return _timeLastPoked == 0 ? std::numeric_limits<EngineTimeStamp_t>::max() :
+          TimeStamp_t(BaseStationTimer::getInstance()->GetCurrentTimeStamp() - _timeLastPoked);
+}
 
 Result Robot::SyncRobot()
 {
@@ -1578,6 +1609,11 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
     return RESULT_FAIL;
   }
 
+  if (!IsChargerType(existingObject->GetType(), false)) {
+    LOG_ERROR("Robot.LocalizeToObject.CanOnlyLocalizeToCharger", "");
+    return RESULT_FAIL;
+  }
+
   if (existingObject->GetID() != GetLocalizedTo())
   {
     LOG_DEBUG("Robot.LocalizeToObject",
@@ -1585,21 +1621,6 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
               EnumToString(existingObject->GetType()),
               existingObject->GetID().GetValue());
   }
-
-  if (!existingObject->CanBeUsedForLocalization() || WasObjectTappedRecently(existingObject->GetID())) {
-    LOG_ERROR("Robot.LocalizeToObject.UnlocalizedObject",
-              "Refusing to localize to object %d, which claims not to be localizable.",
-              existingObject->GetID().GetValue());
-    return RESULT_FAIL;
-  }
-
-  /* Useful for Debug:
-     PRINT_NAMED_INFO("Robot.LocalizeToMat.MatSeenChain",
-     "%s\n", matSeen->GetPose().GetNamedPathToOrigin(true).c_str());
-
-     PRINT_NAMED_INFO("Robot.LocalizeToMat.ExistingMatChain",
-     "%s\n", existingMatPiece->GetPose().GetNamedPathToOrigin(true).c_str());
-  */
 
   HistStateKey histStateKey;
   HistRobotState* histStatePtr = nullptr;
@@ -1644,41 +1665,6 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
   robotPoseWrtObject.SetParent(existingObject->GetPose());
   //robotPoseWrtMat.SetName(std::string("Robot_") + std::to_string(robot->GetID()));
 
-# if 0
-  // Don't snap to horizontal or discrete Z levels when we see a mat marker
-  // while on a ramp
-  if (IsOnRamp() == false)
-  {
-    // If there is any significant rotation, make sure that it is roughly
-    // around the Z axis
-    Radians rotAngle;
-    Vec3f rotAxis;
-    robotPoseWrtObject.GetRotationVector().GetAngleAndAxis(rotAngle, rotAxis);
-
-    if (std::abs(rotAngle.ToFloat()) > DEG_TO_RAD(5) && !AreUnitVectorsAligned(rotAxis, Z_AXIS_3D(), DEG_TO_RAD(15))) {
-      LOG_WARNING("Robot.LocalizeToObject.OutOfPlaneRotation",
-                  "Refusing to localize to %s because "
-                  "Robot %d's Z axis would not be well aligned with the world Z axis. "
-                  "(angle=%.1fdeg, axis=(%.3f,%.3f,%.3f)",
-                  existingObject->GetType().GetName().c_str(), GetID(),
-                  rotAngle.getDegrees(), rotAxis.x(), rotAxis.y(), rotAxis.z());
-      return RESULT_FAIL;
-    }
-
-    // Snap to purely horizontal rotation
-    // TODO: Snap to surface of mat?
-    /*
-      if(existingMatPiece->IsPoseOn(robotPoseWrtObject, 0, 10.f)) {
-      Vec3f robotPoseWrtObject_trans = robotPoseWrtObject.GetTranslation();
-      robotPoseWrtObject_trans.z() = existingObject->GetDrivingSurfaceHeight();
-      robotPoseWrtObject.SetTranslation(robotPoseWrtObject_trans);
-      }
-    */
-    robotPoseWrtObject.SetRotation( robotPoseWrtObject.GetRotationAngle<'Z'>(), Z_AXIS_3D() );
-
-  } // if robot is on ramp
-# endif
-
   // Add the new vision-based pose to the robot's history. Note that we use
   // the pose w.r.t. the origin for storing poses in history.
   Pose3d robotPoseWrtOrigin = robotPoseWrtObject.GetWithRespectToRoot();
@@ -1697,10 +1683,10 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
 
   if (nullptr != seenObject)
   {
-    //
-    if ((lastResult = AddVisionOnlyStateToHistory(seenObject->GetLastObservedTime(),
-                                                robotPoseWrtOrigin,
-                                                headAngle, liftAngle)) != RESULT_OK)
+    lastResult = AddVisionOnlyStateToHistory(seenObject->GetLastObservedTime(),
+                                             robotPoseWrtOrigin,
+                                             headAngle, liftAngle);
+    if (lastResult != RESULT_OK)
     {
       LOG_ERROR("Robot.LocalizeToObject.FailedAddingVisionOnlyPoseToHistory", "");
       return lastResult;
@@ -1713,10 +1699,10 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
   const Pose3d& origOrigin = GetPoseOriginList().GetCurrentOrigin();
   if (!existingObject->GetPose().HasSameRootAs(origOrigin))
   {
-    PRINT_NAMED_INFO("Robot.LocalizeToObject.RejiggeringOrigins",
-                     "Robot %d's current origin is %s, about to localize to origin %s.",
-                     GetID(), origOrigin.GetName().c_str(),
-                     existingObject->GetPose().FindRoot().GetName().c_str());
+    LOG_INFO("Robot.LocalizeToObject.RejiggeringOrigins",
+             "Robot's current origin is %s, about to localize to origin %s.",
+             origOrigin.GetName().c_str(),
+             existingObject->GetPose().FindRoot().GetName().c_str());
 
     const PoseOriginID_t origOriginID = GetPoseOriginList().GetCurrentOriginID();
 
@@ -1742,8 +1728,7 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
       // after updating all block world objects, flatten out origins to remove grandparents
       _poseOrigins->Flatten(newOriginID);
     }
-
-  } // if(_worldOrigin != &existingObject->GetPose().FindRoot())
+  }
 
 
   if (nullptr != histStatePtr)
@@ -1767,6 +1752,11 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
     return RESULT_FAIL;
   }
 
+  if (histStatePtr->WasPickedUp() || (_offTreadsState != OffTreadsState::OnTreads)) {
+    LOG_INFO("Robot.LocalizeToObject.OffTreads", "Not localizing to object since we are not on treads");
+    return RESULT_OK;
+  }
+
   // Mark the robot as now being localized to this object
   // NOTE: this should be _after_ calling AddVisionOnlyStateToHistory, since
   //    that function checks whether the robot is already localized
@@ -1778,7 +1768,7 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
 
   // Overly-verbose. Use for debugging localization issues
   /*
-    PRINT_NAMED_INFO("Robot.LocalizeToObject",
+    LOG_INFO("Robot.LocalizeToObject",
     "Using %s object %d to localize robot %d at (%.3f,%.3f,%.3f), %.1fdeg@(%.2f,%.2f,%.2f), frameID=%d\n",
     ObjectTypeToString(existingObject->GetType()),
     existingObject->GetID().GetValue(), GetID(),
@@ -1805,303 +1795,6 @@ Result Robot::LocalizeToObject(const ObservableObject* seenObject,
 } // LocalizeToObject()
 
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Result Robot::LocalizeToMat(const MatPiece* matSeen, MatPiece* existingMatPiece)
-{
-  Result lastResult;
-
-  if (matSeen == nullptr) {
-    LOG_ERROR("Robot.LocalizeToMat.MatSeenNullPointer", "");
-    return RESULT_FAIL;
-  } else if (existingMatPiece == nullptr) {
-    LOG_ERROR("Robot.LocalizeToMat.ExistingMatPieceNullPointer", "");
-    return RESULT_FAIL;
-  }
-
-  /* Useful for Debug:
-     PRINT_NAMED_INFO("Robot.LocalizeToMat.MatSeenChain",
-     "%s\n", matSeen->GetPose().GetNamedPathToOrigin(true).c_str());
-
-     PRINT_NAMED_INFO("Robot.LocalizeToMat.ExistingMatChain",
-     "%s\n", existingMatPiece->GetPose().GetNamedPathToOrigin(true).c_str());
-  */
-
-  // Get computed HistRobotState at the time the mat was observed.
-  HistStateKey histStateKey;
-  HistRobotState* histStatePtr = nullptr;
-  if ((lastResult = GetStateHistory()->GetComputedStateAt(matSeen->GetLastObservedTime(), &histStatePtr, &histStateKey)) != RESULT_OK) {
-    LOG_ERROR("Robot.LocalizeToMat.CouldNotFindHistoricalPose", "Time %d", matSeen->GetLastObservedTime());
-    return lastResult;
-  }
-
-  // The computed historical pose is always stored w.r.t. the robot's world
-  // origin and parent chains are lost. Re-connect here so that GetWithRespectTo
-  // will work correctly
-  Pose3d robotPoseAtObsTime = histStatePtr->GetPose();
-  robotPoseAtObsTime.SetParent(GetWorldOrigin());
-
-  /*
-  // Get computed Robot pose at the time the mat was observed (note that this
-  // also makes the pose have the robot's current world origin as its parent
-  Pose3d robotPoseAtObsTime;
-  if(robot->GetComputedStateAt(matSeen->GetLastObservedTime(), robotPoseAtObsTime) != RESULT_OK) {
-  PRINT_NAMED_ERROR("BlockWorld.UpdateRobotPose.CouldNotComputeHistoricalPose",
-                    "Time %d\n",
-                    matSeen->GetLastObservedTime());
-  return false;
-  }
-  */
-
-  // Get the pose of the robot with respect to the observed mat piece
-  Pose3d robotPoseWrtMat;
-  if (robotPoseAtObsTime.GetWithRespectTo(matSeen->GetPose(), robotPoseWrtMat) == false) {
-    LOG_ERROR("Robot.LocalizeToMat.MatPoseOriginMisMatch", "Could not get HistRobotState w.r.t. matPose.");
-    return RESULT_FAIL;
-  }
-
-  // Make the computed robot pose use the existing mat piece as its parent
-  robotPoseWrtMat.SetParent(existingMatPiece->GetPose());
-  //robotPoseWrtMat.SetName(std::string("Robot_") + std::to_string(robot->GetID()));
-
-  // Don't snap to horizontal or discrete Z levels when we see a mat marker
-  // while on a ramp
-  if (IsOnRamp() == false)
-  {
-    // If there is any significant rotation, make sure that it is roughly
-    // around the Z axis
-    Radians rotAngle;
-    Vec3f rotAxis;
-    robotPoseWrtMat.GetRotationVector().GetAngleAndAxis(rotAngle, rotAxis);
-
-    if (std::abs(rotAngle.ToFloat()) > DEG_TO_RAD(5) && !AreUnitVectorsAligned(rotAxis, Z_AXIS_3D(), DEG_TO_RAD(15))) {
-      LOG_WARNING("Robot.LocalizeToMat.OutOfPlaneRotation",
-                  "Refusing to localize to %s because "
-                  "Robot %d's Z axis would not be well aligned with the world Z axis. "
-                  "(angle=%.1fdeg, axis=(%.3f,%.3f,%.3f)",
-                  ObjectTypeToString(existingMatPiece->GetType()), GetID(),
-                  rotAngle.getDegrees(), rotAxis.x(), rotAxis.y(), rotAxis.z());
-      return RESULT_FAIL;
-    }
-
-    // Snap to purely horizontal rotation and surface of the mat
-    if (existingMatPiece->IsPoseOn(robotPoseWrtMat, 0, 10.f)) {
-      Vec3f robotPoseWrtMat_trans = robotPoseWrtMat.GetTranslation();
-      robotPoseWrtMat_trans.z() = existingMatPiece->GetDrivingSurfaceHeight();
-      robotPoseWrtMat.SetTranslation(robotPoseWrtMat_trans);
-    }
-    robotPoseWrtMat.SetRotation( robotPoseWrtMat.GetRotationAngle<'Z'>(), Z_AXIS_3D() );
-
-  } // if robot is on ramp
-
-  if (!_localizedToFixedObject && !existingMatPiece->IsMoveable()) {
-    // If we have not yet seen a fixed mat, and this is a fixed mat, rejigger
-    // the origins so that we use it as the world origin
-    LOG_INFO("Robot.LocalizeToMat.LocalizingToFirstFixedMat",
-             "Localizing robot %d to fixed %s mat for the first time.",
-             GetID(), ObjectTypeToString(existingMatPiece->GetType()));
-
-    if ((lastResult = UpdateWorldOrigin(robotPoseWrtMat)) != RESULT_OK) {
-      LOG_ERROR("Robot.LocalizeToMat.SetPoseOriginFailure",
-                "Failed to update robot %d's pose origin when (re-)localizing it.", GetID());
-      return lastResult;
-    }
-
-    _localizedToFixedObject = true;
-  }
-  else if (IsLocalized() == false) {
-    // If the robot is not yet localized, it is about to be, so we need to
-    // update pose origins so that anything it has seen so far becomes rooted
-    // to this mat's origin (whether mat is fixed or not)
-    LOG_INFO("Robot.LocalizeToMat.LocalizingRobotFirstTime",
-             "Localizing robot %d for the first time (to %s mat).",
-             GetID(), ObjectTypeToString(existingMatPiece->GetType()));
-
-    if ((lastResult = UpdateWorldOrigin(robotPoseWrtMat)) != RESULT_OK) {
-      LOG_ERROR("Robot.LocalizeToMat.SetPoseOriginFailure",
-                "Failed to update robot %d's pose origin when (re-)localizing it.", GetID());
-      return lastResult;
-    }
-
-    if (!existingMatPiece->IsMoveable()) {
-      // If this also happens to be a fixed mat, then we have now localized
-      // to a fixed mat
-      _localizedToFixedObject = true;
-    }
-  }
-
-  /*
-  // Don't snap to horizontal or discrete Z levels when we see a mat marker
-  // while on a ramp
-  if(IsOnRamp() == false)
-  {
-  // If there is any significant rotation, make sure that it is roughly
-  // around the Z axis
-  Radians rotAngle;
-  Vec3f rotAxis;
-  robotPoseWrtMat.GetRotationVector().GetAngleAndAxis(rotAngle, rotAxis);
-  const float dotProduct = DotProduct(rotAxis, Z_AXIS_3D());
-  const float dotProductThreshold = 0.0152f; // 1.f - std::cos(DEG_TO_RAD(10)); // within 10 degrees
-  if(!NEAR(rotAngle.ToFloat(), 0, DEG_TO_RAD(10)) && !NEAR(std::abs(dotProduct), 1.f, dotProductThreshold)) {
-  PRINT_NAMED_WARNING("BlockWorld.UpdateRobotPose.RobotNotOnHorizontalPlane",
-  "Robot's Z axis is not well aligned with the world Z axis. "
-  "(angle=%.1fdeg, axis=(%.3f,%.3f,%.3f)\n",
-  rotAngle.getDegrees(), rotAxis.x(), rotAxis.y(), rotAxis.z());
-  }
-
-  // Snap to purely horizontal rotation and surface of the mat
-  if(existingMatPiece->IsPoseOn(robotPoseWrtMat, 0, 10.f)) {
-  Vec3f robotPoseWrtMat_trans = robotPoseWrtMat.GetTranslation();
-  robotPoseWrtMat_trans.z() = existingMatPiece->GetDrivingSurfaceHeight();
-  robotPoseWrtMat.SetTranslation(robotPoseWrtMat_trans);
-  }
-  robotPoseWrtMat.SetRotation( robotPoseWrtMat.GetRotationAngle<'Z'>(), Z_AXIS_3D() );
-
-  } // if robot is on ramp
-  */
-
-  // Add the new vision-based pose to the robot's history. Note that we use
-  // the pose w.r.t. the origin for storing poses in history.
-  // HistRobotState p(robot->GetPoseFrameID(),
-  //                  robotPoseWrtMat.GetWithRespectToRoot(),
-  //                  posePtr->GetComponent<FullRobotPose>().GetHeadAngle(),
-  //                  posePtr->GetComponent<FullRobotPose>().GetLiftAngle());
-  Pose3d robotPoseWrtOrigin = robotPoseWrtMat.GetWithRespectToRoot();
-
-  if ((lastResult = AddVisionOnlyStateToHistory(existingMatPiece->GetLastObservedTime(),
-                                                robotPoseWrtOrigin,
-                                                histStatePtr->GetHeadAngle_rad(),
-                                                histStatePtr->GetLiftAngle_rad())) != RESULT_OK)
-  {
-    LOG_ERROR("Robot.LocalizeToMat.FailedAddingVisionOnlyPoseToHistory", "");
-    return lastResult;
-  }
-
-
-  // Update the computed historical pose as well so that subsequent block
-  // pose updates use obsMarkers whose camera's parent pose is correct.
-  // Note again that we store the pose w.r.t. the origin in history.
-  // TODO: Should SetPose() do the flattening w.r.t. origin?
-  histStatePtr->SetPose(GetPoseFrameID(), robotPoseWrtOrigin, histStatePtr->GetHeadAngle_rad(), histStatePtr->GetLiftAngle_rad());
-
-  // Compute the new "current" pose from history which uses the
-  // past vision-based "ground truth" pose we just computed.
-  if (UpdateCurrPoseFromHistory() == false) {
-    LOG_ERROR("Robot.LocalizeToMat.FailedUpdateCurrPoseFromHistory", "");
-    return RESULT_FAIL;
-  }
-
-  // Mark the robot as now being localized to this mat
-  // NOTE: this should be _after_ calling AddVisionOnlyStateToHistory, since
-  //    that function checks whether the robot is already localized
-  lastResult = SetLocalizedTo(existingMatPiece);
-  if (RESULT_OK != lastResult) {
-    LOG_ERROR("Robot.LocalizeToMat.SetLocalizedToFail", "");
-    return lastResult;
-  }
-
-  // Overly-verbose. Use for debugging localization issues
-  /*
-    PRINT_INFO("Using %s mat %d to localize robot %d at (%.3f,%.3f,%.3f), %.1fdeg@(%.2f,%.2f,%.2f)\n",
-    existingMatPiece->GetType().GetName().c_str(),
-    existingMatPiece->GetID().GetValue(), GetID(),
-    GetPose().GetTranslation().x(),
-    GetPose().GetTranslation().y(),
-    GetPose().GetTranslation().z(),
-    GetPose().GetRotationAngle<'Z'>().getDegrees(),
-    GetPose().GetRotationAxis().x(),
-    GetPose().GetRotationAxis().y(),
-    GetPose().GetRotationAxis().z());
-  */
-
-  // Send the ground truth pose that was computed instead of the new current
-  // pose and let the robot deal with updating its current pose based on the
-  // history that it keeps.
-  SendAbsLocalizationUpdate();
-
-  return RESULT_OK;
-
-} // LocalizeToMat()
-
-Result Robot::SetOnRamp(bool t)
-{
-  ANKI_CPU_PROFILE("Robot::SetOnRamp");
-
-  if (t == _onRamp) {
-    // Nothing to do
-    return RESULT_OK;
-  }
-
-  // We are either transition onto or off of a ramp
-
-  Ramp* ramp = dynamic_cast<Ramp*>(GetBlockWorld().GetLocatedObjectByID(_rampID, ObjectFamily::Ramp));
-  if (ramp == nullptr) {
-    LOG_WARNING("Robot.SetOnRamp.NoRampWithID",
-                "Robot %d is transitioning on/off of a ramp, but Ramp object with ID=%d not found in the world",
-                _ID, _rampID.GetValue());
-    return RESULT_FAIL;
-  }
-
-  assert(_rampDirection == Ramp::ASCENDING || _rampDirection == Ramp::DESCENDING);
-
-  const bool transitioningOnto = (t == true);
-
-  if (transitioningOnto) {
-    // Record start (x,y) position coming from robot so basestation can
-    // compute actual (x,y,z) position from upcoming odometry updates
-    // coming from robot (which do not take slope of ramp into account)
-    _rampStartPosition = {GetComponent<FullRobotPose>().GetPose().GetTranslation().x(), GetComponent<FullRobotPose>().GetPose().GetTranslation().y()};
-    _rampStartHeight   = GetComponent<FullRobotPose>().GetPose().GetTranslation().z();
-
-    LOG_INFO("Robot.SetOnRamp.TransitionOntoRamp",
-             "Robot %d transitioning onto ramp %d, using start (%.1f,%.1f,%.1f)",
-             _ID, ramp->GetID().GetValue(), _rampStartPosition.x(), _rampStartPosition.y(), _rampStartHeight);
-
-  } else {
-    Result res;
-    // Just do an absolute pose update, setting the robot's position to
-    // where we "know" he should be when he finishes ascending or
-    // descending the ramp
-    switch(_rampDirection)
-    {
-      case Ramp::ASCENDING:
-        res = SetNewPose(ramp->GetPostAscentPose(WHEEL_BASE_MM).GetWithRespectToRoot());
-        break;
-
-      case Ramp::DESCENDING:
-        res = SetNewPose(ramp->GetPostDescentPose(WHEEL_BASE_MM).GetWithRespectToRoot());
-        break;
-
-      default:
-        LOG_WARNING("Robot.SetOnRamp.UnexpectedRampDirection",
-                    "When transitioning on/off ramp, expecting the ramp direction to be either "
-                    "ASCENDING or DESCENDING, not %d.", _rampDirection);
-        return RESULT_FAIL;
-    }
-
-    if (res != RESULT_OK) {
-      LOG_WARNING("Robot.SetOnRamp.SetNewPose", "Robot %d failed to set new pose", _ID);
-      return res;
-    }
-
-    _rampDirection = Ramp::UNKNOWN;
-
-    const TimeStamp_t timeStamp = GetStateHistory()->GetNewestTimeStamp();
-
-    LOG_INFO("Robot.SetOnRamp.TransitionOffRamp",
-             "Robot %d transitioning off of ramp %d, at (%.1f,%.1f,%.1f) @ %.1fdeg, timeStamp = %d",
-             _ID, ramp->GetID().GetValue(),
-             GetComponent<FullRobotPose>().GetPose().GetTranslation().x(), GetComponent<FullRobotPose>().GetPose().GetTranslation().y(), GetComponent<FullRobotPose>().GetPose().GetTranslation().z(),
-             GetComponent<FullRobotPose>().GetPose().GetRotationAngle<'Z'>().getDegrees(),
-             timeStamp);
-  } // if/else transitioning onto ramp
-
-  _onRamp = t;
-
-  return RESULT_OK;
-
-} // SetOnRamp()
-
-
 Result Robot::SetPoseOnCharger()
 {
   ANKI_CPU_PROFILE("Robot::SetPoseOnCharger");
@@ -2122,27 +1815,57 @@ Result Robot::SetPoseOnCharger()
     return lastResult;
   }
 
-  const TimeStamp_t timeStamp = GetStateHistory()->GetNewestTimeStamp();
+  const RobotTimeStamp_t timeStamp = GetStateHistory()->GetNewestTimeStamp();
 
   LOG_INFO("Robot.SetPoseOnCharger.SetPose",
            "Robot %d now on charger %d, at (%.1f,%.1f,%.1f) @ %.1fdeg, timeStamp = %d",
            _ID, charger->GetID().GetValue(),
            GetComponent<FullRobotPose>().GetPose().GetTranslation().x(), GetComponent<FullRobotPose>().GetPose().GetTranslation().y(), GetComponent<FullRobotPose>().GetPose().GetTranslation().z(),
            GetComponent<FullRobotPose>().GetPose().GetRotationAngle<'Z'>().getDegrees(),
-            timeStamp);
+            (TimeStamp_t)timeStamp);
 
   return RESULT_OK;
 
 } // SetPoseOnCharger()
 
+
+Result Robot::SetPosePostRollOffCharger()
+{
+  auto* charger = dynamic_cast<Charger*>(GetBlockWorld().GetLocatedObjectByID(_chargerID));
+  if (charger == nullptr) {
+    LOG_WARNING("Robot.SetPosePostRollOffCharger.NoChargerWithID",
+                "Charger object with ID %d not found in the world.",
+                _chargerID.GetValue());
+    return RESULT_FAIL;
+  }
+
+  // Just do an absolute pose update, setting the robot's position to
+  // where we "know" he should be when he finishes rolling off the charger.
+  Result lastResult = SetNewPose(charger->GetRobotPostRollOffPose().GetWithRespectToRoot());
+  if (lastResult != RESULT_OK) {
+    LOG_WARNING("Robot.SetPosePostRollOffCharger.SetNewPose", "Failed to set new pose");
+    return lastResult;
+  }
+
+  LOG_INFO("Robot.SetPosePostRollOffCharger.NewRobotPose",
+                   "Updated robot pose to be in front of the charger, as if it had just rolled off.");
+  return RESULT_OK;
+}
+
+
 // ============ Messaging ================
 
 Result Robot::SendMessage(const RobotInterface::EngineToRobot& msg, bool reliable, bool hot) const
 {
+  static Util::MessageProfiler msgProfiler("Robot::SendMessage");
+
   Result sendResult = GetContext()->GetRobotManager()->GetMsgHandler()->SendMessage(msg, reliable, hot);
-  if (sendResult != RESULT_OK) {
+  if (sendResult == RESULT_OK) {
+    msgProfiler.Update((int)msg.GetTag(), msg.Size());
+  } else {
     const char* msgTypeName = EngineToRobotTagToString(msg.GetTag());
-    Util::sWarningF("Robot.SendMessage", { {DDATA, msgTypeName} }, "Robot %d failed to send a message type %s", _ID, msgTypeName);
+    LOG_WARNING("Robot.SendMessage", "Robot %d failed to send a message type %s", _ID, msgTypeName);
+    msgProfiler.ReportOnFailure();
   }
   return sendResult;
 }
@@ -2166,9 +1889,9 @@ Result Robot::SendSyncRobot() const
   return result;
 }
 
-Result Robot::SendAbsLocalizationUpdate(const Pose3d&        pose,
-                                        const TimeStamp_t&   t,
-                                        const PoseFrameID_t& frameId) const
+Result Robot::SendAbsLocalizationUpdate(const Pose3d&             pose,
+                                        const RobotTimeStamp_t&   t,
+                                        const PoseFrameID_t&      frameId) const
 {
   // Send flattened poses to the robot, because when we get them back in odometry
   // updates with origin IDs, we can only hook them back up directly to the
@@ -2189,7 +1912,7 @@ Result Robot::SendAbsLocalizationUpdate(const Pose3d&        pose,
 
   return SendMessage(RobotInterface::EngineToRobot(
                        RobotInterface::AbsoluteLocalizationUpdate(
-                         t,
+                         (TimeStamp_t)t,
                          frameId,
                          originID,
                          poseWrtOrigin.GetTranslation().x(),
@@ -2201,7 +1924,7 @@ Result Robot::SendAbsLocalizationUpdate(const Pose3d&        pose,
 Result Robot::SendAbsLocalizationUpdate() const
 {
   // Look in history for the last vis pose and send it.
-  TimeStamp_t t;
+  RobotTimeStamp_t t;
   HistRobotState histState;
   if (GetStateHistory()->GetLatestVisionOnlyState(t, histState) == RESULT_FAIL) {
     LOG_WARNING("Robot.SendAbsLocUpdate.NoVizPoseFound", "");
@@ -2209,12 +1932,6 @@ Result Robot::SendAbsLocalizationUpdate() const
   }
 
   return SendAbsLocalizationUpdate(histState.GetPose().GetWithRespectToRoot(), t, histState.GetFrameId());
-}
-
-Result Robot::SendHeadAngleUpdate() const
-{
-  return SendMessage(RobotInterface::EngineToRobot(
-                       RobotInterface::HeadAngleUpdate(GetComponent<FullRobotPose>().GetHeadAngle())));
 }
 
 Result Robot::SendIMURequest(const u32 length_ms) const
@@ -2225,7 +1942,7 @@ Result Robot::SendIMURequest(const u32 length_ms) const
 
 bool Robot::HasExternalInterface() const
 {
-  if (HasComponent(RobotComponentID::CozmoContextWrapper)){
+  if (HasComponent<ContextWrapper>()){
     return GetContext()->GetExternalInterface() != nullptr;
   }
   return false;
@@ -2237,6 +1954,20 @@ IExternalInterface* Robot::GetExternalInterface() const
   return GetContext()->GetExternalInterface();
 }
 
+bool Robot::HasGatewayInterface() const
+{
+  if (HasComponent<ContextWrapper>()){
+    return GetContext()->GetGatewayInterface() != nullptr;
+  }
+  return false;
+}
+
+IGatewayInterface* Robot::GetGatewayInterface() const
+{
+  DEV_ASSERT(GetContext()->GetGatewayInterface() != nullptr, "Robot.GatewayInterface.nullptr");
+  return GetContext()->GetGatewayInterface();
+}
+
 Util::Data::DataPlatform* Robot::GetContextDataPlatform()
 {
   return GetContext()->GetDataPlatform();
@@ -2244,13 +1975,6 @@ Util::Data::DataPlatform* Robot::GetContextDataPlatform()
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Message handlers subscribed to in RobotToEngineImplMessaging::InitRobotMessageComponent
-
-template<>
-void Robot::HandleMessage(const ExternalInterface::EnableDroneMode& msg)
-{
-  _isCliffReactionDisabled = msg.isStarted;
-  SendMessage(RobotInterface::EngineToRobot(RobotInterface::EnableStopOnCliff(!msg.isStarted)));
-}
 
 template<>
 void Robot::HandleMessage(const ExternalInterface::RequestRobotSettings& msg)
@@ -2278,17 +2002,13 @@ void Robot::HandleMessage(const ExternalInterface::RequestRobotSettings& msg)
                                                visionComponent.GetMaxCameraGain());
 
   ExternalInterface::PerRobotSettings robotSettings(GetHeadSerialNumber(),
-                                                    GetBodySerialNumber(),
-                                                    _modelNumber,
-                                                    GetBodyHWVersion(),
-                                                    std::move(cameraConfig),
-                                                    GetBodyColor());
+                                                    std::move(cameraConfig));
 
   Broadcast( ExternalInterface::MessageEngineToGame(std::move(robotSettings)) );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TimeStamp_t Robot::GetLastImageTimeStamp() const {
+RobotTimeStamp_t Robot::GetLastImageTimeStamp() const {
   return GetVisionComponent().GetLastProcessedImageTimeStamp();
 }
 
@@ -2363,6 +2083,12 @@ Transform3d Robot::GetLiftTransformWrtCamera(const f32 atLiftAngle, const f32 at
   return liftPoseWrtCam.GetTransform();
 }
 
+OffTreadsState Robot::GetOffTreadsState() const
+{
+  return _offTreadsState;
+}
+
+
 Result Robot::RequestIMU(const u32 length_ms) const
 {
   return SendIMURequest(length_ms);
@@ -2370,66 +2096,10 @@ Result Robot::RequestIMU(const u32 length_ms) const
 
 // ============ Pose history ===============
 
-Result Robot::UpdateWorldOrigin(Pose3d& newPoseWrtNewOrigin)
-{
-  // Reverse the connection between origin and robot, and connect the new
-  // reversed connection
-  //ASSERT_NAMED(p.GetPose().GetParent() == _poseOrigin, "Robot.UpdateWorldOrigin.InvalidPose");
-  //Pose3d originWrtRobot = GetComponent<FullRobotPose>().GetPose().GetInverse();
-  //originWrtRobot.SetParent(&newPoseOrigin);
-
-  // TODO: Update to use PoseOriginList::Rejigger
-  // This is only called by LocalizeToMat, which is not currently used.
-  DEV_ASSERT(false, "Robot.UpdateWorldOrigin.NeedsUpdateToUseRejigger");
-
-# if 0
-  // TODO: get rid of nasty const_cast somehow
-  Pose3d* newOrigin = const_cast<Pose3d*>(newPoseWrtNewOrigin.GetParent());
-  newOrigin->SetParent(nullptr);
-
-  // TODO: We should only be doing this (modifying what _worldOrigin points to) when it is one of the
-  // placeHolder poseOrigins, not if it is a mat!
-  std::string origName(_worldOrigin->GetName());
-  *_worldOrigin = GetComponent<FullRobotPose>().GetPose().GetInverse();
-  _worldOrigin->SetParent(&newPoseWrtNewOrigin);
-
-
-  // Connect the old origin's pose to the same root the robot now has.
-  // It is no longer the robot's origin, but for any of its children,
-  // it is now in the right coordinates.
-  if (_worldOrigin->GetWithRespectTo(*newOrigin, *_worldOrigin) == false) {
-    LOG_ERROR("Robot.UpdateWorldOrigin.NewLocalizationOriginProblem",
-              "Could not get pose origin w.r.t. new origin pose.");
-    return RESULT_FAIL;
-  }
-
-  //_worldOrigin->PreComposeWith(*newOrigin);
-
-  // Preserve the old world origin's name, despite updates above
-  _worldOrigin->SetName(origName);
-
-  // Now make the robot's world origin point to the new origin
-  _worldOrigin = newOrigin;
-
-  newOrigin->SetRotation(0, Z_AXIS_3D());
-  newOrigin->SetTranslation({0,0,0});
-
-  // Now make the robot's origin point to the new origin
-  // TODO: avoid the icky const_cast here...
-  _worldOrigin = const_cast<Pose3d*>(newPoseWrtNewOrigin.GetParent());
-
-  _robotWorldOriginChangedSignal.emit(GetID());
-# endif
-
-  return RESULT_OK;
-
-} // UpdateWorldOrigin()
-
-
-Result Robot::AddVisionOnlyStateToHistory(const TimeStamp_t t,
-                                         const Pose3d& pose,
-                                         const f32 head_angle,
-                                         const f32 lift_angle)
+Result Robot::AddVisionOnlyStateToHistory(const RobotTimeStamp_t t,
+                                          const Pose3d& pose,
+                                          const f32 head_angle,
+                                          const f32 lift_angle)
 {
   // We have a new ("ground truth") key frame. Increment the pose frame!
   ++_frameId;
@@ -2442,7 +2112,7 @@ Result Robot::AddVisionOnlyStateToHistory(const TimeStamp_t t,
   return GetStateHistory()->AddVisionOnlyState(t, histState);
 }
 
-Result Robot::GetComputedStateAt(const TimeStamp_t t_request, Pose3d& pose) const
+Result Robot::GetComputedStateAt(const RobotTimeStamp_t t_request, Pose3d& pose) const
 {
   HistStateKey histStateKey;
   const HistRobotState* histStatePtr = nullptr;
@@ -2460,7 +2130,7 @@ bool Robot::UpdateCurrPoseFromHistory()
 {
   bool poseUpdated = false;
 
-  TimeStamp_t t;
+  RobotTimeStamp_t t;
   HistRobotState histState;
   if (GetStateHistory()->ComputeStateAt(GetStateHistory()->GetNewestTimeStamp(), t, histState) == RESULT_OK)
   {
@@ -2525,28 +2195,6 @@ Result Robot::SendAbortAnimation()
   return SendMessage(RobotInterface::EngineToRobot(RobotInterface::AbortAnimation()));
 }
 
-Result Robot::SendDebugString(const char* format, ...)
-{
-  int len = 0;
-  const int kMaxDebugStringLen = std::numeric_limits<u8>::max();
-  char text[kMaxDebugStringLen];
-  strcpy(text, format);
-
-  // Create formatted text
-  va_list argptr;
-  va_start(argptr, format);
-  len = vsnprintf(text, kMaxDebugStringLen, format, argptr);
-  va_end(argptr);
-
-  std::string str(text);
-
-  // Send message to game
-  Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::DebugString(str)));
-
-  return RESULT_OK;
-}
-
-
 void Robot::ComputeDriveCenterPose(const Pose3d &robotPose, Pose3d &driveCenterPose) const
 {
   MoveRobotPoseForward(robotPose, GetDriveCenterOffset(), driveCenterPose);
@@ -2595,15 +2243,7 @@ bool Robot::Broadcast(VizInterface::MessageViz&& event)
   return false;
 }
 
-void Robot::BroadcastEngineErrorCode(EngineErrorCode error)
-{
-  Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::EngineErrorCodeMessage(error)));
-  LOG_ERROR("Robot.BroadcastEngineErrorCode",
-            "Engine failing with error code %s[%hhu]",
-            EnumToString(error),
-            error);
-}
-
+// @TODO: Refactor internal components to use proto state, and remove clad state utilities/messages VIC-4998
 ExternalInterface::RobotState Robot::GetRobotState() const
 {
   ExternalInterface::RobotState msg;
@@ -2633,15 +2273,11 @@ ExternalInterface::RobotState Robot::GetRobotState() const
 
   if (GetCarryingComponent().IsCarryingObject()) {
     msg.status |= (uint32_t)RobotStatusFlag::IS_CARRYING_BLOCK;
-    msg.carryingObjectID = GetCarryingComponent().GetCarryingObject();
-    msg.carryingObjectOnTopID = GetCarryingComponent().GetCarryingObjectOnTop();
+    msg.carryingObjectID = GetCarryingComponent().GetCarryingObjectID();
   } else {
     msg.carryingObjectID = -1;
-    msg.carryingObjectOnTopID = -1;
   }
-
-  msg.gameStatus = 0;
-  if (IsLocalized() && _offTreadsState == OffTreadsState::OnTreads) { msg.gameStatus |= (uint8_t)GameStatusFlag::IsLocalized; }
+  msg.carryingObjectOnTopID = -1;
 
   msg.headTrackingObjectID = GetMoveComponent().GetTrackToObject();
 
@@ -2649,7 +2285,82 @@ ExternalInterface::RobotState Robot::GetRobotState() const
 
   msg.batteryVoltage = GetBatteryComponent().GetBatteryVolts();
 
-  msg.lastImageTimeStamp = GetVisionComponent().GetLastProcessedImageTimeStamp();
+  msg.lastImageTimeStamp = (TimeStamp_t)GetVisionComponent().GetLastProcessedImageTimeStamp();
+
+  return msg;
+}
+
+external_interface::RobotState* Robot::GenerateRobotStateProto() const
+{
+  auto* msg = new external_interface::RobotState;
+
+  auto srcPoseStruct = GetPose().ToPoseStruct3d(GetPoseOriginList());
+  auto* dstPoseStruct = new external_interface::PoseStruct(
+    srcPoseStruct.x, srcPoseStruct.y, srcPoseStruct.z,
+    srcPoseStruct.q0, srcPoseStruct.q1, srcPoseStruct.q2, srcPoseStruct.q3,
+    srcPoseStruct.originID);
+
+  msg->set_allocated_pose(dstPoseStruct);
+
+  if (srcPoseStruct.originID == PoseOriginList::UnknownOriginID)
+  {
+    LOG_WARNING("Robot.GetRobotStateProto.BadOriginID", "");
+  }
+
+  msg->set_pose_angle_rad(GetPose().GetRotationAngle<'Z'>().ToFloat());
+  msg->set_pose_pitch_rad(GetPitchAngle().ToFloat());
+
+  msg->set_left_wheel_speed_mmps(GetLeftWheelSpeed());
+  msg->set_right_wheel_speed_mmps(GetRightWheelSpeed());
+
+  msg->set_head_angle_rad(GetComponent<FullRobotPose>().GetHeadAngle());
+  msg->set_lift_height_mm(GetLiftHeight());
+
+  const auto& srcAccelStruct = GetHeadAccelData();
+  auto* dstAccelStruct = new external_interface::AccelData(srcAccelStruct.x, srcAccelStruct.y, srcAccelStruct.z);
+  msg->set_allocated_accel(dstAccelStruct);
+
+  const auto& srcGyroStruct = GetHeadGyroData();
+  auto* dstGyroStruct = new external_interface::GyroData(srcGyroStruct.x, srcGyroStruct.y, srcGyroStruct.z);
+  dstGyroStruct->set_x(srcGyroStruct.x);
+  dstGyroStruct->set_y(srcGyroStruct.y);
+  dstGyroStruct->set_z(srcGyroStruct.z);
+  msg->set_allocated_gyro(dstGyroStruct);
+
+  auto status = _lastStatusFlags;
+  if (GetAnimationComponent().IsAnimating()) {
+    status |= (uint32_t)RobotStatusFlag::IS_ANIMATING;
+  }
+
+  if (GetCarryingComponent().IsCarryingObject()) {
+    status |= (uint32_t)RobotStatusFlag::IS_CARRYING_BLOCK;
+    msg->set_carrying_object_id(GetCarryingComponent().GetCarryingObjectID());
+  } else {
+    msg->set_carrying_object_id(-1);
+  }
+  msg->set_carrying_object_on_top_id(-1);
+
+  msg->set_status(status);
+
+  msg->set_head_tracking_object_id(GetMoveComponent().GetTrackToObject());
+
+  msg->set_localized_to_object_id(GetLocalizedTo());
+
+  msg->set_last_image_time_stamp((TimeStamp_t)GetVisionComponent().GetLastProcessedImageTimeStamp());
+
+  const auto& srcProxData = GetProxSensorComponent().GetLatestProxData();
+  auto* dstProxData = new external_interface::ProxData(
+    srcProxData.distance_mm,
+    srcProxData.signalQuality,
+    srcProxData.unobstructed,
+    srcProxData.foundObject,
+    srcProxData.isLiftInFOV);
+  msg->set_allocated_prox_data(dstProxData);
+
+  auto* dstTouchData = new external_interface::TouchData(
+    GetTouchSensorComponent().GetLatestRawTouchValue(),
+    GetTouchSensorComponent().GetIsPressed());
+  msg->set_allocated_touch_data(dstTouchData);
 
   return msg;
 }
@@ -2659,27 +2370,34 @@ RobotState Robot::GetDefaultRobotState()
   const auto kDefaultStatus = (Util::EnumToUnderlying(RobotStatusFlag::HEAD_IN_POS) |
                                Util::EnumToUnderlying(RobotStatusFlag::LIFT_IN_POS));
 
-  const RobotPose kDefaultPose(0.f, 0.f, 0.f, 0.f, 0.f);
+  const RobotPose kDefaultPose(0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 
   std::array<uint16_t, Util::EnumToUnderlying(CliffSensor::CLIFF_COUNT)> defaultCliffRawVals;
   defaultCliffRawVals.fill(std::numeric_limits<uint16_t>::max());
 
+  std::array<IMUDataFrame, IMUConstants::IMU_FRAMES_PER_ROBOT_STATE> defaultImuDataFrames;
+  defaultImuDataFrames.fill(IMUDataFrame{0, GyroData{0, 0, 0}});
+
   const RobotState state(1, //uint32_t timestamp, (Robot does not report at t=0
                          0, //uint32_t pose_frame_id,
                          1, //uint32_t pose_origin_id,
-                         kDefaultPose, //const Anki::Cozmo::RobotPose &pose,
+                         kDefaultPose, //const Anki::Vector::RobotPose &pose,
                          0.f, //float lwheel_speed_mmps,
                          0.f, //float rwheel_speed_mmps,
                          0.f, //float headAngle
                          0.f, //float liftAngle,
-                         AccelData(), //const Anki::Cozmo::AccelData &accel,
-                         GyroData(), //const Anki::Cozmo::GyroData &gyro,
+                         AccelData(), //const Anki::Vector::AccelData &accel,
+                         GyroData(), //const Anki::Vector::GyroData &gyro,
+                         std::move(defaultImuDataFrames), // std::array<Anki::Vector::IMUDataFrame, 6> imuData,
                          0.f, // float batteryVoltage
                          0.f, // float chargerVoltage
                          kDefaultStatus, //uint32_t status,
                          std::move(defaultCliffRawVals), //std::array<uint16_t, 4> cliffDataRaw,
                          ProxSensorDataRaw(), //const Anki::Cozmo::ProxSensorDataRaw &proxData,
-                         0, // touch intensity value when not touched (from capacitive touch sensor)
+                         0, // touch intensity value
+                         0, // uint8_t cliffDetectedFlags,
+                         0, // uint8_t whiteDetectedFlags
+                         40, // battery temp C
                          -1); //int8_t currPathSegment
 
   return state;
@@ -2687,7 +2405,7 @@ RobotState Robot::GetDefaultRobotState()
 
 RobotInterface::MessageHandler* Robot::GetRobotMessageHandler() const
 {
-  if ((!_components->GetComponent(RobotComponentID::CozmoContextWrapper).IsValueValid()) ||
+  if ((!_components->GetComponent<ContextWrapper>().IsComponentValid()) ||
       (GetContext()->GetRobotManager() == nullptr))
   {
     DEV_ASSERT(false, "Robot.GetRobotMessageHandler.nullptr");
@@ -2783,18 +2501,40 @@ Result Robot::ComputeHeadAngleToSeePose(const Pose3d& pose, Radians& headAngle, 
   return RESULT_OK;
 }
 
-Result Robot::ComputeTurnTowardsImagePointAngles(const Point2f& imgPoint, const TimeStamp_t timestamp,
-                                                 Radians& absPanAngle, Radians& absTiltAngle) const
+Result Robot::ComputeTurnTowardsImagePointAngles(const Point2f& imgPoint, const RobotTimeStamp_t timestamp,
+                                                 Radians& absPanAngle, Radians& absTiltAngle,
+                                                 const bool isPointNormalized) const
 {
+  if(!GetVisionComponent().GetCamera().IsCalibrated())
+  {
+    LOG_ERROR("Robot.ComputeTurnTowardsImagePointAngles.MissingCalibration", "");
+    return RESULT_FAIL;
+  }
+
   auto calib = GetVisionComponent().GetCamera().GetCalibration();
-  const Point2f pt = imgPoint - calib->GetCenter();
+
+  Point2f pt( imgPoint );
+  if(isPointNormalized)
+  {
+    if(!Util::InRange(pt.x(), 0.f, 1.f) || !Util::InRange(pt.y(), 0.f, 1.f))
+    {
+      LOG_ERROR("Robot.ComputeTurnTowardsImagePointAngles.PointNotNormalized",
+                "%s not on interval [0,1]", pt.ToString().c_str());
+      return RESULT_FAIL;
+    }
+
+    // Scale normalized point to "calibration" resolution
+    pt.x() *= (f32)calib->GetNcols();
+    pt.y() *= (f32)calib->GetNrows();
+  }
+  pt -= calib->GetCenter();
 
   HistRobotState histState;
-  TimeStamp_t t;
+  RobotTimeStamp_t t;
   Result result = GetStateHistory()->ComputeStateAt(timestamp, t, histState);
   if (RESULT_OK != result)
   {
-    LOG_WARNING("Robot.ComputeTurnTowardsImagePointAngles.ComputeHistPoseFailed", "t=%u", timestamp);
+    LOG_WARNING("Robot.ComputeTurnTowardsImagePointAngles.ComputeHistPoseFailed", "t=%u", (TimeStamp_t)timestamp);
     absPanAngle = GetPose().GetRotation().GetAngleAroundZaxis();
     absTiltAngle = GetComponent<FullRobotPose>().GetHeadAngle();
     return result;
@@ -2806,29 +2546,15 @@ Result Robot::ComputeTurnTowardsImagePointAngles(const Point2f& imgPoint, const 
   return RESULT_OK;
 }
 
-void Robot::SetBodyColor(const s32 color)
-{
-  const BodyColor bodyColor = static_cast<BodyColor>(color);
-  if (bodyColor <= BodyColor::UNKNOWN ||
-      bodyColor >= BodyColor::COUNT ||
-      bodyColor == BodyColor::RESERVED)
-  {
-    LOG_ERROR("Robot.SetBodyColor.InvalidColor", "Robot has invalid body color %d", color);
-    return;
-  }
-
-  _bodyColor = bodyColor;
-}
-
 void Robot::DevReplaceAIComponent(AIComponent* aiComponent, bool shouldManage)
 {
-  IDependencyManagedComponent<Anki::Cozmo::RobotComponentID>* explicitUpcast = aiComponent;
+  IDependencyManagedComponent<Anki::Vector::RobotComponentID>* explicitUpcast = aiComponent;
   _components->DevReplaceDependentComponent(RobotComponentID::AIComponent,
                                             explicitUpcast,
                                             shouldManage);
 }
 
-Result Robot::UpdateStartupChecks()
+bool Robot::UpdateCameraStartupChecks(Result& res)
 {
   enum State {
     FAILED = -1,
@@ -2846,20 +2572,18 @@ Result Robot::UpdateStartupChecks()
     if(!GetVisionComponent().HasStartedCapturingImages())
     {
       // Try to get a frame
-      u8* buf = nullptr;
-      u32 id = 0;
-      TimeStamp_t t = 0;
-      if(CameraService::getInstance()->CameraGetFrame(buf, id, t))
+      Vision::ImageBuffer buffer;
+      if(CameraService::getInstance()->CameraGetFrame(0, buffer))
       {
-        CameraService::getInstance()->CameraReleaseFrame(id);
+        CameraService::getInstance()->CameraReleaseFrame(buffer.GetImageId());
       }
     }
-    
+
     // After 4 seconds, check if we have gotten a frame
     if(currentTime_sec - firstUpdateTime_sec > 4.f)
     {
       using namespace RobotInterface;
-    
+
       // If we haven't gotten a frame then display an error code
       if(!CameraService::getInstance()->HaveGottenFrame())
       {
@@ -2873,10 +2597,231 @@ Result Robot::UpdateStartupChecks()
       }
     }
   }
-  
-  return (state == State::FAILED ? RESULT_FAIL : RESULT_OK);
+
+  res = (state == State::FAILED ? RESULT_FAIL : RESULT_OK);
+  return (state != State::WAITING);
 }
 
+bool Robot::UpdateToFStartupChecks(Result& res)
+{
+  static bool isDone = false;
 
-} // namespace Cozmo
+  enum class State
+  {
+   WaitingForCallback,
+   Setup,
+   StartRanging,
+   EndRanging,
+   Success,
+   Failure,
+  };
+  static State state = State::Setup;
+
+  auto* tof = ToFSensor::getInstance();
+  if(tof == nullptr)
+  {
+    res = RESULT_OK;
+    return true;
+  }
+
+#define HANDLE_RESULT(res, nextState) {                                 \
+    if(res != ToFSensor::CommandResult::Success) {                      \
+      PRINT_NAMED_ERROR("Robot.UpdateToFStartupChecks.Fail", "State: %u", state); \
+      FaultCode::DisplayFaultCode(FaultCode::TOF_FAILURE);              \
+      state = State::Failure;                                           \
+    } else {                                                            \
+      state = nextState;                                                \
+    }                                                                   \
+  }
+
+  const float currentTime_sec = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+  static float startTime_sec = currentTime_sec;
+
+  // If the ToF check has been running for more than 10 seconds assume failure
+  // This will handle failing should we not get any valid ROIs or for some reason
+  // one of the command callbacks is not called (never seen it happen but who knows...)
+  if((state != State::Failure && state != State::Success) &&
+     currentTime_sec - startTime_sec > 10.f)
+  {
+    HANDLE_RESULT(ToFSensor::CommandResult::Failure, State::Failure);
+  }
+
+  switch(state)
+  {
+    case State::Setup:
+      {
+        state = State::WaitingForCallback;
+        tof->SetupSensors([](ToFSensor::CommandResult res)
+                          {
+                            HANDLE_RESULT(res, State::StartRanging);
+                          });
+      }
+      break;
+
+    case State::StartRanging:
+      {
+        state = State::WaitingForCallback;
+        tof->StartRanging([](ToFSensor::CommandResult res)
+                          {
+                            HANDLE_RESULT(res, State::EndRanging);
+                          });
+      }
+      break;
+
+    case State::EndRanging:
+      {
+        bool isDataNew = false;
+        RangeDataRaw data = tof->GetData(isDataNew);
+        if(isDataNew)
+        {
+          bool atLeastOneValidRoi = false;
+          for(const auto& roiReading : data.data)
+          {
+            if(tof->IsValidRoiStatus(roiReading.roiStatus))
+            {
+              atLeastOneValidRoi = true;
+            }
+          }
+
+          if(atLeastOneValidRoi)
+          {
+            state = State::WaitingForCallback;
+            tof->StopRanging([](ToFSensor::CommandResult res)
+                             {
+                               PRINT_NAMED_INFO("Robot.UpdateToFStartupChecks.Success","");
+                               HANDLE_RESULT(res, State::Success);
+                             });
+          }
+        }
+      }
+      break;
+
+    case State::Success:
+      {
+        isDone = true;
+      }
+      // Intentional fallthrough
+    case State::WaitingForCallback:
+      {
+        res =  RESULT_OK;
+      }
+      break;
+
+    case State::Failure:
+      {
+        isDone = true;
+        res =  RESULT_FAIL;
+      }
+      break;
+  }
+
+  return isDone;
+
+  #undef HANDLE_RESULT
+}
+
+bool Robot::UpdateGyroCalibChecks(Result& res)
+{
+  // Wait this much time after sending sync to robot before checking if we
+  // should be displaying the low battery image to encourage user to put the robot down.
+  // Note that by the time that the sync has been sent, the face has already
+  // been blank for around 7 seconds.
+  const float kTimeAfterSyncSent_sec = 2.f;
+
+  const float currentTime_sec = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+
+  static bool displayedImage = false;
+
+  if(!displayedImage &&
+     _syncRobotSentTime_sec > 0 &&
+     currentTime_sec - _syncRobotSentTime_sec > kTimeAfterSyncSent_sec &&
+     !_syncRobotAcked)
+  {
+    // Manually init AnimationComponent
+    // Normally it would init when we receive syncTime from robot process
+    // but we haven't received syncTime yet likely because the gyro hasn't calibrated
+    GetAnimationComponent().Init();
+
+    static const std::string kGyroNotCalibratedImg = "config/sprites/independentSprites/battery_low.png";
+    const std::string imgPath = GetContextDataPlatform()->pathToResource(Anki::Util::Data::Scope::Resources,
+                                                                         kGyroNotCalibratedImg);
+    Vision::ImageRGB img;
+    img.Load(imgPath);
+    // Display the image indefinitely or atleast until something else is displayed
+    GetAnimationComponent().DisplayFaceImage(img, 0, true);
+    // Move the head to look up to show the image clearly
+    GetMoveComponent().MoveHeadToAngle(MAX_HEAD_ANGLE,
+                                       MAX_HEAD_SPEED_RAD_PER_S,
+                                       MAX_HEAD_ACCEL_RAD_PER_S2,
+                                       1.f);
+    displayedImage = true;
+
+  }
+
+  res = RESULT_OK;
+  return true;
+}
+
+bool Robot::UpdateStartupChecks(Result& res)
+{
+#define RUN_CHECK(func)        \
+  {                            \
+    Result result = RESULT_OK; \
+    checkDone &= func(result); \
+    if(checkDone) {            \
+      res = result;            \
+      if(res != RESULT_OK) {   \
+        return res;            \
+      }                        \
+    }                          \
+  }
+
+  bool checkDone = true;
+  res = RESULT_OK;
+  RUN_CHECK(UpdateGyroCalibChecks);
+  RUN_CHECK(UpdateCameraStartupChecks);
+  RUN_CHECK(UpdateToFStartupChecks);
+  return checkDone;
+
+#undef RUN_CHECK
+}
+
+bool Robot::SetLocale(const std::string & locale)
+{
+  if (!Anki::Util::Locale::IsValidLocaleString(locale))
+  {
+    LOG_ERROR("Robot.SetLocale", "Invalid locale: %s", locale.c_str());
+    return false;
+  }
+
+  DEV_ASSERT(_context != nullptr, "Robot.SetLocale.InvalidContext");
+  _context->SetLocale(locale);
+
+  //
+  // Attempt to load localized strings for given locale.
+  // If that fails, fall back to default locale.
+  //
+  auto & localeComponent = GetLocaleComponent();
+  if (!localeComponent.SetLocale(locale)) {
+    LOG_WARNING("Robot.SetLocale", "Unable to set locale %s", locale.c_str());
+    localeComponent.SetLocale(Anki::Util::Locale::kDefaultLocale.ToString());
+  }
+
+  // Notify animation process
+  SendRobotMessage<RobotInterface::SetLocale>(locale);
+
+  return true;
+}
+
+void Robot::Shutdown(ShutdownReason reason)
+{
+  if (_toldToShutdown) {
+    LOG_WARNING("Robot.Shutdown.AlreadyShuttingDown", "Ignoring new reason %s", EnumToString(reason));
+    return;
+  }
+  _toldToShutdown = true;
+  _shutdownReason = reason;
+}
+
+} // namespace Vector
 } // namespace Anki

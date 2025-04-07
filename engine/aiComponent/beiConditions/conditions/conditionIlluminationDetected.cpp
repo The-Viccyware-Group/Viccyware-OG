@@ -4,23 +4,36 @@
  * Author: Humphrey Hu
  * Created: June 01 2018
  *
- * Description: Condition that checks the observed scene illumination for a particular state
+ * Description: Condition that checks the observed scene illumination entering and/or leaving from
+ *              specified states
  * 
  * Copyright: Anki, Inc. 2018
  * 
  **/
 
+#include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
+#include "clad/externalInterface/messageEngineToGame.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/behaviorExternalInterface.h"
 #include "engine/aiComponent/beiConditions/beiConditionMessageHelper.h"
-#include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
 #include "util/logging/logging.h"
 #include "util/math/math.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+
+namespace {
 
 const char* kTriggerStatesKey = "triggerStates";
+const char* kPreTriggerStatesKey = "preTriggerStates";
+const char* kPostTriggerStatesKey = "postTriggerStates";
+const char* kPreConfirmationTimeKey = "preConfirmationTime";
+const char* kPostConfirmationTimeKey = "postConfirmationTime";
+const char* kPreConfirmationMinNumKey = "preConfirmationMinNum";
+const char* kPostConfirmationMinNumKey = "postConfirmationMinNum";
+
+} // namespace 
+
 
 ConditionIlluminationDetected::ConditionIlluminationDetected( const Json::Value& config )
 : IBEICondition( config )
@@ -60,7 +73,6 @@ ConditionIlluminationDetected::ConditionIlluminationDetected( const Json::Value&
   _params.confirmationMinNum = JsonTools::ParseUInt32( config, "confirmationMinNum",
                                                        "ConditionIlluminationDetected.Constructor" );
   _params.ignoreUnknown = JsonTools::ParseBool( config, "ignoreUnknown",
-                                                "ConditionalIlluminationDetected.Constructor" );
 }
 
 ConditionIlluminationDetected::~ConditionIlluminationDetected() {}
@@ -74,7 +86,6 @@ void ConditionIlluminationDetected::InitInternal( BehaviorExternalInterface& bei
 {
   _messageHelper.reset( new BEIConditionMessageHelper( this, bei ) );
   _messageHelper->SubscribeToTags( {EngineToGameTag::RobotObservedIllumination} );
-
   _variables.matchState = MatchState::WaitingForStart;
   _variables.matchStartTime = 0;
   _variables.matchedEvents = 0;
@@ -189,5 +200,33 @@ void ConditionIlluminationDetected::Reset()
   _variables.matchedEvents = 0;
 }
 
-} // end namespace Cozmo
+bool ConditionIlluminationDetected::ParseTriggerStates( const Json::Value& config,
+                                                        const char* key,
+                                                        std::vector<IlluminationState>& triggers )
+{
+  triggers.clear();
+
+  // NOTE If no triggers specified, any state will work
+  std::vector<std::string> stateStrs;
+  if( !JsonTools::GetVectorOptional( config, key, stateStrs ) ) {
+    return false;
+  }
+
+  IlluminationState state;
+  for( auto iter = stateStrs.begin(); iter != stateStrs.end(); ++iter )
+  {
+    if( !EnumFromString( *iter, state ) )
+    {
+      PRINT_NAMED_ERROR( "ConditionIlluminationDetected.ParseTriggerStates.InvalidState",
+                        "Target state %s is not a valid IlluminationState", iter->c_str() );
+    }
+    else
+    {
+      triggers.push_back( state );
+    }
+  }
+  return !triggers.empty();
+}
+
+} // end namespace Vector
 } // end namespace Anki

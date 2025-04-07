@@ -22,10 +22,10 @@
 #include <sstream>
 #include <thread>
 
-#define LOG_CHANNEL    "MicData"
+#define LOG_CHANNEL "Microphones"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace MicData {
 
 namespace {
@@ -40,8 +40,13 @@ void MicDataInfo::CollectRawAudio(const AudioUtil::AudioSample* audioChunk, size
   if (_typesToCollect.IsBitFlagSet(MicDataType::Raw))
   {
     AudioUtil::AudioChunk newChunk;
-    newChunk.resize(kRawAudioChunkSize);
-    std::copy(audioChunk, audioChunk + size, newChunk.begin());
+    newChunk.resize(kIncomingAudioChunkSize);
+    // Re-interlace the audio data, for the sake of the 4-channel .wav that'll be written out.
+    for (size_t sample=0; sample<kSamplesPerBlockPerChannel; ++sample) {
+      for (size_t channel=0; channel<kNumInputChannels; ++channel) {
+        newChunk[kNumInputChannels*sample + channel] = audioChunk[channel*kSamplesPerBlockPerChannel + sample];
+      }
+    }
     _rawAudioData.push_back(std::move(newChunk));
   }
 }
@@ -52,8 +57,23 @@ void MicDataInfo::CollectProcessedAudio(const AudioUtil::AudioSample* audioChunk
   if (_typesToCollect.IsBitFlagSet(MicDataType::Processed))
   {
     AudioUtil::AudioChunk newChunk;
-    newChunk.resize(kSamplesPerBlock);
-    std::copy(audioChunk, audioChunk + size, newChunk.begin());
+    newChunk.resize(kSamplesPerBlockPerChannel);
+    
+    // Apply fade in
+    if (_fadeInSamples > 0) {
+      size_t sampleIdx = 0;
+      for (; (sampleIdx < size) && (_fadeInScalar < 1.0f); ++sampleIdx) {
+        newChunk[sampleIdx] = static_cast<AudioUtil::AudioSample>(audioChunk[sampleIdx] * _fadeInScalar);
+        _fadeInScalar += _fadeInStepSize;
+        --_fadeInSamples;
+      }
+      // Copy remaining samples
+      std::copy(audioChunk + sampleIdx, audioChunk + size, newChunk.begin() + sampleIdx);
+    }
+    else {
+      // Copy entire chunk
+      std::copy(audioChunk, audioChunk + size, newChunk.begin());
+    }
     _processedAudioData.push_back(std::move(newChunk));
   }
 }
@@ -74,7 +94,7 @@ AudioUtil::AudioChunkList MicDataInfo::GetProcessedAudio(size_t beginIndex)
     const auto& audioChunk = *chunkIter;
     ++chunkIter;
     AudioUtil::AudioChunk newChunk;
-    newChunk.resize(kSamplesPerBlock);
+    newChunk.resize(kSamplesPerBlockPerChannel);
     std::copy(audioChunk.begin(), audioChunk.end(), newChunk.begin());
     copiedData.push_back(std::move(newChunk));
   }
@@ -85,6 +105,30 @@ void MicDataInfo::SetTimeToRecord(uint32_t timeToRecord)
 {
   std::lock_guard<std::mutex> lock(_dataMutex);
   _timeToRecord_ms = timeToRecord;
+}
+
+void MicDataInfo::SetAudioFadeInTime(uint32_t fadeInTime_ms)
+{
+  if (!_processedAudioData.empty()) {
+    LOG_WARNING("MicDataInfo.SetAudioFadeInTime",
+                "Attempt to set fade in duration after collecting processed audio");
+    return;
+  }
+  
+  std::lock_guard<std::mutex> lock(_dataMutex);
+  if (fadeInTime_ms > 0) {
+    // Calculate fade in vars
+    constexpr uint32_t samplesPerMilliSecond = AudioUtil::kSampleRate_hz / 1000;
+    _fadeInSamples = samplesPerMilliSecond * fadeInTime_ms;
+    _fadeInStepSize = 1.0f / static_cast<float>(_fadeInSamples);
+    _fadeInScalar = 0.0f;
+  }
+  else {
+    // Clear Fade in vars
+    _fadeInSamples = 0;
+    _fadeInStepSize = 0.0f;
+    _fadeInScalar = 0.0f;
+  }
 }
 
 void MicDataInfo::UpdateForNextChunk()
@@ -146,7 +190,7 @@ void MicDataInfo::SaveCollectedAudio(const std::string& dataDirectory,
   // Check against a min recording length. If we're not recording raw and our recorded processed time
   // is too short, we're going to abandon saving it.
   if (_rawAudioData.empty() && 
-      (_processedAudioData.size() * kTimePerSEBlock_ms) < kMinAudioSizeToSave_ms)
+      (_processedAudioData.size() * kTimePerChunk_ms) < kMinAudioSizeToSave_ms)
   {
     return;
   }
@@ -157,10 +201,16 @@ void MicDataInfo::SaveCollectedAudio(const std::string& dataDirectory,
   }
   
   const std::string& newDirPath = Util::FileUtils::FullFilePath({ dataDirectory, nameToUse });
-  Util::FileUtils::CreateDirectory(newDirPath);
+  bool createdNewDir = false;
   const std::string& writeLocationBase = Util::FileUtils::FullFilePath({ newDirPath, nameToUse });
   if (!_rawAudioData.empty())
   {
+    if (_typesToSave.IsBitFlagSet(MicDataType::Raw))
+    {
+      Util::FileUtils::CreateDirectory(newDirPath);
+      createdNewDir = true;
+    }
+
     if (_typesToSave.IsBitFlagSet(MicDataType::Raw) || _doFFTProcess)
     {
       std::string dest = (writeLocationBase + kRawFileExtension);
@@ -204,6 +254,11 @@ void MicDataInfo::SaveCollectedAudio(const std::string& dataDirectory,
   {
     if (_typesToSave.IsBitFlagSet(MicDataType::Processed))
     {
+      if (!createdNewDir)
+      {
+        Util::FileUtils::CreateDirectory(newDirPath);
+        createdNewDir = true;
+      }
       std::string dest = (writeLocationBase + kWavFileExtension);
       if (_audioSaveCallback != nullptr)
       {
@@ -348,5 +403,5 @@ void MicDataInfo::DisableDataCollect(MicDataType type)
 }
 
 } // namespace MicData
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

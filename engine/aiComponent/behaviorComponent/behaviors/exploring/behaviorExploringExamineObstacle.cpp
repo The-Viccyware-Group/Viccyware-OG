@@ -15,27 +15,38 @@
 
 #include "clad/types/animationTrigger.h"
 #include "coretech/common/engine/math/fastPolygon2d.h"
-#include "coretech/common/engine/math/polygon_impl.h"
+#include "coretech/common/engine/math/polygon.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/actions/animActions.h"
 #include "engine/actions/basicActions.h"
 #include "engine/actions/compoundActions.h"
+#include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
+#include "engine/aiComponent/salientPointsComponent.h"
 #include "engine/audio/engineRobotAudioClient.h"
 #include "engine/components/movementComponent.h"
+#include "engine/components/sensors/proxSensorComponent.h"
 #include "engine/components/visionComponent.h"
+#include "engine/cozmoContext.h"
+#include "engine/drivingAnimationHandler.h"
 #include "engine/navMap/mapComponent.h"
 #include "engine/navMap/memoryMap/data/memoryMapData_ProxObstacle.h"
 #include "engine/navMap/memoryMap/memoryMapTypes.h"
+#include "engine/vision/imageSaver.h"
+#include "util/console/consoleInterface.h"
 #include "util/fileUtils/fileUtils.h"
 #include "util/logging/logging.h"
 #include "util/random/randomGenerator.h"
 
-// todo: remove when lights are removed
-#include "engine/components/bodyLightComponent.h"
+// todo: remove
+#include "clad/types/featureGateTypes.h"
+#include "engine/cozmoContext.h"
+#include "engine/utils/cozmoFeatureGate.h"
+
+#define LOG_CHANNEL "Behaviors"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
   // todo: turn these into params
@@ -46,58 +57,32 @@ namespace {
   const float kDistanceForStartApproach_mm = 80.0f;
   const float kDistanceForStopApproach_mm = 50.0f;
   
-  const float kMaxTurnAngle_deg = 135.0f; // 90 + 45 looks good for coming at a wall at an acute angle
+  // For bumping an object. The robot is usually around 5-8cm from the object at this point, but may
+  // not be facing it perfectly, so only bump if the object seems to have an appropriate width. The
+  // delegated behavior decides if it is close enough
+  CONSOLE_VAR_RANGED( float, kMinObjectWidthToBump_rad, "BehaviorExploring", DEG_TO_RAD(10.0f), 0.0f, M_PI_F);
+  CONSOLE_VAR_RANGED( float, kMaxObjectWidthToBump_rad, "BehaviorExploring", DEG_TO_RAD(80.0f), 0.0f, M_TWO_PI_F);
+  const float kProbBumpNominalObject = 0.8f;
+
+  // BN: disabled because it looks much nicer when he bumps right after the scan, so instead I've got it set
+  // to reference _after_ the bump from within the bump behavior
+  CONSOLE_VAR_RANGED( float, kProbReferenceBeforeBump, "BehaviorExploring", 0.0f, 0.0f, 1.0f);
+    
+  const float kProbScan = 0.7f;
+  
+  const float kMinDistForFarReaction_mm = 80.0f;
   
   // [1-100]:JPEG quality, -1: use PNG
   int8_t kImageQuality = 100;
   const bool kTakePhoto = false;
   
   float kReturnToCenterSpeed_deg_s = 300.0f;
-  float kTurnSpeed_deg_s = 45.0f;
-  
-  const unsigned int kNumFloodFillSteps = 10;
-  
   
   // if discovered an obstacle within this long, and an unrelated path brings you nearby turn toward it
-  int kTimeForTurnToPassingObstacles_ms = 5000;
-  
-  const bool kUseDebugLights = false;
-  
-  // backpack lights so I know when this behavior is active
-  static const BackpackLights kLightsOff =
-  {
-    .onColors               = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
-    .offColors              = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
-    .onPeriod_ms            = {{100,0,0}},
-    .offPeriod_ms           = {{100,0,0}},
-    .transitionOnPeriod_ms  = {{0,0,0}},
-    .transitionOffPeriod_ms = {{0,0,0}},
-    .offset                 = {{0,0,0}}
-  };
-  
-  static const BackpackLights kLightsActiveFront =
-  {
-    .onColors               = {{NamedColors::RED,NamedColors::BLACK,NamedColors::BLACK}},
-    .offColors              = {{NamedColors::RED,NamedColors::BLACK,NamedColors::BLACK}},
-    .onPeriod_ms            = {{100,0,0}},
-    .offPeriod_ms           = {{100,0,0}},
-    .transitionOnPeriod_ms  = {{0,0,0}},
-    .transitionOffPeriod_ms = {{0,0,0}},
-    .offset                 = {{0,0,0}}
-  };
-  static const BackpackLights kLightsActiveSide =
-  {
-    .onColors               = {{NamedColors::BLUE,NamedColors::BLACK,NamedColors::BLACK}},
-    .offColors              = {{NamedColors::BLUE,NamedColors::BLACK,NamedColors::BLACK}},
-    .onPeriod_ms            = {{100,0,0}},
-    .offPeriod_ms           = {{100,0,0}},
-    .transitionOnPeriod_ms  = {{0,0,0}},
-    .transitionOffPeriod_ms = {{0,0,0}},
-    .offset                 = {{0,0,0}}
-  };
+  int kTimeForTurnToPassingObstacles_ms = 15000;
 }
   
-#define SET_STATE(s) do{ _dVars.state = State::s; PRINT_NAMED_INFO("BehaviorExploringExamineObstacle.State", "State = %s", #s); } while(0);
+#define SET_STATE(s) do{ _dVars.state = State::s; SetDebugStateName(#s); } while(0);
   
 using MemoryMapDataConstPtr = MemoryMapTypes::MemoryMapDataConstPtr;
 using EContentTypePackedType = MemoryMapTypes::EContentTypePackedType;
@@ -116,6 +101,8 @@ BehaviorExploringExamineObstacle::DynamicVariables::DynamicVariables()
   persistent.seesSideObstacle = false;
   firstTurnDirectionIsLeft = false;
   initialPoseAngle_rad = 0.0f;
+  totalObjectAngle_rad = 0.0f;
+  playingScanSound = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -147,13 +134,20 @@ void BehaviorExploringExamineObstacle::GetBehaviorOperationModifiers( BehaviorOp
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void BehaviorExploringExamineObstacle::GetBehaviorJsonKeys( std::set<const char*>& expectedKeys ) const
+void BehaviorExploringExamineObstacle::InitBehavior()
 {
-//  const char* list[] = {
-//    // TODO: insert any possible root-level json keys that this class is expecting.
-//    // TODO: replace this method with a simple {} in the header if this class doesn't use the ctor's "config" argument.
-//  };
-  //expectedKeys.insert( std::begin(list), std::end(list) );
+  const auto& BC = GetBEI().GetBehaviorContainer();
+  _iConfig.bumpBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ExploringBumpObject) );
+  _iConfig.referenceHumanBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ExploringReferenceHuman) );
+  _iConfig.handReactionBehavior = BC.FindBehaviorByID( BEHAVIOR_ID(ReactToHand) );
+}
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploringExamineObstacle::GetAllDelegates(std::set<IBehavior*>& delegates) const
+{
+  delegates.insert( _iConfig.bumpBehavior.get() );
+  delegates.insert( _iConfig.referenceHumanBehavior.get() );
+  delegates.insert( _iConfig.handReactionBehavior.get() );
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -169,16 +163,15 @@ void BehaviorExploringExamineObstacle::OnBehaviorActivated()
   if( _dVars.persistent.seesSideObstacle ) {
     DEV_ASSERT( !_dVars.persistent.seesFrontObstacle, "Should not be facing an obstacle now" );
     
-    if( kUseDebugLights ) {
-      GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsActiveSide);
-    }
-    
     // turn first
     Pose2d pose(0.0f, _dVars.persistent.sideObstaclePosition );
     Pose3d pose3{ pose };
     pose3.SetParent( GetBEI().GetRobotInfo().GetWorldOrigin() );
     pose3.GetWithRespectTo( GetBEI().GetRobotInfo().GetPose(), pose3 );
-    DelegateIfInControl(new TurnTowardsPoseAction( pose3 ), [this](ActionResult res){
+    auto* turnAction = new TurnTowardsPoseAction( pose3 );
+    auto* huhAction = new TriggerLiftSafeAnimationAction{ AnimationTrigger::ExploringHuhFar };
+    auto* turnAndHuh = new CompoundActionSequential({ turnAction, huhAction });
+    DelegateIfInControl( turnAndHuh, [this](ActionResult res){
       TransitionToNextAction();
     });
     
@@ -189,13 +182,14 @@ void BehaviorExploringExamineObstacle::OnBehaviorActivated()
                            "Should be facing an obstacle now" );
     }
     
-    if( kUseDebugLights ) {
-      GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsActiveFront);
-    }
+    const auto& proxSensor = GetBEI().GetComponentWrapper(BEIComponentID::ProxSensor).GetComponent<ProxSensorComponent>();
+    const auto& proxData = proxSensor.GetLatestProxData();
     
-    // todo: should probably back up if this behavior activates and it's too close. for now, the reaction
-    // animation moves it back a little bit
-    DelegateIfInControl(new TriggerAnimationAction(AnimationTrigger::ReactToObstacle), [this](ActionResult res){
+    // ignore if we actually found an object. this is only used to select an animation so isnt vital
+    const bool obstacleIsFar = (proxData.distance_mm >= kMinDistForFarReaction_mm);
+    const AnimationTrigger huhAnim = obstacleIsFar ? AnimationTrigger::ExploringHuhFar : AnimationTrigger::ExploringHuhClose;
+    auto* huhAction = new TriggerLiftSafeAnimationAction{ huhAnim };
+    DelegateIfInControl(huhAction, [this](ActionResult res){
       TransitionToNextAction();
     });
   }
@@ -205,7 +199,17 @@ void BehaviorExploringExamineObstacle::OnBehaviorActivated()
   
 }
   
-//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorExploringExamineObstacle::OnBehaviorDeactivated()
+{
+  if( _dVars.playingScanSound ) {
+    // behavior was likely interrupted. make sure the scan sound stops
+    const auto event = AudioMetaData::GameEvent::GenericEvent::Stop__Robot_Vic_Sfx__Planning_Loop_Stop;
+    GetBEI().GetRobotAudioClient().PostEvent( event, AudioMetaData::GameObjectType::Behavior );
+  }
+}
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploringExamineObstacle::TransitionToNextAction()
 {
   if( _dVars.state == State::Initial ) {
@@ -215,8 +219,33 @@ void BehaviorExploringExamineObstacle::TransitionToNextAction()
     }
   }
   
-  const bool canVisitObstacle = (_dVars.state == State::Initial);
-  if( canVisitObstacle ) {
+  using GE = AudioMetaData::GameEvent::GenericEvent;
+  using GO = AudioMetaData::GameObjectType;
+  
+  const auto* featureGate = GetBEI().GetRobotInfo().GetContext()->GetFeatureGate();
+  const bool handDetectionEnabled = featureGate->IsFeatureEnabled(FeatureType::HandDetection);
+  
+  if( handDetectionEnabled && (_dVars.state == State::Initial) ) {
+    // Decide if this is a hand by running a single image through the hand detection vision mode.
+    // TODO: Add some kind of parallel face/sound animation while we wait for hand result to come back?
+    SET_STATE(CheckForHand);
+    
+    _dVars.lastImageTime = GetBEI().GetVisionComponent().GetLastProcessedImageTimeStamp();
+    WaitForImagesAction* action = new WaitForImagesAction(1, VisionMode::Hands, _dVars.lastImageTime);
+    DelegateNow( action, [this]() {
+      std::list<Vision::SalientPoint> handsFound;
+      const auto& salientPtsComponent = GetAIComp<SalientPointsComponent>();
+      salientPtsComponent.GetSalientPointSinceTime(handsFound,
+                                                   Vision::SalientPointType::Hand,
+                                                   _dVars.lastImageTime );
+      _dVars.handSeen = !handsFound.empty();
+      TransitionToNextAction();
+    });
+    return;
+  }
+  
+  if( ( handDetectionEnabled && (_dVars.state == State::CheckForHand)) ||
+      (!handDetectionEnabled && (_dVars.state == State::Initial))    ) {
     const bool useRobotWidth = true;
     if( RobotPathFreeOfObstacle( kDistanceForStartApproach_mm, useRobotWidth ) ) {
       
@@ -233,67 +262,178 @@ void BehaviorExploringExamineObstacle::TransitionToNextAction()
   }
   
   // if we're here, we either skipped or have finished the initial approach maneuver
+  if( (_dVars.state == State::QuickAnim) || (_dVars.state == State::ReactToHand) ) {
+    CancelSelf();
+    return;
+  }
   auto action = std::make_unique<CompoundActionSequential>();
-  if( (_dVars.state == State::Initial) || (_dVars.state == State::DriveToObstacle) ) {
+  
+  // Depending on what happened above, we could be:
+  // - in Initial state if hand detection was not enabled and the path was not free of an obstacle
+  // - in CheckForHand state because hand detection was enabled, completed, but path was not free of an obstacle
+  // - in DriveToObstacle state because we drove to the obstacle whether or not hand detection ran
+  const bool readyToReact = (_dVars.state == State::Initial ||
+                             _dVars.state == State::CheckForHand ||
+                             _dVars.state == State::DriveToObstacle);
+  
+  if(readyToReact) {
     
-    SET_STATE( FirstTurn );
-    // these head motions will probably be animations or something
-    action->AddAction( new MoveHeadToAngleAction( DEG_TO_RAD(15.0f) ) );
-    action->AddAction( new WaitAction( 0.5f ) );
-    action->AddAction( new MoveHeadToAngleAction( DEG_TO_RAD(0.0f) ) );
-    const float angle = _dVars.firstTurnDirectionIsLeft ? -DEG_TO_RAD(kMaxTurnAngle_deg) : DEG_TO_RAD(kMaxTurnAngle_deg);
-    const bool isAbsAngle = false;
-    auto* turnAction = new TurnInPlaceAction(angle, isAbsAngle);
-    turnAction->SetMaxSpeed(DEG_TO_RAD(kTurnSpeed_deg_s));
-    action->AddAction( turnAction );
-    
-  } else if( (_dVars.state == State::FirstTurn) || (_dVars.state == State::SecondTurn) ) {
-    
-    _dVars.state = (_dVars.state == State::SecondTurn) ? State::ReturnToCenterEnd : State::ReturnToCenter;
-    
-    if( _dVars.state == State::ReturnToCenterEnd ) {
-      if( kUseDebugLights ) {
-        GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsOff);
+    // Either react to a hand if we saw one, or do a generic scan-and-bump of an object
+    if(_dVars.handSeen)
+    {
+      SET_STATE(ReactToHand);
+      if (_iConfig.handReactionBehavior->WantsToBeActivated()) {
+        DelegateNow(_iConfig.handReactionBehavior.get(), &BehaviorExploringExamineObstacle::TransitionToNextAction);
       }
-      CancelSelf();
       return;
+      
+    } else {
+      // No hand (or handDetection disabled): Scan and bump whatever is in front of us
+      if( GetRNG().RandDbl() < kProbScan ) {
+        
+        SET_STATE( FirstTurn );
+        
+        AnimationTrigger turnAnim = _dVars.firstTurnDirectionIsLeft
+                                    ? AnimationTrigger::ExploringScanToLeft
+                                    : AnimationTrigger::ExploringScanToRight;
+        action->AddAction( new TriggerLiftSafeAnimationAction{ turnAnim } );
+        
+        // we manually trigger the audio since the looping scan animation doesn't always precede a
+        // followup animation that could be used to stop the audio
+        const auto event = GE::Play__Robot_Vic_Sfx__Planning_Loop_Play;
+        GetBEI().GetRobotAudioClient().PostEvent( event, GO::Behavior );
+        _dVars.playingScanSound = true;
+      } else {
+        SET_STATE( QuickAnim );
+        action->AddAction( new TriggerLiftSafeAnimationAction{ AnimationTrigger::ExploringQuickScan } );
+      }
     }
     
-    // these head motions will probably be animations or something
-    action->AddAction( new MoveHeadToAngleAction( DEG_TO_RAD(15.0f) ) );
-    action->AddAction( new WaitAction( 0.5f ) );
-    action->AddAction( new MoveHeadToAngleAction( DEG_TO_RAD(0.0f) ) );
-    const float angle = _dVars.initialPoseAngle_rad;
-    const bool isAbsAngle = true;
-    auto* turnToCenterAction = new TurnInPlaceAction(angle, isAbsAngle);
-    turnToCenterAction->SetMaxSpeed( DEG_TO_RAD(kReturnToCenterSpeed_deg_s) );
-    action->AddAction( turnToCenterAction );
+  } else if( (_dVars.state == State::FirstTurn)
+             || (_dVars.state == State::SecondTurn)
+             || (_dVars.state == State::ReferenceHuman) )
+  {
+    
+    const auto event = GE::Stop__Robot_Vic_Sfx__Planning_Loop_Stop;
+    GetBEI().GetRobotAudioClient().PostEvent( event, GO::Behavior );
+    _dVars.playingScanSound = false;
+    
+    // todo: clean this up. too many cases here, not enough time to separate them
+    // logic is: after the first turn it should return to center. after the second turn it should either
+    // exit, or return to center and bump the object, or reference a human then return to center then
+    // bump the object
+    
+    if( _dVars.state == State::SecondTurn ) {
+      
+      float minObjectWidth_rad = kMinObjectWidthToBump_rad;
+      float maxObjectWidth_rad = kMaxObjectWidthToBump_rad;
+      float probBumpNomination = kProbBumpNominalObject;
+      
+      const auto* featureGate = GetBEI().GetRobotInfo().GetContext()->GetFeatureGate();
+      const bool prDemo = (featureGate != nullptr) && featureGate->IsFeatureEnabled(Anki::Vector::FeatureType::PRDemo);
+      if( prDemo ) {
+        // boris asked for it to bump everything regardless of size
+        maxObjectWidth_rad = 1000;
+        probBumpNomination = 0.5f;
+      }
+      
+      // decide whether to bump or not
+      bool shouldBump = false;
+      if( (_dVars.totalObjectAngle_rad >= minObjectWidth_rad)
+          && (_dVars.totalObjectAngle_rad <= maxObjectWidth_rad) )
+      {
+        // object is of a size that we should bump
+        if( GetRNG().RandDbl() <= probBumpNomination ) {
+          shouldBump = true;
+        }
+      }
+      
+      if( !shouldBump ) {
+        // object is too thin or wide, exit the behavior instead of re-centering. If it re-centered,
+        // it would immediately have to turn again to start driving, so it looks better to leave from this pose
+        CancelSelf();
+        return;
+      }
+      
+      const Radians dAngle = GetBEI().GetRobotInfo().GetPose().GetRotationAngle<'Z'>() - _dVars.initialPoseAngle_rad;
+      _dVars.totalObjectAngle_rad += fabsf( dAngle.ToFloat() );
+      
+      const bool refBehaviorWantsToBeActivated = _iConfig.referenceHumanBehavior->WantsToBeActivated();
+      if( refBehaviorWantsToBeActivated && (GetRNG().RandDbl() < kProbReferenceBeforeBump) ) {
+        SET_STATE(ReferenceHuman);
+      } else {
+        SET_STATE(ReturnToCenterEnd);
+      }
+    } else if( _dVars.state == State::FirstTurn ) {
+      
+      const Radians dAngle = GetBEI().GetRobotInfo().GetPose().GetRotationAngle<'Z'>() - _dVars.initialPoseAngle_rad;
+      _dVars.totalObjectAngle_rad += fabsf( dAngle.ToFloat() );
+      
+      SET_STATE(ReturnToCenter);
+      
+    } else if( _dVars.state == State::ReferenceHuman ) {
+      SET_STATE(ReturnToCenterEnd);
+    }
+    
+      
+    if( _dVars.state != State::ReferenceHuman ) {
+      auto* parallelAction = new CompoundActionParallel();
+      
+      AnimationTrigger turnAnim;
+      if( _dVars.firstTurnDirectionIsLeft ) {
+        turnAnim = (_dVars.state == State::ReturnToCenter) ? AnimationTrigger::ExploringScanCenterFromLeft : AnimationTrigger::ExploringScanCenterFromRight;
+      } else {
+        turnAnim = (_dVars.state == State::ReturnToCenter) ? AnimationTrigger::ExploringScanCenterFromRight : AnimationTrigger::ExploringScanCenterFromLeft;
+      }
+      auto* animAction = new TriggerLiftSafeAnimationAction{ turnAnim };
+      
+      const float angle = _dVars.initialPoseAngle_rad;
+      const bool isAbsAngle = true;
+      auto* turnToCenterAction = new TurnInPlaceAction(angle, isAbsAngle);
+      turnToCenterAction->SetMaxSpeed( DEG_TO_RAD(kReturnToCenterSpeed_deg_s) );
+      
+      // keep a weakptr to the turn action, so that the whole parallel action can be aborted the moment this one
+      // ends
+      _dVars.scanCenterAction = parallelAction->AddAction( turnToCenterAction );
+      parallelAction->AddAction( animAction );
+      
+      action->AddAction( parallelAction );
+    } else {
+      DelegateIfInControl( _iConfig.referenceHumanBehavior.get(), [this](){
+        TransitionToNextAction();
+      });
+      return;
+    }
    
   } else if( _dVars.state == State::ReturnToCenter ) {
     
     SET_STATE( SecondTurn );
     
     // now turn the other way
-    const float angle = _dVars.firstTurnDirectionIsLeft ? DEG_TO_RAD(kMaxTurnAngle_deg) : -DEG_TO_RAD(kMaxTurnAngle_deg);
-    const bool isAbsAngle = false;
-    auto* turnAction = new TurnInPlaceAction(angle, isAbsAngle);
-    turnAction->SetMaxSpeed(DEG_TO_RAD(kTurnSpeed_deg_s));
-    action->AddAction( turnAction );
+    AnimationTrigger turnAnim = _dVars.firstTurnDirectionIsLeft
+                                ? AnimationTrigger::ExploringScanToRight
+                                : AnimationTrigger::ExploringScanToLeft;
+    action->AddAction( new TriggerLiftSafeAnimationAction{ turnAnim } );
+    
+    const auto event = GE::Play__Robot_Vic_Sfx__Planning_Loop_Play;
+    GetBEI().GetRobotAudioClient().PostEvent( event, GO::Behavior );
+    _dVars.playingScanSound = true;
     
   } else if( _dVars.state == State::ReturnToCenterEnd ) {
-    if( kUseDebugLights ) {
-      GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsOff);
+    SET_STATE( Bumping );
+    if( _iConfig.bumpBehavior->WantsToBeActivated() ) {
+      DelegateIfInControl( _iConfig.bumpBehavior.get(), [this](){
+        CancelSelf();
+      });
+      return;
+    } else {
+      CancelSelf();
+      return;
     }
-    CancelSelf();
-    return;
   }
   
-  DelegateNow(action.release(), [&](ActionResult res) {
-    // if we got here, it wasn't canceled because of the absence of an obstacle.
-    TransitionToNextAction();
-  });
+  DelegateNow(action.release(), &BehaviorExploringExamineObstacle::TransitionToNextAction);
 }
-
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void BehaviorExploringExamineObstacle::BehaviorUpdate() 
@@ -304,11 +444,7 @@ void BehaviorExploringExamineObstacle::BehaviorUpdate()
     // flood fill any explored prox obstacles into unexplored obstacles.
     // while this one could be called from elsewhere, currently we only care about the result
     // when this behavior is in scope, so it's called here
-    for( int i=0; i<kNumFloodFillSteps; ++i ) {
-      if( !GetBEI().GetMapComponent().FlagProxObstaclesTouchingExplored() ) {
-        break;
-      }
-    }
+    GetBEI().GetMapComponent().FlagProxObstaclesTouchingExplored();
     
     const static bool forActivation = true;
     _dVars.persistent.seesFrontObstacle = RobotSeesObstacleInFront( kDistanceForActivation_mm, forActivation );
@@ -328,14 +464,9 @@ void BehaviorExploringExamineObstacle::BehaviorUpdate()
       // this is done before the flood fill step ( see above comment ) so that obstacles flagged as
       // explored this tick count as seens for filling
       GetBEI().GetMapComponent().FlagProxObstaclesUsingPose();
-      for( int i=0; i<kNumFloodFillSteps; ++i ) {
-        if( !GetBEI().GetMapComponent().FlagProxObstaclesTouchingExplored() ) {
-          break;
-        }
-      }
+      GetBEI().GetMapComponent().FlagProxObstaclesTouchingExplored();
     }
   }
-  
   
   if( (_dVars.state == State::FirstTurn) || (_dVars.state == State::SecondTurn) ) {
     // while in the middle of a turn, if no prox obstacle is seen, we can stop turning
@@ -343,6 +474,12 @@ void BehaviorExploringExamineObstacle::BehaviorUpdate()
     const bool seenObstacle = RobotSeesObstacleInFront( kDistanceForStopTurn_mm, forActivation );
     if( !seenObstacle ) {
       CancelDelegates( false );
+      TransitionToNextAction();
+    }
+  } else if( (_dVars.state == State::ReturnToCenter) || (_dVars.state == State::ReturnToCenterEnd) ) {
+    if( !_dVars.scanCenterAction.lock() && IsControlDelegated() ) {
+      // finished returning to center but the parallel action hasnt finished. cancel it and begin the next action
+      CancelDelegates(false);
       TransitionToNextAction();
     }
   }
@@ -366,7 +503,7 @@ bool BehaviorExploringExamineObstacle::RobotPathFreeOfObstacle( float dist_mm, b
   
   const auto& robotInfo = GetBEI().GetRobotInfo();
   
-  const auto* memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
+  const auto memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
   DEV_ASSERT( nullptr != memoryMap, "BehaviorExploringExamineObstacle.RobotPathFreeOfObstacle.NeedMemoryMap" );
   
   const Pose3d currRobotPose = robotInfo.GetPose();
@@ -378,9 +515,7 @@ bool BehaviorExploringExamineObstacle::RobotPathFreeOfObstacle( float dist_mm, b
     Vec3f offset(dist_mm, 0.0f, 0.0f);
     Rotation3d rot = Rotation3d(0.f, Z_AXIS_3D());
     const Point2f p2 = (currRobotPose.GetTransform() * Transform3d(rot, offset)).GetTranslation();
-    hasCollision = memoryMap->HasCollisionWithTypes({{Point2f{currRobotPose.GetTranslation()},
-                                                      p2}},
-                                                    MemoryMapTypes::kTypesThatAreObstacles);
+    hasCollision = GetBEI().GetMapComponent().CheckForCollisions(FastPolygon{{Point2f{currRobotPose.GetTranslation()}, p2}});
   } else {
     
     // quad the width of the robot and extending dist_mm past the robot
@@ -395,7 +530,7 @@ bool BehaviorExploringExamineObstacle::RobotPathFreeOfObstacle( float dist_mm, b
     const Point2f p3 = (currRobotPose.GetTransform() * Transform3d(rot, offset2 + offset3)).GetTranslation();
     const Point2f p4 = (currRobotPose.GetTransform() * Transform3d(rot, offset1 + offset3)).GetTranslation();
     
-    hasCollision = memoryMap->HasCollisionWithTypes({{p1, p2, p3, p4}}, MemoryMapTypes::kTypesThatAreObstacles);
+    hasCollision = GetBEI().GetMapComponent().CheckForCollisions(FastPolygon{{p1, p2, p3, p4}});
     
   }
   
@@ -407,7 +542,7 @@ bool BehaviorExploringExamineObstacle::RobotSeesObstacleInFront( float dist_mm, 
 {
   const auto& robotInfo = GetBEI().GetRobotInfo();
   
-  const auto* memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
+  const auto memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
   DEV_ASSERT( nullptr != memoryMap, "BehaviorExploringExamineObstacle.WTBAB.NeedMemoryMap" );
   
   const Pose3d currRobotPose = robotInfo.GetPose();
@@ -431,9 +566,7 @@ bool BehaviorExploringExamineObstacle::RobotSeesObstacleInFront( float dist_mm, 
     return ret;
   };
   
-  const bool foundNewObstacle = memoryMap->AnyOf( {{Point2f{currRobotPose.GetTranslation()},
-                                                   p2}},
-                                                 evalFunc );
+  const bool foundNewObstacle = memoryMap->AnyOf( FastPolygon{{Point2f{currRobotPose.GetTranslation()}, p2}}, evalFunc );
   return foundNewObstacle;
 }
   
@@ -442,7 +575,7 @@ bool BehaviorExploringExamineObstacle::RobotSeesNewObstacleInCone( float dist_mm
 {
   const auto& robotInfo = GetBEI().GetRobotInfo();
   
-  const auto* memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
+  const auto memoryMap = GetBEI().GetMapComponent().GetCurrentMemoryMap();
   DEV_ASSERT( nullptr != memoryMap, "BehaviorExploringExamineObstacle.WTBAB.NeedMemoryMap" );
   
   const Pose3d currRobotPose = robotInfo.GetPose();
@@ -464,7 +597,7 @@ bool BehaviorExploringExamineObstacle::RobotSeesNewObstacleInCone( float dist_mm
   // only react to unexplored prox obstacles
   const EContentTypePackedType nodeTypeFlags = EContentTypeToFlag( MemoryMapTypes::EContentType::ObstacleProx );
   // and only if theyre recent
-  TimeStamp_t earliestTime = BaseStationTimer::getInstance()->GetCurrentTimeStamp() - kTimeForTurnToPassingObstacles_ms;
+  RobotTimeStamp_t earliestTime = GetBEI().GetRobotInfo().GetLastMsgTimestamp() - kTimeForTurnToPassingObstacles_ms;
   auto evalFunc = [&](MemoryMapDataConstPtr data){
     const bool sameType = IsInEContentTypePackedType( data->type, nodeTypeFlags );
     const bool newObstacle = data->GetFirstObservedTime() >= earliestTime;
@@ -475,7 +608,7 @@ bool BehaviorExploringExamineObstacle::RobotSeesNewObstacleInCone( float dist_mm
     return sameType && newObstacle;
   };
   
-  const bool foundNewObstacle = memoryMap->AnyOf( {{ t1, t2, t3 }}, evalFunc );
+  const bool foundNewObstacle = memoryMap->AnyOf( FastPolygon{{ t1, t2, t3 }}, evalFunc );
   return foundNewObstacle;
 }
   
@@ -490,11 +623,14 @@ void BehaviorExploringExamineObstacle::DevTakePhoto() const
   }
   
   // save
-  const std::string path = Util::FileUtils::FullFilePath({ "exploringObstacles" });
-  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetValue<VisionComponent>();
-  visionComponent.SetSaveImageParameters(ImageSendMode::SingleShot,
-                                         path,
-                                         kImageQuality);
+  const std::string path = Util::FileUtils::FullFilePath({
+    GetBEI().GetRobotInfo().GetContext()->GetDataPlatform()->GetCachePath("camera"),
+    "images",
+    "exploringObstacles"
+  });
+  auto& visionComponent = GetBEI().GetComponentWrapper(BEIComponentID::Vision).GetComponent<VisionComponent>();
+  ImageSaverParams params(path, ImageSendMode::SingleShot, kImageQuality);
+  visionComponent.SetSaveImageParameters(params);
 
 }
 

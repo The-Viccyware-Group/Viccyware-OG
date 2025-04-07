@@ -19,10 +19,12 @@
 //#include "anki/cozmo/basestation/components/desiredFaceDistortionComponent.h"
 #include "cozmoAnim/animContext.h"
 #include "util/console/consoleInterface.h"
+#include "util/helpers/ankiDefines.h"
 
 namespace Anki {
-namespace Cozmo {
-  
+namespace Vector {
+namespace Anim {
+
 namespace {
 // Keep Face Alive Layer Names
 const std::string kEyeBlinkLayerName  = "KeepAliveEyeBlink";
@@ -32,10 +34,19 @@ const std::string kEyeNoiseLayerName  = "KeepAliveEyeNoise";
 // TODO: Restore audio glitch
 //CONSOLE_VAR(bool, kGenerateGlitchAudio, "ProceduralAnims", false);
 bool kGenerateGlitchAudio = false;
+
+// Audio latency offset
+#if defined(ANKI_PLATFORM_VICOS)
+// MATH: (BufferSize / SampleRate) * NumberOfBuffers ==> 1024/48000*4 = 0.0853333 sec => 85 ms
+// After doing slow motion recordings we found that there was an additional 115 ms of latency ==> total latency = 200 ms
+CONSOLE_VAR_RANGED(u32, kAudioAnimationOffset_ms, "Audio.AnimationStreamer", 200, 0, 300);
+#else
+#define kAudioAnimationOffset_ms 0
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TrackLayerComponent::TrackLayerComponent(const AnimContext* context)
+TrackLayerComponent::TrackLayerComponent(const Anim::AnimContext* context)
 : _audioLayerManager(new AudioLayerManager(*context->GetRandom()))
 , _backpackLayerManager(new BackpackLayerManager(*context->GetRandom()))
 , _faceLayerManager(new FaceLayerManager(*context->GetRandom()))
@@ -49,11 +60,14 @@ TrackLayerComponent::~TrackLayerComponent()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TrackLayerComponent::Init()
+void TrackLayerComponent::Init(AnimationStreamer& animStreamer)
 {
   _lastProceduralFace->Reset();
   // Setup Keep Alive Activities
   SetupKeepFaceAliveActivities();
+  // Setup Audio latency callback to reset keyframe idx
+  const auto callback = [this] () { _validAudioKeyframeIt = false; };
+  animStreamer.AddNewAnimationCallback(callback);
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -85,14 +99,13 @@ void TrackLayerComponent::ApplyLayersToAnim(Animation* anim,
                                             bool storeFace) const
 {
   // Apply layers of individual tracks to anim
-  ApplyAudioLayersToAnim(anim, timeSinceAnimStart_ms, layeredKeyframes);
+  ApplyAudioLayersToAnim   (anim, timeSinceAnimStart_ms, layeredKeyframes);
   ApplyBackpackLayersToAnim(anim, timeSinceAnimStart_ms, layeredKeyframes);
-  ApplyFaceLayersToAnim(anim, timeSinceAnimStart_ms, layeredKeyframes, storeFace);
+  ApplyFaceLayersToAnim    (anim, timeSinceAnimStart_ms, layeredKeyframes, storeFace);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TrackLayerComponent::KeepFaceAlive(const std::map<KeepFaceAliveParameter, f32>& params,
-                                        const TimeStamp_t timeSinceKeepAliveStart_ms)
+void TrackLayerComponent::KeepFaceAlive(const TimeStamp_t timeSinceKeepAliveStart_ms)
 {
   // Loop through keep alive activities and perform if timer expired
   bool hasFaceLayer = false;
@@ -100,11 +113,11 @@ void TrackLayerComponent::KeepFaceAlive(const std::map<KeepFaceAliveParameter, f
     keepAliveActivity.nextPerformanceTime_ms -= ANIM_TIME_STEP_MS;
     if (keepAliveActivity.nextPerformanceTime_ms <= 0) {
       // Run Activity
-      bool success = keepAliveActivity.performFunc(params, timeSinceKeepAliveStart_ms);
+      bool success = keepAliveActivity.performFunc(timeSinceKeepAliveStart_ms);
       if (success) {
         hasFaceLayer |= keepAliveActivity.hasFaceLayers;
       }
-      keepAliveActivity.UpdateNextPerformanceTime(params);
+      keepAliveActivity.UpdateNextPerformanceTime();
     }
   }
   
@@ -122,6 +135,12 @@ void TrackLayerComponent::RemoveKeepFaceAlive(TimeStamp_t streamTime_ms, TimeSta
   
   _audioLayerManager->RemovePersistentLayer(kEyeBlinkLayerName, streamTime_ms, duration_ms);
   _faceLayerManager->RemovePersistentLayer(kEyeBlinkLayerName, streamTime_ms, duration_ms);
+}
+ 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TrackLayerComponent::SetLastProceduralFaceAsBlank()
+{
+  _lastProceduralFace->Reset( true );
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -252,8 +271,7 @@ void TrackLayerComponent::SetupKeepFaceAliveActivities()
 {
   _keepAliveModifiers.clear();
   // Eye Blink
-  auto eyeBlinkPerform = [this](const KeepAliveModifier::ParameterMap& parameterMap,
-                                const TimeStamp_t streamTime_ms) {
+  auto eyeBlinkPerform = [this](const TimeStamp_t streamTime_ms) {
     BlinkEventList eventList;
     Result result = _faceLayerManager->AddBlinkToFaceTrack(kEyeBlinkLayerName, streamTime_ms, eventList);
     if (RESULT_OK == result) {
@@ -265,17 +283,16 @@ void TrackLayerComponent::SetupKeepFaceAliveActivities()
     }
     return (RESULT_OK == result);
   };
-  auto eyeBlinkTimeFunc = [this](const KeepAliveModifier::ParameterMap& parameterMap) {
-    return _faceLayerManager->GetNextBlinkTime_ms(parameterMap);
+  auto eyeBlinkTimeFunc = [this]() {
+    return _faceLayerManager->GetNextBlinkTime_ms();
   };
   _keepAliveModifiers.emplace_back( kEyeBlinkLayerName, eyeBlinkPerform, eyeBlinkTimeFunc, true );
 
   // Eye Dart
-  auto eyeDartPerform = [this](const KeepAliveModifier::ParameterMap& parameterMap,
-                               const TimeStamp_t streamTime_ms) {
+  auto eyeDartPerform = [this](const TimeStamp_t streamTime_ms) {
     TimeStamp_t interpolationTime_ms = 0;
     Result result = _faceLayerManager->AddEyeDartToFaceTrack(kEyeDartLayerName,
-                                                             parameterMap,
+                                                             _isKeepFaceAliveFocused,
                                                              streamTime_ms,
                                                              interpolationTime_ms);
     if (RESULT_OK == result) {
@@ -287,8 +304,8 @@ void TrackLayerComponent::SetupKeepFaceAliveActivities()
     }
     return (RESULT_OK == result);
   };
-  auto eyeDartTimeFunc = [this](const KeepAliveModifier::ParameterMap& parameterMap) {
-    return _faceLayerManager->GetNextEyeDartTime_ms(parameterMap);
+  auto eyeDartTimeFunc = [this]() {
+    return _faceLayerManager->GetNextEyeDartTime_ms();
   };
   _keepAliveModifiers.emplace_back( kEyeDartLayerName, eyeDartPerform, eyeDartTimeFunc, true );
 }
@@ -298,12 +315,25 @@ void TrackLayerComponent::ApplyAudioLayersToAnim(Animation* anim,
                                                  const TimeStamp_t timeSinceAnimStart_ms,
                                                  LayeredKeyFrames& layeredKeyFrames) const
 {
+  // VIC-4224: Due to audio engine playback latency the animation audio keyframes are not in sync with the rest of the
+  // animation tracks while playing. Therefore we have introduced a variable to offset that latency by playing audio
+  // keyframes earlier so they better sync with the animation.
+  const TimeStamp_t audioOffsetTime_ms = timeSinceAnimStart_ms + kAudioAnimationOffset_ms;
+
   if (anim != nullptr) {
     auto& track = anim->GetTrack<RobotAudioKeyFrame>();
-    if (track.CurrentFrameIsValid(timeSinceAnimStart_ms)) {
-      auto& frame = track.GetCurrentKeyFrame();
-      layeredKeyFrames.audioKeyFrame = frame;
+    auto& frameList = track.GetAllKeyframes();
+
+    if (!_validAudioKeyframeIt) {
+      _audioKeyframeIt = frameList.begin();
+      _validAudioKeyframeIt = true;
+    }
+
+    if ((_audioKeyframeIt != frameList.end()) &&
+         _audioKeyframeIt->IsTimeToPlay(audioOffsetTime_ms)) {
+      layeredKeyFrames.audioKeyFrame = *_audioKeyframeIt;
       layeredKeyFrames.haveAudioKeyFrame = true;
+      ++_audioKeyframeIt;
     }
   }
   
@@ -417,7 +447,16 @@ void TrackLayerComponent::ApplyFaceLayersToAnim(Animation* anim,
                                                                                applyFunc);
   }
 }
+ 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TrackLayerComponent::EnableProceduralAudio(bool enabled)
+{
+  if (_audioLayerManager)
+  {
+    _audioLayerManager->EnableProceduralAudio(enabled);
+  }
+}
 
-
+}
 }
 }

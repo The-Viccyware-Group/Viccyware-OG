@@ -11,25 +11,37 @@
  **/
 #include "engine/charger.h"
 
-#include "engine/objectPoseConfirmer.h"
 #include "engine/robot.h"
+#include "engine/utils/robotPointSamplerHelper.h"
 
 #include "anki/cozmo/shared/cozmoConfig.h"
 #include "anki/cozmo/shared/cozmoEngineConfig.h"
 
-#include "coretech/common/engine/math/quad_impl.h"
+#include "coretech/common/engine/math/quad.h"
 
+#include "util/console/consoleInterface.h"
 #include "util/logging/logging.h"
+#include "util/random/randomGenerator.h"
 
 namespace Anki {
   
-  namespace Cozmo {
+  namespace Vector {
+
+    namespace 
+    {
+      // Valid range of radii from which the Robot may observe the charger
+      //  with good visibility. Candidate poses are sampled within this range.
+      const float kInnerAnnulusRadiusForObservation_mm = 100.f;
+      const float kOuterAnnulusRadiusForObservation_mm = 200.f;
+    }
+
+    CONSOLE_VAR(f32, kChargerMaxObservationDistance_mm, "Charger", 500.f);
     
     // === Charger predock pose params ===
     // {angle, x, y}
     // angle: angle about z-axis (which runs vertically along marker)
-    //     x: distance along marker horizontal
-    //     y: distance along marker normal
+    //     x: distance along marker normal
+    //     y: distance along marker horizontal
     const Pose2d kChargerPreDockPoseOffset = {0, 0, 130.f};
     
     const std::vector<Point3f>& Charger::GetCanonicalCorners() const {
@@ -52,8 +64,8 @@ namespace Anki {
     } // GetCanonicalCorners()
     
     
-    Charger::Charger(ObjectType type)
-    : ObservableObject(ObjectFamily::Charger, type), ActionableObject()
+    Charger::Charger()
+    : ActionableObject(ObjectType::Charger_Basic)
     , _size(kLength, kWidth, kHeight)
     , _vizHandle(VizManager::INVALID_HANDLE)
     {
@@ -80,7 +92,7 @@ namespace Anki {
         case PreActionPose::ActionType::DOCKING:
         case PreActionPose::ActionType::PLACE_RELATIVE:
         {
-          const float halfHeight = 0.5f * GetHeight();
+          const float halfHeight = 0.5f * kHeight;
           
           Pose3d poseWrtMarker(M_PI_2_F + kChargerPreDockPoseOffset.GetAngle().ToFloat(),
                                Z_AXIS_3D(),
@@ -113,6 +125,17 @@ namespace Anki {
                   GetPose());
       
       pose.SetName("Charger" + std::to_string(GetID().GetValue()) + "DockedPose");
+      
+      return pose;
+    }
+    
+    Pose3d Charger::GetRobotPostRollOffPose() const
+    {
+      Pose3d pose(M_PI_F, Z_AXIS_3D(),
+                  Point3f{-kRobotToChargerDistPostRollOff, 0, 0},
+                  GetPose());
+      
+      pose.SetName("Charger" + std::to_string(GetID().GetValue()) + "PostRollOffPose");
       
       return pose;
     }
@@ -159,10 +182,33 @@ namespace Anki {
       return boundingQuad;
     }
     
-#if 0
-#pragma mark --- Virtual Method Implementations ---
-#endif
+    std::vector<Pose3d> Charger::GenerateObservationPoses(Util::RandomGenerator& rng, 
+                                                          const size_t nPoses,
+                                                          const float& span_rad) const
+    {
+      // Generate a uniformly distributed set of random poses in a semi-circle (really a semi-annulus) in front of the
+      // charger. The poses should point at the charger, and they should not be too far off from the marker normal, so
+      // that the robot can see the marker from a reasonable angle.
+      const f32 minTheta = M_PI_F - span_rad;
+      const f32 maxTheta = M_PI_F + span_rad;
+      
+      // The charger's origin is at the front of the lip of the charger, and its x axis points inward toward the marker.
+      // Therefore we want poses centered around the angle pi (w.r.t. the charger), and pointing toward the charger origin.
+      const auto& chargerPose = GetPose();
+      std::vector<Pose3d> outPoses;
+      outPoses.reserve(nPoses);
+      for (int i=0 ; i < nPoses ; i++) {
+        const auto pt = RobotPointSamplerHelper::SamplePointInAnnulus(rng, kInnerAnnulusRadiusForObservation_mm, kOuterAnnulusRadiusForObservation_mm, minTheta, maxTheta);
+        const f32 th = std::atan2(pt.y(), pt.x());
+        outPoses.emplace_back(th + M_PI_F, Z_AXIS_3D(),
+                              Vec3f{pt.x(), pt.y(), chargerPose.GetTranslation().z()},
+                              chargerPose);
+      }
+      
+      return outPoses;
+    }
     
+#pragma mark --- Virtual Method Implementations ---
     
     Charger* Charger::CloneType() const
     {
@@ -200,35 +246,13 @@ namespace Anki {
       Point3f distTol(kLength*.5f, kWidth*.5f, kHeight*.5f);
       return distTol;
     }
-        
-    bool Charger::IsPreActionPoseValid(const PreActionPose& preActionPose,
-                                    const Pose3d* reachableFromPose,
-                                    const std::vector<std::pair<Quad2f,ObjectID> >& obstacles) const
+    
+    f32 Charger::GetMaxObservationDistance_mm() const
     {
-      bool isValid = ActionableObject::IsPreActionPoseValid(preActionPose, reachableFromPose, obstacles);
-      
-      // TODO: While charger pose estimation is as jumpy as it currently is, skip height check
-      /*
-      if(isValid && reachableFromPose != nullptr && preActionPose.GetActionType() == PreActionPose::ENTRY) {
-        // Valid according to default check, now continue with checking reachability:
-        // Make sure reachableFrom pose is at about the same height of the ENTRY pose.
-        
-        Pose3d reachableFromWrtEntryPose;
-        if(reachableFromPose->GetWithRespectTo(*preActionPose.GetPose().GetParent(), reachableFromWrtEntryPose) == false) {
-          PRINT_NAMED_WARNING("Charger.IsPreActionPoseValid.PoseOriginMisMatch",
-                              "Could not get specified reachableFrom pose w.r.t. entry action's pose.\n");
-          isValid = false;
-        } else {
-          const f32 zThreshold = 10.f;
-          isValid = std::fabsf(reachableFromWrtEntryPose.GetTranslation().z()) < zThreshold;
-        }
-      }
-       */
-      
-      return isValid;
+      return kChargerMaxObservationDistance_mm;
     }
     
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki
 
 

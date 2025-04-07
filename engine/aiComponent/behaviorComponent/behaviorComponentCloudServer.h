@@ -25,7 +25,7 @@
 #include <thread>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace CloudMic {
 class Message;
@@ -37,7 +37,7 @@ class BehaviorComponentCloudServer : private Util::SignalHolder {
 public:
   using CallbackFunc = std::function<void(CloudMic::Message)>;
 
-  BehaviorComponentCloudServer(const CozmoContext* context, CallbackFunc callback, const std::string& name, int sleepMs = 40);
+  BehaviorComponentCloudServer(const CozmoContext* context, CallbackFunc callback, const std::string& name);
   ~BehaviorComponentCloudServer();
 
 private:
@@ -47,11 +47,10 @@ private:
   std::thread _listenThread;
   LocalUdpServer _server;
   std::atomic_bool _shutdown;
-  const int _sleepMs;
-  const CozmoContext* _context;
 
   #define SEND_CLOUD_DEV_RESULTS ANKI_DEV_CHEATS
   #if SEND_CLOUD_DEV_RESULTS
+  const CozmoContext* _context;
   std::vector<Json::Value> _devResults;
 
   using WebService = WebService::WebService;

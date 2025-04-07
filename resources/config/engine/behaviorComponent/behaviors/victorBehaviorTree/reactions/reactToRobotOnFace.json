@@ -3,8 +3,17 @@
   "behaviorID": "ReactToRobotOnFace",
   "associatedActiveFeature": "NoFeature",
 
-  "wantsToCancelSelfCondition": {
-    "conditionType": "OffTreadsState",
-    "targetState": "OnTreads"
+  "wantsToBeActivatedCondition": {
+    "conditionType" : "Compound",
+    "and" : [
+      {
+        "conditionType" : "BeingHeld",
+        "shouldBeHeld" : false
+      },
+      {
+        "conditionType": "OffTreadsState",
+        "targetState": "OnFace"
+      }
+    ]
   }
 }
