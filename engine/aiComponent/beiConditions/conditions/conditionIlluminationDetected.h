@@ -26,8 +26,8 @@
 #ifndef __Engine_AiComponent_BeiConditions_Conditions_ConditionIlluminationDetected_H__
 #define __Engine_AiComponent_BeiConditions_Conditions_ConditionIlluminationDetected_H__
 
+#include "clad/types/illuminationTypes.h"
 #include "coretech/common/engine/robotTimeStamp.h"
-#include "clad/types/imageTypes.h"
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
 #include "engine/aiComponent/beiConditions/iBEIConditionEventHandler.h"
 
@@ -58,6 +58,10 @@ private:
 
   struct ConfigParams
   {
+    std::vector<IlluminationState> triggerStates; // Triggered by entering these states
+    f32 confirmationTime_s;                       // Number of seconds state must match to trigger condition
+    u32 confirmationMinNum;                       // Min number of match events to trigger condition
+    bool ignoreUnknown;                           // Whether to ignore Unknown illuminations
     std::vector<IlluminationState> preStates;     // Transition starts by entering these states
     f32 preConfirmationTime_s;                    // Number of seconds pre state must match
     u32 preConfirmationMinNum;                    // Min number of pre-state match events
@@ -69,6 +73,8 @@ private:
   
   enum class MatchState
   {
+    WaitingForStart,
+    ConfirmingMatch,
     WaitingForPre,
     ConfirmingPre,
     WaitingForPost,
@@ -86,7 +92,6 @@ private:
   ConfigParams _params;
   DynamicVariables _variables;
   std::unique_ptr<BEIConditionMessageHelper> _messageHelper;
-
   void TickStateMachine( const RobotTimeStamp_t& currTime, const IlluminationState& obsState );
   bool IsTimePassed( const RobotTimeStamp_t& t, const f32& dur ) const;
   bool IsTriggerState( const std::vector<IlluminationState>& triggers,

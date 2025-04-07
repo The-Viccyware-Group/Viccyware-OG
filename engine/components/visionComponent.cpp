@@ -936,6 +936,61 @@ namespace Vector {
         //  and should be done before sending RobotProcessedImage below!)
         tryAndReport(&VisionComponent::UpdatePets,                 {VisionMode::Pets});
 
+        tryAndReport(&VisionComponent::UpdateMotionCentroid,       VisionMode::DetectingMotion);
+        tryAndReport(&VisionComponent::UpdateOverheadEdges,        VisionMode::DetectingOverheadEdges);
+        tryAndReport(&VisionComponent::UpdateToolCode,             VisionMode::ReadingToolCode);
+        tryAndReport(&VisionComponent::UpdateComputedCalibration,  VisionMode::ComputingCalibration);
+        tryAndReport(&VisionComponent::UpdateImageQuality,         VisionMode::CheckingQuality);
+        tryAndReport(&VisionComponent::UpdateWhiteBalance,         VisionMode::CheckingWhiteBalance);
+        tryAndReport(&VisionComponent::UpdateLaserPoints,          VisionMode::DetectingLaserPoints);
+        tryAndReport(&VisionComponent::UpdateDetectedObjects,      VisionMode::Count); // Use Count here to always call UpdateDetectedObjects
+        tryAndReport(&VisionComponent::UpdateVisualObstacles,      VisionMode::DetectingVisualObstacles);
+        tryAndReport(&VisionComponent::UpdateDetectedIllumination, VisionMode::DetectingIllumination);
+
+        // Display any debug images left by the vision system
+        if(ANKI_DEV_CHEATS)
+        {
+          if(kImageCompressQuality > 0)
+          {
+            // Send any images in the debug image lists to Viz for display
+            // Resize to fit display, but don't if it would make the image larger (to save bandwidth)
+            const bool kOnlyResizeIfSmaller = true;
+            const s32  kDisplayNumRows = 360; // TODO: Get these from VizManager perhaps?
+            const s32  kDisplayNumCols = 640; //   "
+            for(auto & debugGray : result.debugImages) {
+              debugGray.second.SetTimestamp(result.timestamp); // Ensure debug image has timestamp matching result
+              debugGray.second.ResizeKeepAspectRatio(kDisplayNumRows, kDisplayNumCols,
+                                                     Vision::ResizeMethod::Linear, kOnlyResizeIfSmaller);
+              CompressAndSendImage(debugGray.second, kImageCompressQuality, debugGray.first);
+            }
+            for(auto & debugRGB : result.debugImageRGBs) {
+              debugRGB.second.SetTimestamp(result.timestamp); // Ensure debug image has timestamp matching result
+              debugRGB.second.ResizeKeepAspectRatio(kDisplayNumRows, kDisplayNumCols,
+                                                    Vision::ResizeMethod::Linear, kOnlyResizeIfSmaller);
+              CompressAndSendImage(debugRGB.second, kImageCompressQuality, debugRGB.first);
+            }
+          }
+          else if(kImageCompressQuality == -1)
+          {
+            // Display debug images locally
+            for(auto & debugGray : result.debugImages) {
+              debugGray.second.Display(debugGray.first.c_str());
+            }
+            for(auto & debugRGB : result.debugImageRGBs) {
+              debugRGB.second.Display(debugRGB.first.c_str());
+            }
+          }
+        }
+        else if(!result.debugImages.empty() || !result.debugImageRGBs.empty())
+        {
+          // We do not expect to have debug images to draw without dev cheats enabled
+          std::string grayStr;
+          for(auto & debugGray : result.debugImages)
+          {
+            grayStr += debugGray.first;
+            grayStr += " ";
+          }
+
         tryAndReport(&VisionComponent::UpdateMotionCentroid,       {VisionMode::Motion});
         tryAndReport(&VisionComponent::UpdateOverheadEdges,        {VisionMode::OverheadEdges});
         tryAndReport(&VisionComponent::UpdateComputedCalibration,  {VisionMode::Calibration});
@@ -1446,6 +1501,17 @@ namespace Vector {
     return RESULT_OK;
   }
 
+  Result VisionComponent::UpdateDetectedIllumination(const VisionProcessingResult& procResult)
+  {
+    ExternalInterface::RobotObservedIllumination msg( procResult.illumination );
+    _robot->Broadcast(ExternalInterface::MessageEngineToGame(std::move(msg)));
+    return RESULT_OK;
+  }
+
+  bool VisionComponent::WasHeadRotatingTooFast(TimeStamp_t t,
+                                               const f32 headTurnSpeedLimit_radPerSec,
+                                               const int numImuDataToLookBack) const
+    
   Result VisionComponent::UpdateMirrorMode(const VisionProcessingResult& procResult)
   {
     // Handle switching the debug screen on/off when mirror mode changes

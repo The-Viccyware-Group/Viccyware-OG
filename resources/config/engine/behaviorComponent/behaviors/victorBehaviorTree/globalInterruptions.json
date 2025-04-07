@@ -24,6 +24,7 @@
     "HeldInPalmDispatcher",
     "WhileInAirDispatcher",
     "ReactToPutDown",
+    "ReactToIlluminationOff",
     "OptionalReactions",
     "StayOnChargerUntilCharged", // delegate includes ReactToSoundAwake
     "ReactToSoundAwake",

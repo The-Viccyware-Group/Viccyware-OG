@@ -14,12 +14,14 @@ enum uint_8 BehaviorTimerTypes {
 
   DancingCooldown,
   FistBump,
+  PlayingWithCube,
+  ReactToIllumination,
+  Socializing,
   ListenForBeatsCooldown,
   ObservingOnCharger,
   ObservingOffCharger,
   PlayingWithCube,
   PounceOnMotion,
-  ReactToIllumination,
   ReactToTouchPetting,
   Socializing,
   

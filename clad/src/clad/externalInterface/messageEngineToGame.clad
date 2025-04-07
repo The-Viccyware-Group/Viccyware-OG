@@ -20,6 +20,8 @@
 #include "clad/types/facialExpressions.clad"
 #include "clad/types/factoryTestTypes.clad"
 #include "clad/types/featureGateTypes.clad"
+#include "clad/types/firmwareTypes.clad"
+#include "clad/types/illuminationTypes.clad"
 #include "clad/types/imageTypes.clad"
 #include "clad/types/imu.clad"
 #include "clad/types/loadedKnownFace.clad"

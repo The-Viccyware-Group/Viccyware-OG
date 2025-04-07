@@ -207,6 +207,7 @@ enum uint_8 BehaviorClass {
   ReactToCubeTap,
   ReactToDarkness,
   ReactToFrustration,
+  ReactToIllumination,
   ReactToHand,
   ReactToMicDirection,
   ReactToMotion,

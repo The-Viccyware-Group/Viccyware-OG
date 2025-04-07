@@ -52,7 +52,17 @@ namespace{
                                                                            BEHAVIOR_CLASS(PopAWheelie),
                                                                            BEHAVIOR_CLASS(PounceWithProx),
                                                                            BEHAVIOR_CLASS(RollBlock),
-                                                                           BEHAVIOR_CLASS(PossiblePerformance) }};
+                                                                           BEHAVIOR_CLASS(PossiblePerformance),
+                                                                           BEHAVIOR_CLASS(PounceWithProx) }};
+  
+  static const std::set<BehaviorID> kBehaviorIDsToSuppressWhenSleeping = {{ BEHAVIOR_ID(ReactToTouchPetting),
+                                                                            BEHAVIOR_ID(TriggerWordDetected),
+                                                                            BEHAVIOR_CLASS(PossiblePerformance),
+                                                                            BEHAVIOR_ID(ReactToIlluminationOff) }};
+  
+  static const std::set<BehaviorID> kBehaviorIDsThatMeanSleeping = {{ BEHAVIOR_ID(Sleeping),
+                                                                      BEHAVIOR_ID(SleepingWakeUp) }};
+  
 
   static const std::set<BehaviorClass> kBehaviorClassesToSuppressReactToSound = {{ BEHAVIOR_CLASS(BlackJack),
                                                                                    BEHAVIOR_CLASS(DanceToTheBeat),
@@ -82,6 +92,7 @@ namespace{
     BEHAVIOR_ID(ReactToTouchPetting),       // the user will often turn the robot to face them and in the process touch it
     BEHAVIOR_ID(ReactToUnexpectedMovement), // the user will often turn the robot to face them
     BEHAVIOR_ID(ReactToSoundAwake),         // fully concentrate on what's in front
+    BEHAVIOR_ID(ReactToIlluminationOff)     // user hand near camera may trigger darkened condition
     BEHAVIOR_ID(ReactToDarkness)            // user hand near camera may trigger darkened condition
   }};
   static const std::set<BehaviorID> kBehaviorIDsToSuppressWhenDancingToTheBeat = {

@@ -24,6 +24,7 @@ namespace Vector {
 
 namespace {
 
+const char* kTriggerStatesKey = "triggerStates";
 const char* kPreTriggerStatesKey = "preTriggerStates";
 const char* kPostTriggerStatesKey = "postTriggerStates";
 const char* kPreConfirmationTimeKey = "preConfirmationTime";
@@ -37,43 +38,57 @@ const char* kPostConfirmationMinNumKey = "postConfirmationMinNum";
 ConditionIlluminationDetected::ConditionIlluminationDetected( const Json::Value& config )
 : IBEICondition( config )
 {
-  _params.preConfirmationTime_s = 0.0;
-  _params.preConfirmationMinNum = 0;
-  if( ParseTriggerStates( config, kPreTriggerStatesKey, _params.preStates ) )
+  // Parse trigger states
+  std::vector<std::string> stateStrs;
+  IlluminationState state;
+  std::string infoStr = "[";
+  if( JsonTools::GetVectorOptional( config, kTriggerStatesKey, stateStrs ) )
   {
-    _params.preConfirmationTime_s = JsonTools::ParseFloat( config, kPreConfirmationTimeKey,
-                                                           "ConditionIlluminationDetected.Constructor" );
-    _params.preConfirmationMinNum = JsonTools::ParseUInt32( config, kPreConfirmationMinNumKey,
-                                                            "ConditionIlluminationDetected.Constructor" );
+    for( auto iter = stateStrs.begin(); iter != stateStrs.end(); ++iter )
+    {
+      if( !EnumFromString( *iter, state ) )
+      {
+        PRINT_NAMED_ERROR( "ConditionIlluminationDetected.Constuctor.InvalidState",
+                          "Target state %s is not a valid IlluminationState", iter->c_str() );
+      }
+      else
+      {
+        _params.triggerStates.push_back( state );
+        infoStr += *iter + ", ";
+      }
+    }
+    infoStr += "]";
+    PRINT_NAMED_DEBUG( "ConditionIlluminationDetected.Constuctor.ParsedStates",
+                        "Parsed %s: %s", kTriggerStatesKey, infoStr.c_str() );
+  }
+  else
+  {
+    PRINT_NAMED_ERROR( "ConditionIlluminationDetected.Constructor.NoStates",
+                       "No states specified" );
   }
 
-  _params.postConfirmationTime_s = 0.0;
-  _params.postConfirmationMinNum = 0;
-  if( ParseTriggerStates( config, kPostTriggerStatesKey, _params.postStates ) )
-  {
-    _params.postConfirmationTime_s = JsonTools::ParseFloat( config, kPostConfirmationTimeKey,
-                                                          "ConditionIlluminationDetected.Constructor" );
-    _params.postConfirmationMinNum = JsonTools::ParseUInt32( config, kPostConfirmationMinNumKey,
-                                                           "ConditionIlluminationDetected.Constructor" );
-  }
-
-  _params.matchHoldTime_s = JsonTools::ParseFloat( config, "matchHoldTime",
-                                                   "ConditionIlluminationDetect.Constructor" );
+  // Parse other parameters
+  _params.confirmationTime_s = JsonTools::ParseFloat( config, "confirmationTime",
+                                                      "ConditionIlluminationDetected.Constructor" );
+  _params.confirmationMinNum = JsonTools::ParseUInt32( config, "confirmationMinNum",
+                                                       "ConditionIlluminationDetected.Constructor" );
+  _params.ignoreUnknown = JsonTools::ParseBool( config, "ignoreUnknown",
 }
 
 ConditionIlluminationDetected::~ConditionIlluminationDetected() {}
 
 void ConditionIlluminationDetected::GetRequiredVisionModes(std::set<VisionModeRequest>& request) const
 {
-  request.insert({ VisionMode::Illumination, EVisionUpdateFrequency::High });
+  request.insert({ VisionMode::DetectingIllumination, EVisionUpdateFrequency::High });
 }
 
 void ConditionIlluminationDetected::InitInternal( BehaviorExternalInterface& bei )
 {
   _messageHelper.reset( new BEIConditionMessageHelper( this, bei ) );
   _messageHelper->SubscribeToTags( {EngineToGameTag::RobotObservedIllumination} );
-
-  Reset();
+  _variables.matchState = MatchState::WaitingForStart;
+  _variables.matchStartTime = 0;
+  _variables.matchedEvents = 0;
 }
 
 bool ConditionIlluminationDetected::AreConditionsMetInternal( BehaviorExternalInterface& bei ) const
@@ -98,66 +113,40 @@ void ConditionIlluminationDetected::HandleEvent( const EngineToGameEvent& event,
   }
 }
 
-void ConditionIlluminationDetected::TickStateMachine( const RobotTimeStamp_t& currTime, const IlluminationState& obsState )
+void ConditionIlluminationDetected::TickStateMachine( const TimeStamp_t& currTime, const IlluminationState& obsState )
 {
+
+  if( _params.ignoreUnknown && IlluminationState::Unknown == obsState )
+  {
+    return;
+  }
 
   switch( _variables.matchState )
   {
-    case MatchState::WaitingForPre:
+    case MatchState::WaitingForStart:
     {
-      if( !IsTriggerState( _params.preStates, obsState ) ) 
-      {
-        Reset();
-        break;
-      }
+      PRINT_NAMED_DEBUG("ConditionIlluminationDetected.HandleIllumination.StateMachine", 
+                        "Waiting for trigger states" );
+      if( !IsTriggerState( obsState ) ) { break; }
 
-      _variables.matchState = MatchState::ConfirmingPre;
+      _variables.matchState = MatchState::ConfirmingMatch;
       _variables.matchStartTime = currTime;
       _variables.matchedEvents = 0;
       // Fall through to next state immediately
     }
-    case MatchState::ConfirmingPre:
+    case MatchState::ConfirmingMatch:
     {
-      if( !IsTriggerState( _params.preStates, obsState ) )
+      PRINT_NAMED_DEBUG("ConditionIlluminationDetected.HandleIllumination.StateMachine", 
+                        "Confirming match" );
+      if( !IsTriggerState( obsState ) )
       {
         Reset();
         break;
       }
    
       ++_variables.matchedEvents;
-      if( !IsTimePassed( currTime, _params.preConfirmationTime_s ) || 
-          _variables.matchedEvents < _params.preConfirmationMinNum )
-      {
-        break;
-      }
-      _variables.matchState = MatchState::WaitingForPost;
-      // Fall through to next state immediately
-
-    }
-    case MatchState::WaitingForPost:
-    {
-      if( !IsTriggerState( _params.postStates, obsState ) )
-      {
-        Reset();
-        break;
-      }
-
-      _variables.matchState = MatchState::ConfirmingPost;
-      _variables.matchStartTime = currTime;
-      _variables.matchedEvents = 0;
-      // Fall through to next state immediately
-    }
-    case MatchState::ConfirmingPost:
-    {
-      if( !IsTriggerState( _params.postStates, obsState ) )
-      {
-        Reset();
-        break;
-      }
-   
-      ++_variables.matchedEvents;
-      if( !IsTimePassed( currTime, _params.postConfirmationTime_s ) || 
-          _variables.matchedEvents < _params.postConfirmationMinNum )
+      if( !IsTimePassed( currTime, _params.confirmationTime_s ) || 
+          _variables.matchedEvents < _params.confirmationMinNum )
       {
         break;
       }
@@ -168,8 +157,9 @@ void ConditionIlluminationDetected::TickStateMachine( const RobotTimeStamp_t& cu
     }
     case MatchState::MatchConfirmed:
     {
-      if( !IsTriggerState( _params.postStates, obsState ) ||
-          IsTimePassed( currTime, _params.postConfirmationTime_s ) )
+      PRINT_NAMED_DEBUG("ConditionIlluminationDetected.HandleIllumination.StateMachine", 
+                        "Match confirmed" );
+      if( !IsTriggerState( obsState ) )
       {
         Reset();
       }
@@ -183,7 +173,7 @@ void ConditionIlluminationDetected::TickStateMachine( const RobotTimeStamp_t& cu
   }
 }
 
-bool ConditionIlluminationDetected::IsTimePassed( const RobotTimeStamp_t& t, const f32& dur ) const
+bool ConditionIlluminationDetected::IsTimePassed( const TimeStamp_t& t, const f32& dur ) const
 {
   if( t < _variables.matchStartTime )
   {
@@ -192,29 +182,21 @@ bool ConditionIlluminationDetected::IsTimePassed( const RobotTimeStamp_t& t, con
     return false;
   }
 
-  return Util::IsFltGT(Util::MilliSecToSec(f32(t - _variables.matchStartTime)), dur );
-
+  return Util::IsFltGT( (t - _variables.matchStartTime) / 1000.0f, dur );
 }
 
-bool ConditionIlluminationDetected::IsTriggerState( const std::vector<IlluminationState>& triggers,
-                                                    const IlluminationState& state ) const
+bool ConditionIlluminationDetected::IsTriggerState( const IlluminationState& state ) const
 {
-  if( triggers.empty() ) {
-    return true;
-  }
-
-  for( auto iter = triggers.begin(); iter != triggers.end(); ++iter )
+  for( auto iter = _params.triggerStates.begin(); iter != _params.triggerStates.end(); ++iter )
   {
-    if( *iter == state ) {
-      return true;
-    }
+    if( *iter == state ) { return true; }
   }
   return false;
 }
 
 void ConditionIlluminationDetected::Reset()
 {
-  _variables.matchState = MatchState::WaitingForPre;
+  _variables.matchState = MatchState::WaitingForStart;
   _variables.matchedEvents = 0;
 }
 

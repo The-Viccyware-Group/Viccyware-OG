@@ -271,6 +271,11 @@
       "relativeCost" : 1
     },
     {
+      "mode"         : "DetectingIllumination",
+      "low"          : 4,
+      "med"          : 2,
+    },
+    {
       "mode"         : "Offboard",
       "low"          : 16,
       "med"          : 8,

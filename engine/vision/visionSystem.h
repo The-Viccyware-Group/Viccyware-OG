@@ -22,6 +22,7 @@
 #include "engine/robotStateHistory.h"
 #include "engine/rollingShutterCorrector.h"
 #include "engine/vision/cameraCalibrator.h"
+#include "engine/vision/visionModeSchedule.h"
 #include "engine/vision/groundPlaneROI.h"
 #include "engine/vision/visionModeSet.h"
 #include "engine/vision/visionPoseData.h"
@@ -88,6 +89,34 @@ namespace Vector {
   class Robot;
   class VizManager;
   class GroundPlaneClassifier;
+  
+  // Everything that can be generated from one image in one big package:
+  struct VisionProcessingResult
+  {
+    TimeStamp_t timestamp; // Always set, even if all the lists below are empty (e.g. nothing is found)
+    Util::BitFlags32<VisionMode> modesProcessed;
+    
+    ImageQuality imageQuality;
+    CameraParams cameraParams;
+    u8 imageMean;
+
+    std::list<ExternalInterface::RobotObservedMotion>           observedMotions;
+    std::list<Vision::ObservedMarker>                           observedMarkers;
+    std::list<Vision::TrackedFace>                              faces;
+    std::list<Vision::TrackedPet>                               pets;
+    std::list<OverheadEdgeFrame>                                overheadEdges;
+    std::list<Vision::UpdatedFaceID>                            updatedFaceIDs;
+    std::list<ToolCodeInfo>                                     toolCodes;
+    std::list<ExternalInterface::RobotObservedLaserPoint>       laserPoints;
+    std::list<Vision::CameraCalibration>                        cameraCalibration;
+    std::list<ExternalInterface::RobotObservedGenericObject>    generalObjects;
+    std::list<OverheadEdgeFrame>                                visualObstacles;
+    ExternalInterface::RobotObservedIllumination                illumination;
+
+    // Used to pass debug images back to main thread for display:
+    DebugImageList<Vision::Image>    debugImages;
+    DebugImageList<Vision::ImageRGB> debugImageRGBs;
+  };
   
   class VisionSystem : public Vision::Profiler
   {

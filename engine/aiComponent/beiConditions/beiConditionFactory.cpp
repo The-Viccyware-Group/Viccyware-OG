@@ -33,6 +33,7 @@
 #include "engine/aiComponent/beiConditions/conditions/conditionFaceKnown.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionFacePositionUpdated.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionFeatureGate.h"
+#include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionHighTemperature.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionIlluminationDetected.h"
 #include "engine/aiComponent/beiConditions/conditions/conditionIsMaintenanceReboot.h"
