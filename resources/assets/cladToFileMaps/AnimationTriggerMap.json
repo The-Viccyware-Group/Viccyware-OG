@@ -2133,25 +2133,5 @@
   {
     "CladEvent": "IntentionalPerformance",
     "AnimName": "ag_iperformance"
-  },
-  {
-    "CladEvent": "DEPRECATED_Singing_80bpm",
-    "AnimName": "ag_cozmosings_80bpm"
-  },
-  {
-    "CladEvent": "DEPRECATED_Singing_100bpm",
-    "AnimName": "ag_cozmosings_100bpm"
-  },
-  {
-    "CladEvent": "DEPRECATED_Singing_120bpm",
-    "AnimName": "ag_cozmosings_120bpm"
-  },
-  {
-    "CladEvent": "DEPRECATED_Singing_GetIn",
-    "AnimName": "ag_cozmosings_getin"
-  },
-  {
-    "CladEvent": "DEPRECATED_Singing_GetOut",
-    "AnimName": "ag_cozmosings_getout"
   }
 ]
