@@ -94,7 +94,7 @@ enum uint_16 BehaviorID {
   SingletonFindFaceInFrontWallTime,
   SingletonWallTimeCoordinator,
 
-  // singing
+  // victorBehaviorTree/singing
   Singing_AbaDaba,
   Singing_BeautifulDreamer,
   Singing_Beethovens5th,
