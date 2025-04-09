@@ -122,6 +122,10 @@
   {
     "feature": "PounceOnMotion",
     "enabled": false
+  },
+  {
+    "feature": "Singing",
+    "enabled": true
   }
 ]
 
