@@ -144,41 +144,6 @@ void BehaviorSinging::OnBehaviorActivated()
                                                                      AudioMetaData::GameObjectType::Default /* FIXME: Not correct game object */);
   }
 
-  // Clear listeners and averages
-  _cubeAccelListeners.clear();
-  _objectShakeAverages.clear();
-
-  // Filter to find all LightCubes
-  BlockWorldFilter filter;
-  filter.AddAllowedFamily(ObjectFamily::LightCube);
-  filter.SetFilterFcn(nullptr);
-
-  // Get all connected light cubes
-  std::vector<const Block*> connectedObjects;
-  GetBEI().GetBlockWorld().FindConnectedActiveMatchingObjects(filter, connectedObjects);
-
-  // For each of the connected light cubes
-  for(const Block* object : connectedObjects)
-  {
-    const ObjectID& objectID = object->GetID();
-
-    // Create a RollingAverage to keep track of the average shake amount of this object
-    _objectShakeAverages[objectID].Reset();
-
-    auto shakeDetected = [this, &objectID](const float shakeAmount) {
-      _objectShakeAverages[objectID].Update(shakeAmount);
-    };
-
-    // Set up a CubeAccel ShakeListener that will update this object's average shake amount
-    // when shaking is detected
-    auto listener = std::make_shared<CubeAccelListeners::ShakeListener>(0.5, 2.5, 3.9, shakeDetected);
-    GetBEI().GetCubeAccelComponent().AddListener(objectID, listener);
-
-    // Store the listener so we can remove it when the behavior ends
-    // TODO Add SmartAddCubeAccelListener/SmartRemoveCubeAccelListener to base class
-    _cubeAccelListeners.emplace_back(objectID, listener);
-  }
-
   // Setup the only action this behavior does, three sequential animations
   CompoundActionSequential* action = new CompoundActionSequential();
   action->AddAction(new TriggerAnimationAction(kGetInTrigger));
