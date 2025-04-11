@@ -110,19 +110,6 @@ enum uint_8 BehaviorClass {
   ReactToBody,
   ReactToGazeDirection,
 
-  // devBehaviors/playpen
-  PlaypenCameraCalibration,
-  PlaypenDistanceSensor,
-  PlaypenDriftCheck,
-  PlaypenDriveForwards,
-  PlaypenEndChecks,
-  PlaypenInitChecks,
-  PlaypenMotorCalibration,
-  PlaypenPickupCube,
-  PlaypenSoundCheck,
-  PlaypenTest,
-  PlaypenWaitToStart,
-
   // devBehaviors/selfTest
   SelfTest,
   SelfTestButton,
@@ -172,6 +159,7 @@ enum uint_8 BehaviorClass {
 
   // heldInPalm
   InitialHeldInPalmReaction,
+  ReactToPalmEdge,
 
   // knowledgeGraph
   KnowledgeGraphQuestion,
@@ -197,6 +185,9 @@ enum uint_8 BehaviorClass {
   OnboardingLookAtUser,
   OnboardingTeachWakeWord,
   OnboardingWakeUp,
+
+  // performaces
+  PossiblePerformance,
 
   // photoTaking
   AestheticallyCenterFaces,
@@ -266,8 +257,10 @@ enum uint_8 BehaviorClass {
   ReactToTouchPetting,
   ReactToUnclaimedIntent,
   RobustChargerObservation,
+  SnakeGame,
   TrackCube,
   TrackFace,
+  WireTest,
 
   // volume
   Volume,

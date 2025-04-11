@@ -19,7 +19,7 @@ else()
   set(MESSAGE_STATUS STATUS)
 endif()
 
-file(STRINGS ${CMAKE_SOURCE_DIR}/VERSION license_version ENCODING UTF-8)
+file(STRINGS ${CMAKE_SOURCE_DIR}/ANKI_VERSION license_version ENCODING UTF-8)
 
 file(STRINGS ${CMAKE_SOURCE_DIR}/docs/development/licenses.md license_file ENCODING UTF-8)
 list(REMOVE_AT license_file 0)
@@ -315,9 +315,9 @@ function(check_licenses)
         endif()
       endforeach()
 
-      if (${found} EQUAL -1)
-        message("${package} present in cloud/go/src/github.com but is not included in licenses, either add anki_build_target_license() or update exceptions in license.cmake:${CMAKE_CURRENT_LIST_LINE}-ish")
-      endif()
+      # if (${found} EQUAL -1)
+      #   message("${package} present in cloud/go/src/github.com but is not included in licenses, either add anki_build_target_license() or update exceptions in license.cmake:${CMAKE_CURRENT_LIST_LINE}-ish")
+      # endif()
     endif()
   endforeach()
 
@@ -398,9 +398,9 @@ function(check_licenses)
         get_property(isset TARGET ${target} PROPERTY APPROVED_LICENSE)
 
         if(1)
-          if(NOT (isset OR system_lib))
-            message(${MESSAGE_STATUS} "WARNING: licensing information missing or not approved for ${target} target")
-          endif()
+          # if(NOT (isset OR system_lib))
+          #   message(${MESSAGE_STATUS} "WARNING: licensing information missing or not approved for ${target} target")
+          # endif()
 
         else()
           # guess what the license is to bootstrap license settings

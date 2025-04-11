@@ -41,24 +41,6 @@ enum uint_16 BehaviorID {
   DockingTestSimple,
   FactoryCentroidExtractor,
   LiftLoadTest,
-
-  // devBehaviors/playpen
-  PlaypenCameraCalibration,
-  PlaypenDistanceSensor100mm,
-  PlaypenDistanceSensor300mm,
-  PlaypenDistanceSensor80mm,
-  PlaypenDistanceSensorCalib80mm,
-  PlaypenDriftCheck,
-  PlaypenDriveForwards,
-  PlaypenEndChecks,
-  PlaypenInitChecks,
-  PlaypenMotorCalibration,
-  PlaypenPickupCube,
-  PlaypenSoundCheck,
-  PlaypenTest,
-  PlaypenWaitToStart,
-
-  // devBehaviors
   PowerSaveStressTest,
   PowerSaveTest,
   PuzzleMaze,
@@ -83,6 +65,7 @@ enum uint_16 BehaviorID {
   SelfTestTouch,
 
   // devBehaviors
+  SnakeGame,
   TestStackMonitors,
 
   // victorBehaviorTree/alexa
@@ -196,6 +179,7 @@ enum uint_16 BehaviorID {
 
   // victorBehaviorTree/highLevelDelegates/heldInPalm
   ReactToJoltInPalm,
+  ForceStuckOnPalmEdge,
   HeldInPalmDispatcher,
   HeldInPalmResponses,
   InitialHeldInPalmReaction,
@@ -205,11 +189,13 @@ enum uint_16 BehaviorID {
   LookInPlaceHeadUpInPalm,
   LookingNervousInPalmAnim,
   NestlingAndSleepingInPalmDispatcher,
+  ReactToPalmEdge,
   ReactToPalmTilt,
   ReactToPickupFromPalm,
   ReactToPutDownFromPalm,
   ReactToPutDownFromPalmAnimSelector,
   SleepWhileHeldInPalm,
+  StuckOnPalmEdge,
 
   // victorBehaviorTree/highLevelDelegates
   InitialPickupAnimation,
@@ -310,7 +296,7 @@ enum uint_16 BehaviorID {
   // victorBehaviorTree/highLevelDelegates/socialize
   DriveOffChargerIntoSocializing,
   Socialize,
-  SocializeGame,
+  SocializeInteraction,
 
   // victorBehaviorTree/highLevelDelegates
   TrackCube,
@@ -373,6 +359,10 @@ enum uint_16 BehaviorID {
   OnboardingTeachMeetVictor,
   OnboardingTeachWakeWord,
   OnboardingWakeUp,
+
+  // victorBehaviorTree/performances
+  PossibleIntentionalPerformance,
+  PossibleUnintentionalPerformance,
 
   // victorBehaviorTree/prDemo
   PRDemoBigGreeting,
@@ -496,6 +486,9 @@ enum uint_16 BehaviorID {
   // victorBehaviorTree/weather
   WeatherResponses,
   WeatherTextToSpeech,
+
+  // victorBehaviorTree
+  WireTest,
 }
 
 }

@@ -78,7 +78,7 @@ project/build-scripts/webots/__GENERATED_ANIMATIONS_TEST__.cfg
 *.mexmaci64
 *.o
 *.obj
-*.so
+#*.so
 *.la
 *.a
 *.ko
@@ -240,7 +240,8 @@ UnityDASDll/UnityDASDll/bin/*
 .idea
 
 # Anki specific
-EXTERNALS
+# kercre123 - turn this into a submodule
+#EXTERNALS
 TAGS
 .subtreeconfig
 
@@ -408,3 +409,10 @@ robot_ip.txt
 # The 3rd directory contains drops from 3rd party vendors and all files should be allowed
 !3rd/**
 
+victor-packages
+log.txt
+
+robot_sshkey
+ota/out
+ota/ota-server/*.ota
+snowboy/server/main

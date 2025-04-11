@@ -9,6 +9,8 @@
 // System Includes
 #include <chrono>
 #include <assert.h>
+#include <cstdio>
+#include <cstring>
 
 // Our Includes
 #include "anki/cozmo/robot/DAS.h"
@@ -46,6 +48,9 @@ namespace { // "Private members"
   // Whether or not there is a valid syscon application
   // Assume we do until we get a PAYLOAD_BOOT_FRAME
   bool haveValidSyscon_ = true;
+
+  // whether we should parse data values with dvt2-best.dfu in mind
+  bool isDVT2Robot_ = false;
 
 #ifdef HAL_DUMMY_BODY
   BodyToHead dummyBodyData_ = {
@@ -364,6 +369,19 @@ Result HAL::Init(const int * shutdownSignal)
   if (InitRadio() != RESULT_OK) {
     AnkiError("HAL.Init.InitRadioFailed", "");
     return RESULT_FAIL;
+  }
+
+  // check ro.build.target
+  FILE* f = popen("/usr/bin/getprop ro.build.target", "r");
+  if(f != nullptr) {
+    char buf[16];
+    if(fgets(buf, sizeof(buf), f) != nullptr) {
+      if(strncmp(buf, "5", 1) == 0) {
+        AnkiInfo("HAL.Init.DetectGeneration", "DVT2 robot detected")
+        isDVT2Robot_ = true;
+      }
+    }
+    pclose(f);
   }
 
 #ifndef HAL_DUMMY_BODY
@@ -702,10 +720,19 @@ void HAL::Stop()
   ReportRecentInvalidProxDataReadings();
 }
 
+// run as default
 void ProcessTouchLevel(void)
 {
-  if(bodyData_->touchHires[HAL::BUTTON_CAPACITIVE] != 0xFFFF) {
-    lastValidTouchIntensity_ = bodyData_->touchHires[HAL::BUTTON_CAPACITIVE];
+  if (isDVT2Robot_) {
+    // touchLevel is 600-650 or so, touchhires is a much higher range.
+    // account for this by raising to a power rather than multiplying
+    if(bodyData_->touchLevel[0] != 0xFFFF) {
+      lastValidTouchIntensity_ = (uint16_t)pow((double)bodyData_->touchLevel[HAL::BUTTON_CAPACITIVE], 1.2);
+    }
+  } else {
+    if(bodyData_->touchHires[HAL::BUTTON_CAPACITIVE] != 0xFFFF) {
+      lastValidTouchIntensity_ = bodyData_->touchHires[HAL::BUTTON_CAPACITIVE];
+    }
   }
 }
 
@@ -903,7 +930,8 @@ void ProcessProxData()
     proxData_.spadCount        = 200.f;
     proxData_.timestamp_ms     = HAL::GetTimeStamp();
     proxData_.rangeStatus      = RangeStatus::RANGE_VALID;
-  } else if (bodyData_->proximity.sampleCount != lastProxDataSampleCount_) {
+    // other isDVT2Robot_ spot
+  } else if (isDVT2Robot_ || bodyData_->proximity.sampleCount != lastProxDataSampleCount_) {
     proxData_.rangeStatus = ConvertToApiRangeStatus(bodyData_->proximity.rangeStatus);
     // Track the occurrences of invalid prox sensor readings, reported on a periodic basis
     switch(proxData_.rangeStatus) {
@@ -1015,7 +1043,7 @@ f32 HAL::ChargerGetVoltage()
 u8 HAL::BatteryGetTemperature_C()
 {
   if (bodyData_->battery.temperature > 0xff) {
-    AnkiWarn("HAL.BatteryGetTemperature_C.InvalidTemp", "%u", bodyData_->battery.temperature);
+    //AnkiWarn("HAL.BatteryGetTemperature_C.InvalidTemp", "%u", bodyData_->battery.temperature);
     return 0;
   }
   return static_cast<u8>(bodyData_->battery.temperature);

@@ -57,12 +57,19 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
+#include <sys/stat.h>
+#include <string>
 
 #ifndef SIMULATOR
 #include <linux/reboot.h>
 #include <sys/reboot.h>
 #endif
 
+// CHANGE THIS TO BE YOUR PROJECT'S STUFF
+const std::string OSProject = "WireOS";
+const std::string OSBranch = "snowboy";
+const std::string Creator = "By Wire/kercre123";
+const std::string CreatorWebsite = "keriganc.com";
 
 // Log options
 #define LOG_CHANNEL    "FaceInfoScreenManager"
@@ -89,6 +96,15 @@ namespace Vector {
 const Point2f FaceInfoScreenManager::kDefaultTextStartingLoc_pix = {0,10};
 const u32 FaceInfoScreenManager::kDefaultTextSpacing_pix = 11;
 const f32 FaceInfoScreenManager::kDefaultTextScale = 0.4f;
+
+bool isDeployed() {
+    struct stat info;
+    if (stat("/anki-devtools", &info) != 0) {
+        return false;
+    }
+    return S_ISDIR(info.st_mode);
+}
+
 
 namespace {
   // Number of tics that a wheel needs to be moving for before it registers
@@ -207,9 +223,9 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   ADD_SCREEN(FAC, None);
   ADD_SCREEN(CustomText, None);
   ADD_SCREEN(Main, Network);
-  ADD_SCREEN_WITH_TEXT(ClearUserData, Main, {"CLEAR USER DATA?"});
-  ADD_SCREEN_WITH_TEXT(ClearUserDataFail, Main, {"CLEAR USER DATA FAILED"});
-  ADD_SCREEN_WITH_TEXT(Rebooting, Rebooting, {"REBOOTING..."});
+  ADD_SCREEN_WITH_TEXT(ClearUserData, Main, {"CLEAR OUT SOUL?"});
+  ADD_SCREEN_WITH_TEXT(ClearUserDataFail, Main, {"UNABLE TO CLEAR SOUL"});
+  ADD_SCREEN_WITH_TEXT(Rebooting, Rebooting, {"Vector will remember that..."});
   ADD_SCREEN_WITH_TEXT(SelfTest, Main, {"START SELF TEST?"});
   ADD_SCREEN(SelfTestRunning, SelfTestRunning)
   ADD_SCREEN(Network, SensorInfo);
@@ -225,7 +241,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   ADD_SCREEN(AlexaNotification, AlexaNotification);
   
   if (hideSpecialDebugScreens) {
-    ADD_SCREEN(MicInfo, Main); // Last screen cycles back to Main
+    ADD_SCREEN(MicInfo, BuildInfo);
   } else {
     ADD_SCREEN(MicInfo, MicDirectionClock);
   }
@@ -236,12 +252,14 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   if(IsWhiskey())
   {
     ADD_SCREEN(Camera, ToF);
-    ADD_SCREEN(ToF, Main);    // Last screen cycles back to Main
+    ADD_SCREEN(ToF, BuildInfo);
   }
   else
   {
-    ADD_SCREEN(Camera, Main);
+    ADD_SCREEN(Camera, BuildInfo);
   }
+
+  ADD_SCREEN(BuildInfo, Main); // Last screen cycles back to Main
 
 
   // ========== Screen Customization ========= 
@@ -298,9 +316,9 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
 
   ADD_MENU_ITEM(Main, "EXIT", None);
 #if ENABLE_SELF_TEST
-  ADD_MENU_ITEM(Main, "RUN SELF TEST", SelfTest);
+  ADD_MENU_ITEM(Main, IsXray() ? "TEST" : "SELF TEST", SelfTest);
 #endif
-  ADD_MENU_ITEM(Main, "CLEAR USER DATA", ClearUserData);
+  ADD_MENU_ITEM(Main, IsXray() ? "CLEAR" : "CLEAR OUT SOUL", ClearUserData);
 
   // === Self test screen ===
   ADD_MENU_ITEM(SelfTest, "EXIT", Main);
@@ -1234,6 +1252,9 @@ void FaceInfoScreenManager::Update(const RobotState& state)
     case ScreenName::CameraMotorTest:
       UpdateCameraTestMode(state.timestamp);
       break;
+    case ScreenName::BuildInfo:
+      DrawBuildInfo();
+      break;
     default:
       // Other screens are either updated once when SetScreen() is called
       // or updated by their own draw functions that are called externally
@@ -1271,19 +1292,23 @@ void FaceInfoScreenManager::DrawMain()
     esn =  serialNum;
   }
 
+  std::transform(esn.begin(), esn.end(), esn.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
   const std::string serialNo = "ESN: "  + esn;
 
-  const std::string hwVer    = "HW: "   + std::to_string(Factory::GetEMR()->fields.HW_VER);
+  const std::string hwVer    = "HW: "   + std::to_string(IsXray() ? 8 : Factory::GetEMR()->fields.HW_VER);
 
-  const std::string osVer    = "OS: "   + osstate->GetOSBuildVersion() +
-                                          (FACTORY_TEST ? " (V4)" : "") +
-                                          (osstate->IsInRecoveryMode() ? " U" : "");
+  const std::string osProject    = "OS: " + OSProject;
+
+  // osVer will be sha if deployed build
+  std::string osVer = "VER: " + osstate->GetOSBuildVersion();
 
   const std::string ssid     = "SSID: " + osstate->GetSSID(true);
 
-#if ANKI_DEV_CHEATS
-  const std::string sha      = "SHA: "  + osstate->GetBuildSha();
-#endif
+  if (isDeployed()) {
+    osVer      = "SHA: "  + osstate->GetBuildSha();
+  }
 
   std::string ip             = osstate->GetIPAddress();
   if (ip.empty()) {
@@ -1293,15 +1318,13 @@ void FaceInfoScreenManager::DrawMain()
   // ESN/serialNo and the HW version are drawn on the same line with serialNo default left aligned and
   // HW version right aligned.
   ColoredTextLines lines = { { {serialNo}, {hwVer, NamedColors::WHITE, false} },
-                             {osVer}, 
+                             {osProject},
+                             {osVer},
                              {ssid}, 
 #if FACTORY_TEST
                              {"IP: " + ip},
 #else
                              { {"IP: "}, {ip, (osstate->IsValidIPAddress(ip) ? NamedColors::GREEN : NamedColors::RED)} },
-#endif
-#if ANKI_DEV_CHEATS
-			     {sha},
 #endif
                            };
 
@@ -1353,7 +1376,6 @@ void FaceInfoScreenManager::DrawNetwork()
                             // TODO: re-enable after security team has confirmed showing email is allowed
                             //  { {"EMAIL: "}, {"dummy...@a...com"} },
                              { {"IP: "}, {ip, (osstate->IsValidIPAddress(ip) ? NamedColors::GREEN : NamedColors::RED)} },
-                             { },
                              { {currTime} },
                              { {"NETWORK: "}, _testingNetwork ? ColoredText("") : getStatusString(_networkStatus) }
                            };
@@ -1432,10 +1454,29 @@ void FaceInfoScreenManager::DrawSensorInfo(const RobotState& state)
   {
     DrawTextOnScreen({cliffs, touch, batt, charger, tempC});
   }
-  else
+  else if (IsXray())
   {
+    sprintf(temp,
+            "DIST: %3umm (%2.1f %2.1f %3.f)",
+            state.proxData.distance_mm,
+            state.proxData.signalIntensity,
+            state.proxData.ambientIntensity,
+            state.proxData.spadCount);
+    DrawTextOnScreen({syscon, cliffs, temp, touch, batt, charger, tempC});
+  } else {
     DrawTextOnScreen({syscon, cliffs, prox1, prox2, touch, batt, charger, tempC});
   }
+}
+
+void FaceInfoScreenManager::DrawBuildInfo() {
+  auto *osstate = OSState::getInstance();
+  const std::string osProject = "OS: " + OSProject;
+  const std::string branch = "BRANCH: " + OSBranch;
+  const std::string osVer = "VER: " + osstate->GetOSBuildVersion();
+  const std::string sha = "SHA: " + osstate->GetBuildSha();
+  const std::string creator = Creator;
+  const std::string creatorWebsite = CreatorWebsite;
+  DrawTextOnScreen({osProject, branch, osVer, sha, creator, creatorWebsite});
 }
 
 void FaceInfoScreenManager::DrawIMUInfo(const RobotState& state)
@@ -1552,10 +1593,10 @@ void FaceInfoScreenManager::DrawAlexaFace()
 
   static const int        kScreenTop            = 0;
   static const int        kIconToTextSpacing    = 0;
-  static const float      kDefaultTextScale     = 0.4f;
   static const ColorRGBA& kTextColor            = NamedColors::WHITE;
   static const int        kTextSpacing          = 14;
   static const int        kTextLineThickness    = 1;
+  float      kDefaultTextScale     = IsXray() ? 0.3f : 0.4f;
 
   // draw the alexa icon ...
 
@@ -1594,16 +1635,21 @@ void FaceInfoScreenManager::DrawAlexaFace()
     {
       textVec.push_back( { "You're ready to use Alexa." } );
       textVec.push_back( { "Check out the Alexa App" } );
-      textVec.push_back( { "for things to try." } );
-
+      if (!IsXray()) {
+        textVec.push_back( { "for things to try." } );
+      }
       break;
     }
 
     case ScreenName::AlexaPairingExpired:
     {
       textVec.push_back( { "The code has expired." } );
-      textVec.push_back( { "Retry to generate" } );
-      textVec.push_back( { "a new code." } );
+      if (IsXray()) {
+        textVec.push_back( { "Try again" } );
+      } else {
+        textVec.push_back( { "Retry to generate" } );
+        textVec.push_back( { "a new code." } );
+      }
 
       break;
     }
@@ -1658,10 +1704,8 @@ void FaceInfoScreenManager::DrawMuteAnimation()
   // so play the on/off or off/on anim to reflect that
   const std::string animName = muted ? "anim_micstate_micoff_01" : "anim_micstate_micon_01";
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  _animationStreamer->SetStreamingAnimation(animName, 0, 1, shouldInterrupt,
-                                            shouldOverrideEyeHue, shouldRenderInEyeHue);
+  const bool overrideAllSpritesToEyeColor = true;
+  _animationStreamer->SetStreamingAnimation(animName, 0, 1, 0, shouldInterrupt, overrideAllSpritesToEyeColor);
   
 }
   
@@ -1673,10 +1717,7 @@ void FaceInfoScreenManager::DrawAlexaNotification()
 
   const std::string animName = "anim_avs_notification_loop_01";
   const bool shouldInterrupt = true;
-  const bool shouldOverrideEyeHue = true;
-  const bool shouldRenderInEyeHue = false;
-  _animationStreamer->SetStreamingAnimation(animName, 0, 1, 0, shouldInterrupt,
-                                            shouldOverrideEyeHue, shouldRenderInEyeHue);
+  _animationStreamer->SetStreamingAnimation(animName, 0, 1, 0, shouldInterrupt);
 }
 
 // Draws each element of the textVec on a separate line (spacing determined by textSpacing_pix)
@@ -1694,6 +1735,8 @@ void FaceInfoScreenManager::DrawTextOnScreen(const std::vector<std::string>& tex
   f32 textLocY = loc.y();
   // TODO: Expose line and location(?) as arguments
   const u8  textLineThickness = 8;
+
+  textScale = IsXray() ? textScale - 0.05f : textScale;
 
   for(const auto& text : textVec)
   {
@@ -2092,6 +2135,18 @@ void FaceInfoScreenManager::SelfTestEnd(Anim::AnimationStreamer* animStreamer)
   _context->GetBackpackLightComponent()->SetSelfTestRunning(false);
   
   SetScreen(ScreenName::Main);
+}
+  
+void FaceInfoScreenManager::ExitCCScreen(Anim::AnimationStreamer* animStreamer)
+{
+  const ScreenName curScreen = FaceInfoScreenManager::getInstance()->GetCurrScreenName();
+  if(curScreen == ScreenName::SelfTestRunning)
+  {
+    animStreamer->EnableKeepFaceAlive(true, 0);
+    _context->GetBackpackLightComponent()->SetSelfTestRunning(false);
+  }
+  
+  SetScreen(ScreenName::None);
 }
 
 } // namespace Vector

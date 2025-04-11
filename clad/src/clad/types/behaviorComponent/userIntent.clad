@@ -160,6 +160,7 @@ union dupes_allowed UserIntent
   UserIntent_Void             movement_turnaround,
   UserIntent_Void             knowledge_question,
   UserIntent_KnowledgeResponse knowledge_response,
+  UserIntent_KnowledgeResponse knowledge_response_bypass,
   UserIntent_Void             knowledge_unknown,
   UserIntent_MeetVictor       meet_victor,
   UserIntent_PlaybackMessage  message_playback,
@@ -181,6 +182,7 @@ union dupes_allowed UserIntent
   UserIntent_Void             system_charger,
   UserIntent_Void             system_sleep,
   UserIntent_TakeAPhoto       take_a_photo,
+  UserIntent_Void             test_wire,
   UserIntent_WeatherResponse  weather_response,
 
   // used for validation to know when the above "normal intents" end

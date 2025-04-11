@@ -6,8 +6,9 @@ asset_project(
                 ('assets', 'RewardedActions/RewardedActions.json'),
                 ('assets', 'cubeFirmware/cube.dfu'),
                 ('assets', 'LocalizedStrings/**/*.json'),
-                ('3rd/sensory', 'sensorySpeechRecModels/hey_vector/**/*.raw'),
-                ('3rd/sensory', 'sensorySpeechRecModels/alexa/**/*.raw'),
+                ('3rd/snowboy', 'snowboyModels/*.res'),
+                ('3rd/snowboy', 'snowboyModels/*.umdl'),
+                ('3rd/snowboy', 'snowboyModels/*.pmdl'),
                 ('3rd/pryon_lite', 'pryonSpeechRecModels/**/*.bin'),
                 ('externals/animation-assets', 'animations/**/*.bin'),
                 ('externals/animation-assets', 'animationGroups/**/*.json'),
@@ -87,6 +88,12 @@ asset_project(
            ]),
 )
 
+asset_project(
+    name = 'cozmo_resources_escapepod',
+    srcs = subdir_glob([
+                ('escapepod', '**/*'),
+           ]),
+)
 
 asset_project(
     name = 'cozmo_resources_test',
@@ -95,7 +102,6 @@ asset_project(
                 ],
            ),
 )
-
 
 asset_project(
     name = 'cozmo_resources_webserver',

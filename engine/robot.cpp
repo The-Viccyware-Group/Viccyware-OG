@@ -68,6 +68,7 @@
 #include "engine/moodSystem/stimulationFaceDisplay.h"
 #include "engine/navMap/mapComponent.h"
 #include "engine/petWorld.h"
+#include "engine/receptiveSocialPresenceEstimator/socialPresenceEstimator.h"
 #include "engine/robotDataLoader.h"
 #include "engine/robotGyroDriftDetector.h"
 #include "engine/robotManager.h"
@@ -172,14 +173,16 @@ CONSOLE_FUNC(PrintBodyData, "Syscon", uint32_t printPeriod_tics, optional bool m
 
 // Perform Text to Speech Coordinator from debug console
 namespace {
+// TTS console group
+constexpr const char * kTextToSpeechPath = "TextToSpeech";
 
-constexpr const char * kTtsCoordinatorPath = "TtSCoordinator";
 // NOTE: Need to keep kVoiceStyles in sync with AudioMetaData::SwitchState::Robot_Vic_External_Processing in
 //       clad/audio/audioSwitchTypes.clad
 constexpr const char * kVoiceStyles = "Default_Processed,Unprocessed";
 
-CONSOLE_VAR_ENUM(u8, kVoiceStyle, kTtsCoordinatorPath, 0, kVoiceStyles);
-CONSOLE_VAR_RANGED(f32, kDurationScalar, kTtsCoordinatorPath, 1.f, 0.25f, 4.f);
+CONSOLE_VAR_ENUM(u8, kVoiceStyle, kTextToSpeechPath, 0, kVoiceStyles);
+CONSOLE_VAR_RANGED(f32, kDurationScalar, kTextToSpeechPath, 1.f, 0.25f, 4.f);
+CONSOLE_VAR_RANGED(f32, kPitchScalar, kTextToSpeechPath, 0.f, -1.f, 1.f);
 
 void SayText(ConsoleFunctionContextRef context)
 {
@@ -216,13 +219,19 @@ void SayText(ConsoleFunctionContextRef context)
       break;
   }
 
- LOG_INFO("Robot.TtSCoordinator", "text(%s) style(%s) duration(%f)",
-          Util::HidePersonallyIdentifiableInfo(textStr.c_str()), EnumToString(style), kDurationScalar);
+  LOG_INFO("Robot.SayText",
+           "text(%s) style(%s) durationScalar(%.2f) pitchScalar(%.2f)",
+           Util::HidePersonallyIdentifiableInfo(textStr.c_str()),
+           EnumToString(style),
+           kDurationScalar,
+           kPitchScalar);
 
-  robot->GetTextToSpeechCoordinator().CreateUtterance(textStr, UtteranceTriggerType::Immediate, style);
+  auto & ttsCoordinator = robot->GetTextToSpeechCoordinator();
+  const auto triggerType = UtteranceTriggerType::Immediate;
+  ttsCoordinator.CreateUtterance(textStr, triggerType, style, kDurationScalar, kPitchScalar);
 }
 
-CONSOLE_FUNC(SayText, kTtsCoordinatorPath, const char* text);
+CONSOLE_FUNC(SayText, kTextToSpeechPath, const char* text);
 
 } // end namespace
 
@@ -357,6 +366,7 @@ Robot::Robot(const RobotID_t robotID, CozmoContext* context)
     _components->AddDependentComponent(RobotComponentID::AccountSettingsManager,     new AccountSettingsManager());
     _components->AddDependentComponent(RobotComponentID::UserEntitlementsManager,    new UserEntitlementsManager());
     _components->AddDependentComponent(RobotComponentID::LocaleComponent,            new LocaleComponent());
+    _components->AddDependentComponent(RobotComponentID::SocialPresenceEstimator,    new SocialPresenceEstimator());
     _components->InitComponents(this);
   }
 
@@ -856,13 +866,6 @@ void UpdateFaceImageRGBExample(Robot& robot)
     }
   }
 
-  // Throttle frames
-  // Don't send if the number of procAnim keyframes gets large enough
-  // (One keyframe == 33ms)
-  if (robot.GetAnimationComponent().GetAnimState_NumProcAnimFaceKeyframes() > 30) {
-    return;
-  }
-
   // Move 'X' through the image
   const f32 xStep = 5.f;
   pos.x() += xStep;
@@ -1074,9 +1077,12 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
       HistRobotState histState;
       lastResult = GetStateHistory()->GetLastStateWithFrameID(msg.pose_frame_id, histState);
       if (lastResult != RESULT_OK) {
-        LOG_ERROR("Robot.UpdateFullRobotState.GetLastPoseWithFrameIdError",
-                  "Failed to get last pose from history with frame ID=%d",
-                  msg.pose_frame_id);
+        // Don't print warning if frame_id 0 because this can sometimes happen on startup
+        if (msg.pose_frame_id != 0) {
+          LOG_WARNING("Robot.UpdateFullRobotState.GetLastPoseWithFrameIdError",
+                      "Failed to get last pose from history with frame ID=%d",
+                      msg.pose_frame_id);
+        }
         return lastResult;
       }
       pose_z = histState.GetPose().GetWithRespectToRoot().GetTranslation().z();
@@ -1176,7 +1182,6 @@ Result Robot::UpdateFullRobotState(const RobotState& msg)
   // Send state to visualizer for displaying
   VizInterface::RobotStateMessage vizState(stateMsg,
                                            _robotImuTemperature_degC,
-                                           GetAnimationComponent().GetAnimState_NumProcAnimFaceKeyframes(),
                                            GetCliffSensorComponent().GetCliffDetectThresholds(),
                                            imageFramePeriod_ms,
                                            imageProcPeriod_ms,

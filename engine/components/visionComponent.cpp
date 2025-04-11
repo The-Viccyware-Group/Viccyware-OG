@@ -43,6 +43,9 @@
 #include "coretech/common/engine/opencvThreading.h"
 #include "coretech/common/engine/math/polygon.h"
 
+// Include debayer.h because ConsoleVars for gamma must be here; they didn't work in debayer.cpp 
+#include "coretech/vision/engine/debayer.h" 
+
 #include "util/cpuProfiler/cpuProfiler.h"
 #include "util/helpers/templateHelpers.h"
 #include "util/logging/logging.h"
@@ -122,6 +125,14 @@ namespace Vector {
     enable = !enable;
   }
   CONSOLE_FUNC(DebugToggleCameraEnabled, "Vision.General");
+
+  CONSOLE_VAR_RANGED(f32, kDebayerGamma, "Vision.Debayer", 1.7f, 0.1f, 4.f);
+  bool s_debayerResetGamma(false);
+  void ResetGamma(ConsoleFunctionContextRef context)
+  {
+    Anki::Vision::Debayer::Instance().SetGamma(kDebayerGamma);
+  }
+  CONSOLE_FUNC(ResetGamma, "Vision.Debayer");
 
   namespace JsonKey
   {
@@ -219,6 +230,8 @@ namespace Vector {
           _captureFormatState = CaptureFormatState::None;
         }
       });
+
+    Anki::Vision::Debayer::Instance().SetGamma(kDebayerGamma);
 
     SetLiftCrossBar();
 
@@ -1205,6 +1218,10 @@ namespace Vector {
       for(auto const& salientPoint : procResult.salientPoints)
       {
         _salientPointsToDraw.emplace_back(currentTime_ms, salientPoint);
+        // broadcast message
+        ExternalInterface::RobotObservedSalientPoint msg;
+        msg.salientPoint = salientPoint;
+        _robot->Broadcast(ExternalInterface::MessageEngineToGame(std::move(msg)));
       }
     }
 
@@ -1460,7 +1477,7 @@ namespace Vector {
 
     // Send as face display animation
     auto & animComponent = _robot->GetAnimationComponent();
-    if(isMirrorModeEnabled && animComponent.GetAnimState_NumProcAnimFaceKeyframes() < 5) // Don't get too far ahead
+    if(isMirrorModeEnabled)
     {
       // NOTE: This creates a non-const image "header" around the same data as is in procResult.mirrorModeImg.
       // Due to a bug / design flaw in OpenCV, this actually allows us to draw on that image, even though
@@ -2679,37 +2696,6 @@ namespace Vector {
             if (_robot->SendMessage(RobotInterface::EngineToRobot(std::move(msg))) != RESULT_OK) {
               LOG_WARNING("VisionComponent.ReadCameraCalibration.SendCameraFOVFailed", "");
             }
-          }
-        }
-        // If this is the factory test and we failed to read calibration then use a dummy one
-        // since we should be getting a real one during playpen
-        else if(FACTORY_TEST)
-        {
-          LOG_WARNING("VisionComponent.ReadCameraCalibration.Failed", "");
-
-          // TEMP HACK: Use dummy calibration for now since final camera not available yet
-          LOG_WARNING("VisionComponent.ReadCameraCalibration.UsingDummyV2Calibration", "");
-
-          // Calibration computed from Inverted Box target using one of the proto robots
-          // Should be close enough for other robots without calibration to use
-          const std::array<f32, 8> distortionCoeffs = {{-0.03822904514363595, -0.2964213946476391, -0.00181089972406104, 0.001866070303033584, 0.1803429725181202,
-            0, 0, 0}};
-
-          auto calib = std::make_shared<Vision::CameraCalibration>(360,
-                                          640,
-                                          364.7223064012286,
-                                          366.1693698832141,
-                                          310.6264440545544,
-                                          196.6729350209868,
-                                          0,
-                                          distortionCoeffs);
-
-          SetCameraCalibration(calib);
-
-          // Compute FOV from focal length and send
-          CameraFOVInfo msg(calib->ComputeHorizontalFOV().ToFloat(), calib->ComputeVerticalFOV().ToFloat());
-          if (_robot->SendMessage(RobotInterface::EngineToRobot(std::move(msg))) != RESULT_OK) {
-            LOG_WARNING("VisionComponent.ReadCameraCalibration.SendCameraFOVFailed", "");
           }
         }
         else
