@@ -66,9 +66,9 @@
 #endif
 
 // CHANGE THIS TO BE YOUR PROJECT'S STUFF
-const std::string OSProject = "Viccy";
+const std::string OSProject = "Viccyware";
 const std::string OSBranch = "Beta 4";
-const std::string Creator = "Built by the Viccy Team";
+const std::string Creator = "Built by the Viccyware Team";
 const std::string CreatorWebsite = "vicw.xyz";
 
 // Log options
@@ -225,7 +225,7 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   ADD_SCREEN(Main, Network);
   ADD_SCREEN_WITH_TEXT(ClearUserData, Main, {"CLEAR OUT SOUL?"});
   ADD_SCREEN_WITH_TEXT(ClearUserDataFail, Main, {"UNABLE TO CLEAR SOUL"});
-  ADD_SCREEN_WITH_TEXT(Rebooting, Rebooting, {"Viccy will remember that..."});
+  ADD_SCREEN_WITH_TEXT(Rebooting, Rebooting, {"Cozmo will remember that..."});
   ADD_SCREEN_WITH_TEXT(SelfTest, Main, {"START SELF TEST?"});
   ADD_SCREEN(SelfTestRunning, SelfTestRunning)
   ADD_SCREEN(Network, SensorInfo);
@@ -345,7 +345,11 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
     return ScreenName::Rebooting;
   };
   ADD_MENU_ITEM(ClearUserData, "EXIT", Main);
+<<<<<<< HEAD
   ADD_MENU_ITEM_WITH_ACTION(ClearUserData, IsXray() ? "CONFIRM" : "CONFIRM (RIP VICCY)", confirmClearUserData);
+=======
+  ADD_MENU_ITEM_WITH_ACTION(ClearUserData, "RIP COZMO", confirmClearUserData);
+>>>>>>> parent of 74f500ee47 (Replace Cozmo/Viccyware with Viccy)
   SET_TIMEOUT(ClearUserDataFail, 2.f, Main);
 
 
