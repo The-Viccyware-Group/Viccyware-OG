@@ -16,6 +16,7 @@ enum int_32 BackpackAnimationTrigger
   // Please keep alphabetical
 
   AlexaNotification,
+  Asleep,
   Charging,
   DanceToTheBeat,
   Idle_09,
@@ -49,6 +50,7 @@ enum int_32 BackpackAnimationTrigger
 // CppLite doesn't generate EnumToString so create our own
 enum_concept string EnumToString[BackpackAnimationTrigger] {
   AlexaNotification         = verbatim "AlexaNotification",
+  Asleep                    = verbatim "Asleep",
   Charging                  = verbatim "Charging",
   DanceToTheBeat            = verbatim "DanceToTheBeat",
   Idle_09                   = verbatim "Idle_09",
