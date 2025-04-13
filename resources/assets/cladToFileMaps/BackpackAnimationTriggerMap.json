@@ -4,6 +4,10 @@
     "AnimName": "alexaNotification"
   },
   {
+    "CladEvent": "Sleeping",
+    "AnimName": "sleeping"
+  },
+  {
       "CladEvent": "Charging",
       "AnimName": "charging"
   },
