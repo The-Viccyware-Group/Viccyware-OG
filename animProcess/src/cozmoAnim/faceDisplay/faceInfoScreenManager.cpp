@@ -313,6 +313,8 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   };
   SET_ENTER_ACTION(Main, mainEnterFcn);
 
+  ADD_MENU_ITEM(Main, "RE-AUTH", Re-Auth);
+
   ADD_MENU_ITEM(Main, "EXIT", None);
 #if ENABLE_SELF_TEST
   ADD_MENU_ITEM(Main, IsXray() ? "TEST" : "SELF TEST", SelfTest);
@@ -348,6 +350,17 @@ void FaceInfoScreenManager::Init(Anim::AnimContext* context, Anim::AnimationStre
   ADD_MENU_ITEM_WITH_ACTION(ClearUserData, IsXray() ? "CONFIRM" : "CONFIRM (RIP COZMO)", confirmClearUserData);
   SET_TIMEOUT(ClearUserDataFail, 2.f, Main);
 
+  // === re-auth screen ===
+  FaceInfoScreen::MenuItemAction Re-Auth = [this]() {
+    LOG_INFO("FaceInfoScreenManager.Recovery.Re-Auth", "");
+
+    (void)system("rm /data/data/com.anki.victor/persistent/token/token.jwt /data/data/com.anki.victor/persistent/onboarding/onboardingState.json");
+    this->Reboot();
+
+    return ScreenName::Rebooting;
+  };
+  ADD_MENU_ITEM_WITH_ACTION(Re-Auth, "EXIT", None);
+  ADD_MENU_ITEM(Re-Auth, "CONTINUE", reauth);
 
   // === Network screen ===
   auto networkEnterFcn = [this]() {

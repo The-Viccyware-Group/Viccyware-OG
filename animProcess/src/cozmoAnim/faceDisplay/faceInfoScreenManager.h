@@ -192,7 +192,7 @@ private:
   void DrawMuteAnimation();
   void DrawAlexaNotification();
   void DrawRebootScreen();
-  
+  void DrawRe-AuthScreen();
   // Draw the _scratchDrawingImg to the face
   void DrawScratch();
 
