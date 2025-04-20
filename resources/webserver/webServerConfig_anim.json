@@ -1,6 +1,6 @@
 {
   "port": "8889",
-  "title0": "Viccy Web Server (vic-anim)",
+  "title0": "Cozmo Web Server (vic-anim)",
   "title1": "This web server is running in vic-anim",
   "whichWebServer": 2,
   "tickBudget_ms": 33,
