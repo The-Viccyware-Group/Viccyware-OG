@@ -700,7 +700,6 @@ enum uint_32 GenericEvent
   Play__Robot_Vo__Shared_Celebrate_Spin = 2159643843,
   Play__Robot_Vo__Shared_Curious = 3556785413,
   Play__Robot_Vo__Shared_Curious_Mutter = 2721235403,
-  Play__Robot_Vo__Shared_Curious_Short = 4047754278,
   Play__Robot_Vo__Shared_Disappointed_Short = 327662522,
   Play__Robot_Vo__Shared_Effort_Lift = 3824979789,
   Play__Robot_Vo__Shared_Effort_Lift_Heavy = 3398455981,

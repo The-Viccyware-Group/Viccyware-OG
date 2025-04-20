@@ -156,7 +156,7 @@ AudioEngine::AudioPlayingId AnimationAudioClient::PostCozmoEvent( AudioMetaData:
 
   // Are we about to play a TextToSpeech utterance?
   auto ttsID = TextToSpeechComponent::kInvalidTTSID;
-  if (event == GenericEvent::Play__Robot_Vic__External_Voice_Text) {
+  if (event == GenericEvent::Play__Robot_Vo__External_Unprocessed) {
     if (_ttsComponent != nullptr) {
       ttsID = _ttsComponent->GetActiveTTSID();
     }

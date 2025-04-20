@@ -482,7 +482,7 @@ bool TextToSpeechComponent::PostAudioEvent(uint8_t ttsID)
                                               } );
 
   using AudioEvent = AudioMetaData::GameEvent::GenericEvent;
-  const auto eventID = AudioEngine::ToAudioEventId( AudioEvent::Play__Robot_Vic__External_Voice_Text );
+  const auto eventID = AudioEngine::ToAudioEventId( AudioEvent::Play__Robot_Vo__External_Unprocessed );
   const auto gameObject = static_cast<AudioEngine::AudioGameObject>( kTTSGameObject );
   const auto playingID = _audioController->PostAudioEvent(eventID, gameObject, audioCallbackContext);
 

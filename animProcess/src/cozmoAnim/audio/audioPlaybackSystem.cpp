@@ -182,7 +182,7 @@ void AudioPlaybackSystem::BeginAudioPlayback()
     });
 
     // now post this message to the audio engine which tells it to play the chunk of memeory we just passed to the plugin
-    const AudioEventId audioId = ToAudioEventId( GameEvent::GenericEvent::Play__Robot_Vic__External_Voice_Message );
+    const AudioEventId audioId = ToAudioEventId( GameEvent::GenericEvent::Play__Robot_Vo__External_Cozmo_Processing );
     const AudioGameObject audioGameObject = ToAudioGameObject( GameObjectType::VoiceRecording );
 
     audioController->PostAudioEvent( audioId, audioGameObject, callbackContext );
