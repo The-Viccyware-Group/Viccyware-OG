@@ -95,7 +95,7 @@ anki_build_go_executable(vic-cloud ${ANKI_SRCLIST_DIR})
 _add_chipper_flags(vic-cloud)
 # copy opusfile to lib dir
 if (ANDROID)
-  configure_file(${__opus_build_dir}/lib/libopus.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} COPYONLY)
+  configure_file(opus/vicos/lib/libopus.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} COPYONLY)
 endif()
 
 #

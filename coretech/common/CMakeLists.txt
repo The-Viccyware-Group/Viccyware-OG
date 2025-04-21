@@ -12,9 +12,9 @@ anki_build_cxx_library(cti_common ${ANKI_SRCLIST_DIR} STATIC)
 
 target_compile_definitions(cti_common
   PUBLIC
-  ANKICORETECH_USE_OPENCV=1
+  ANKICORETECH_USE_OPENCV=0
   ANKICORETECH_USE_MATLAB=0
-  ANKICORETECH_EMBEDDED_USE_OPENCV=1
+  ANKICORETECH_EMBEDDED_USE_OPENCV=0
   ANKICORETECH_EMBEDDED_USE_MATLAB=0
   PRIVATE
   CORETECH_ENGINE
@@ -42,7 +42,7 @@ target_link_libraries(cti_common
   ${CTI_GENERATED_LIBS}
   util
   jsoncpp
-  opencv_interface
+  #opencv_interface
   ${OPENCV_LIBS}
   PRIVATE
   z
@@ -64,14 +64,14 @@ target_link_libraries(cti_common_robot
   util
   cti_common_clad_cpplite
   PRIVATE
-  opencv_interface
+  #opencv_interface
 )
 
 target_compile_definitions(cti_common_robot
   PUBLIC
-  ANKICORETECH_USE_OPENCV=1
+  ANKICORETECH_USE_OPENCV=0
   ANKICORETECH_USE_MATLAB=0
-  ANKICORETECH_EMBEDDED_USE_OPENCV=1
+  ANKICORETECH_EMBEDDED_USE_OPENCV=0
   ANKICORETECH_EMBEDDED_USE_MATLAB=0
   PRIVATE
   CORETECH_ROBOT

@@ -5,7 +5,7 @@ project(engine)
 include(opencv)
 include(okao)
 include(flatbuffers)
-include(archive)
+#include(archive)
 include(routing_http_server)
 include(android_strip)
 include(anki_build_cxx)
@@ -63,7 +63,7 @@ target_link_libraries(cozmo_engine
   micdata
   # vendor
   ${FLATBUFFERS_LIBS}
-  ${LIBARCHIVE_LIBS}
+  #${LIBARCHIVE_LIBS}
   ${BREAKPAD_LIBS}
   # system
   z

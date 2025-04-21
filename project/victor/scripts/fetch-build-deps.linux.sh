@@ -36,7 +36,7 @@ function check_dep()
 
 pushd "${TOPLEVEL}" > /dev/null 2>&1
 
-$GIT config --global url."git@github.com:".insteadOf https://github.com
+#$GIT config --global url."git@github.com:".insteadOf https://github.com
 
 # Check for required programs
 check_dep which python2

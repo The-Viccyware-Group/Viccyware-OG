@@ -235,7 +235,6 @@ UnityDASDll/UnityDASDll/bin/*
 .idea
 
 # Anki specific
-EXTERNALS
 TAGS
 .subtreeconfig
 

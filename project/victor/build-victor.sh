@@ -125,7 +125,7 @@ if [ -z "${CMAKE_EXE+x}" ]; then
     CMAKE_EXE=`${TOPLEVEL}/tools/build/tools/ankibuild/cmake.py --install-cmake 3.9.6`
 fi
 
-if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ]; then
+if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 1 ]; then
   echo "Attempting to run fetch-build-deps.sh"
   ${TOPLEVEL}/project/victor/scripts/fetch-build-deps.sh
 else
@@ -199,7 +199,7 @@ case ${GENERATOR} in
     "Xcode")
         PROJECT_FILE="cozmo.xcodeproj"
         ;;
-    "Makefile")
+    "Makefiles")
         PROJECT_FILE="Makefile"
         GENERATOR="CodeBlocks - Unix Makefiles"
       ;;
@@ -271,7 +271,7 @@ if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ] || [ $CONFIGURE -eq 1 ] ; then
     METABUILD_INPUTS=`find . -name BUILD.in`
 fi
 
-if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 0 ]; then
+if [ $IGNORE_EXTERNAL_DEPENDENCIES -eq 1 ]; then
   echo "Getting Go dependencies"
   # Process BUILD.in files (creates list of Go projects to fetch)
   ${BUILD_TOOLS}/metabuild/metabuild.py --go-output \
