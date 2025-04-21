@@ -16,10 +16,12 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
-#include "clad/types/animationTrigger.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
+  
+enum class AnimationTrigger : int32_t;
   
 class BehaviorRequestToGoHome : public ICozmoBehavior
 {
@@ -34,7 +36,10 @@ public:
   
 protected:
   virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override;
-  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override { modifiers.wantsToBeActivatedWhenOnCharger = false; }
+  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override {
+    modifiers.wantsToBeActivatedWhenOnCharger = false;
+    modifiers.wantsToBeActivatedWhenCarryingObject = true;
+  }
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
 
   virtual void InitBehavior() override;
@@ -54,13 +59,14 @@ private:
   };
   
   struct RequestParams {
-    int numRequests = 0;
-    AnimationTrigger requestAnimTrigger  = AnimationTrigger::Count;
-    AnimationTrigger getoutAnimTrigger   = AnimationTrigger::Count;
-    AnimationTrigger waitLoopAnimTrigger = AnimationTrigger::Count;
+    RequestParams();
+    int numRequests;
+    AnimationTrigger requestAnimTrigger;
+    AnimationTrigger getoutAnimTrigger;
+    AnimationTrigger waitLoopAnimTrigger;
     
     // How long to loop idle anims before transitioning to next request/stage
-    float idleWaitTime_sec = 0.f;
+    float idleWaitTime_sec;
   };
   
 
@@ -90,12 +96,13 @@ private:
     int numNormalRequests;
     int numSevereRequests;
     // robot image timestamp at the time the behavior was activated
-    TimeStamp_t imageTimestampWhenActivated;
+    RobotTimeStamp_t imageTimestampWhenActivated;
   };
 
   InstanceConfig   _iConfig;
   DynamicVariables _dVars;
 
+  void TransitionToCheckForFaces();
   void TransitionToSearchingForFaces();
   void TransitionToRequestAnim();
   void TransitionToRequestWaitLoopAnim();
@@ -110,7 +117,7 @@ private:
 };
   
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_Behaviors_BehaviorRequestToGoHome_H__

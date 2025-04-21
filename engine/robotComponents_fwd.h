@@ -24,56 +24,77 @@ class DependencyManagedEntity;
 template<typename EnumType>
 class IDependencyManagedComponent;
 
-namespace Cozmo {
+namespace Vector {
 
 // When adding to this enum be sure to also declare a template specialization
 // in the _impl.cpp file mapping the enum to the class type it is associated with
-enum class RobotComponentID{
+enum class RobotComponentID {
+  AccountSettingsManager,
   AIComponent,
   ActionList,
   Animation,
+  AppCubeConnectionSubscriber,
   Battery,
+  BeatDetector,
   BlockTapFilter,
   BlockWorld,
-  BodyLights,
+  BackpackLights,
   Carrying,
   CliffSensor,
-  CozmoContext,
+  CozmoContextWrapper,
   CubeAccel,
+  CubeBattery,
   CubeComms,
+  CubeConnectionCoordinator,
+  CubeInteractionTracker,
   CubeLights,
+  DataAccessor,
   Docking,
   DrivingAnimationHandler,
   EngineAudioClient,
   FaceWorld,
   FullRobotPose,
   GyroDriftDetector,
-  Inventory,
+  HabitatDetector,
+  ImuSensor,
+  JdocsManager,
+  LocaleComponent,
   Map,
-  MicDirectionHistory,
+  MicComponent,
   MoodManager,
+  StimulationFaceDisplay,
   Movement,
   NVStorage,
-  ObjectPoseConfirmer,
   PathPlanning,
   PetWorld,
-  ProgressionUnlock,
+  PhotographyManager,
+  PowerStateManager,
   ProxSensor,
   PublicStateBroadcaster,
-  RobotIdleTimeout,
+  SDK,
+  SettingsCommManager,
+  SettingsManager,
+  RangeSensor,
+  RobotHealthReporter,
+  RobotStatsTracker,
   RobotToEngineImplMessaging,
+  SocialPresenceEstimator,
   StateHistory,
+  TextToSpeechCoordinator,
   TouchSensor,
+  UserEntitlementsManager,
+  VariableSnapshotComponent,
   Vision,
   VisionScheduleMediator,
+  RobotExternalRequestComponent,
   Count
 };
 
-using RobotComp =  IDependencyManagedComponent<RobotComponentID>;
+using RobotComponent =  IDependencyManagedComponent<RobotComponentID>;
 using RobotCompMap = DependencyManagedEntity<RobotComponentID>;
 using RobotCompIDSet = std::set<RobotComponentID>;
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_RobotComponentsFWD_H__

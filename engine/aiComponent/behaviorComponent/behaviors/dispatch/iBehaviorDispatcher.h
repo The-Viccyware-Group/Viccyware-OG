@@ -19,7 +19,7 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class IBehaviorDispatcher : public ICozmoBehavior
 {
@@ -71,19 +71,22 @@ private:
     std::vector<std::string>       behaviorStrs;
     std::vector<ICozmoBehaviorPtr> behaviors;
 
-    bool shouldInterruptActiveBehavior;
+    bool shouldInterruptActiveBehavior = false;
+    bool requireGentleInterruption = false;
   };
 
   struct DynamicVariables {
     DynamicVariables();
   };
 
+  bool ShouldInterruptBehavior() const;
+
   InstanceConfig   _iConfig;
   DynamicVariables _dVars;
 
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki 
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_Dispatch_IBehaviorDispatcher_H__

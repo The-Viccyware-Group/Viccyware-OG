@@ -4,18 +4,22 @@
 // Copyright: Anki, inc. 2016
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 enum uint_8 SimpleMoodType {
 
-Happy = 0,
-Sad,
-Default,
+Default = 0,
+
+LowStim,
+MedStim,
+HighStim,
+
+Frustrated,
 
 Count
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

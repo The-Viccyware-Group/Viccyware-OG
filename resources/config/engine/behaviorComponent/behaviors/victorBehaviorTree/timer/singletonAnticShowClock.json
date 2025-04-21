@@ -1,0 +1,11 @@
+{
+  "behaviorClass" : "ProceduralClock",
+  "behaviorID" : "SingletonAnticShowClock",
+
+  "associatedActiveFeature": "TimerReminder",
+
+  "getInAnimTrigger" : "TimerCheckTimeGetIn",
+  "getOutAnimTrigger" : "TimerCheckTimeGetOut",
+  "displayClockFor_s" : 5,
+  "shouldTurnToFace"  : true
+}

@@ -15,7 +15,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class TestState {
   Init,
@@ -76,13 +76,6 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       StartMovieConditional("RollBlockBehavior");
       // TakeScreenshotsAtInterval("RollBlockBehavior", 1.f);
       
-      // make sure rolling is unlocked
-      UnlockId unlock = UnlockIdFromString("RollCube");
-      CST_ASSERT(unlock != UnlockId::Count, "couldn't get valid unlock id");
-      SendMessage( ExternalInterface::MessageGameToEngine(
-                     ExternalInterface::RequestSetUnlock(unlock, true)));
-      
-      _moveHeadToAngleResult = ActionResult::RUNNING;
       SendMoveHeadToAngle(0, 100, 100);
       SET_TEST_STATE(VerifyObject)
       break;
@@ -108,7 +101,7 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       IF_CONDITION_WITH_TIMEOUT_ASSERT(_turnInPlaceResult == ActionResult::SUCCESS, 10) {
         // Make sure we are still localized (to an object) before sending deloc
         CST_ASSERT( IsLocalizedToObject(), "Should be localized to object before we deloc");
-        SendForceDeloc();
+        SendForceDelocalize();
         SET_TEST_STATE(WaitForDeloc);
       }
       break;
@@ -120,9 +113,9 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       IF_CONDITION_WITH_TIMEOUT_ASSERT(!IsLocalizedToObject(), 2) {
         SendMessage(ExternalInterface::MessageGameToEngine(
                       ExternalInterface::ExecuteBehaviorByID(
-                        BehaviorTypesWrapper::BehaviorIDToString(kBehaviorID), -1)));
+                        BehaviorTypesWrapper::BehaviorIDToString(kBehaviorID), -1, false)));
         
-        _behaviorStartedTime = GetSupervisor()->getTime();
+        _behaviorStartedTime = GetSupervisor().getTime();
         SET_TEST_STATE(DontStartBehavior);
       }
       break;
@@ -134,7 +127,7 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       CST_ASSERT( !_startedBehavior, "Behavior shouldnt start because we delocalized" );
       
       const double timeToWait_s = 2.0;
-      double currTime = GetSupervisor()->getTime();
+      double currTime = GetSupervisor().getTime();
       if( currTime - _behaviorStartedTime > timeToWait_s ) {
         // turn back
         _turnInPlaceResult = ActionResult::RUNNING;
@@ -187,7 +180,10 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       //  stop driving, then give it a shove backward but still in view.
       Pose3d robotPose = GetRobotPoseActual();
       Pose3d cubePose = GetLightCubePoseActual(ObjectType::Block_LIGHTCUBE1);
-      const bool nearBlock = ComputeDistanceBetween(robotPose, cubePose) < _kRobotNearBlockThreshold_mm;
+      float distToCube_mm = 0.f;
+      const bool result = ComputeDistanceBetween(robotPose, cubePose, distToCube_mm);
+      CST_ASSERT(result, "Failed computing distance between robot and cube");
+      const bool nearBlock = (distToCube_mm < _kRobotNearBlockThreshold_mm);
       
       // Still driving?
       const bool wheelsMoving = IsRobotStatus(RobotStatusFlag::ARE_WHEELS_MOVING);
@@ -198,7 +194,7 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
                                             !wheelsMoving) {
         // Push the block away so that the roll will fail.
         SendApplyForce("cube", 10, -5, 10);
-        _pushedBlockTime = GetSupervisor()->getTime();
+        _pushedBlockTime = GetSupervisor().getTime();
         SET_TEST_STATE(PushBlockToSide)
       }
       break;
@@ -215,11 +211,14 @@ s32 CST_RollBlockBehavior::UpdateSimInternal()
       // Wait for robot to get close to block, then give it a shove to the side such that it is out of view.
       Pose3d robotPose = GetRobotPoseActual();
       Pose3d cubePose = GetLightCubePoseActual(ObjectType::Block_LIGHTCUBE1);
-      const bool nearBlock = ComputeDistanceBetween(robotPose, cubePose) < _kRobotNearBlockThreshold_mm;
+      float distToCube_mm = 0.f;
+      const bool result = ComputeDistanceBetween(robotPose, cubePose, distToCube_mm);
+      CST_ASSERT(result, "Failed computing distance between robot and cube");
+      const bool nearBlock = (distToCube_mm < _kRobotNearBlockThreshold_mm);
       
       // wait a bit for the block to move away after the previous push.
       const double timeToWait_s = 0.5;
-      double currTime = GetSupervisor()->getTime();
+      double currTime = GetSupervisor().getTime();
       IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(15,
                                             currTime - _pushedBlockTime > timeToWait_s,
                                             nearBlock,

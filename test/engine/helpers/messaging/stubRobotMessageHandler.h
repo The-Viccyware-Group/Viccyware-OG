@@ -16,7 +16,7 @@
 #define __Test_Helpers_Messaging_StubRobotMessageHandler_H__
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class StubMessageHandler : public RobotInterface::MessageHandler
 {
@@ -25,7 +25,9 @@ public:
   virtual void Init(const Json::Value& config, RobotManager* robotMgr, const CozmoContext* context) override {
     // do nothing
   }
-  virtual void ProcessMessages() override {
+
+  virtual Result ProcessMessages() override {
+    return RESULT_OK;
   }
 
   virtual Result SendMessage(const RobotInterface::EngineToRobot& msg,
@@ -67,7 +69,7 @@ private:
 
   // Holds all messages sent from engine to the robot.
   // NOTE: this grows without bounds, so if you have a long-running test, you should clear it periodically
-  std::vector<RobotInterface::EngineToRobot> _msgsToRobot;    
+  std::vector<RobotInterface::EngineToRobot> _msgsToRobot;
 
 };
 
@@ -75,4 +77,3 @@ private:
 }
 
 #endif
-

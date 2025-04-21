@@ -15,13 +15,15 @@
 #define __Engine_Behaviors_BehaviorTimerUtilityCoordinator_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
+#include "engine/aiComponent/behaviorComponent/behaviors/timer/behaviorProceduralClock.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // forward declarations
-class BehaviorProceduralClock;
+class BehaviorAdvanceClock;
 class BehaviorAnimGetInLoop;
+class BehaviorProceduralClock;
 class TimerUtility;
 class UserIntent;
 // Specified in .cpp
@@ -33,6 +35,8 @@ public:
   virtual ~BehaviorTimerUtilityCoordinator();
 
   bool IsTimerRinging();
+
+  void SuppressAnticThisTick(unsigned long tickCount);
 
   #if ANKI_DEV_CHEATS
   void DevSetForceAntic() { _lParams.shouldForceAntic = true; };
@@ -59,21 +63,29 @@ protected:
 
 private:
   struct InstanceParams{
+    std::string timerRingingBehaviorStr;
     std::shared_ptr<BehaviorProceduralClock> setTimerBehavior;
-    std::shared_ptr<BehaviorProceduralClock> timerAnticBehavior;
-    std::shared_ptr<BehaviorAnimGetInLoop>   timerRingingBehavior;
+    std::shared_ptr<BehaviorProceduralClock> anticDisplayClock;
+    std::shared_ptr<BehaviorProceduralClock> timerCheckTimeBehavior;
+    ICozmoBehaviorPtr                        anticBaseBehavior;
+    ICozmoBehaviorPtr                        timerRingingBehavior;
     ICozmoBehaviorPtr                        timerAlreadySetBehavior;
     ICozmoBehaviorPtr                        iCantDoThatBehavior;
-    ICozmoBehaviorPtr                        cancelTimerBehavior;
+    std::shared_ptr<BehaviorAdvanceClock>    cancelTimerBehavior;
     std::unique_ptr<AnticTracker>            anticTracker;
     int                                      minValidTimer_s;
     int                                      maxValidTimer_s;
+
+    int                                      touchTimeToCancelTimer_ms;
   };
 
   struct LifetimeParams{
     LifetimeParams();
     bool shouldForceAntic;
-    std::unique_ptr<UserIntent> setTimerIntent;
+    unsigned long tickToSuppressAnticFor;
+    bool touchReleasedSinceStartedRinging;
+    bool robotPlacedDownSinceStartedRinging;
+    float timeRingingStarted_s;
   };
 
   InstanceParams _iParams;
@@ -82,25 +94,30 @@ private:
   bool TimerShouldRing() const;
   TimerUtility& GetTimerUtility() const;
   
-  void SetupTimerBehaviorFunctions() const;
+  void SetupTimerBehaviorFunctions();
+  
+  bool CheckAndDelegate( IBehavior* behavior, bool runCallbacks = false );
 
   void TransitionToSetTimer();
   void TransitionToPlayAntic();
+  void TransitionToShowTimeRemaining();
   void TransitionToRinging();
   void TransitionToTimerAlreadySet();
   void TransitionToNoTimerToCancel();
   void TransitionToCancelTimer();
   void TransitionToInvalidTimerRequest();
 
+  BehaviorProceduralClock::GetDigitsFunction BuildTimerFunction() const;
 
   // Functions called by Update to check for transitions
   void CheckShouldCancelRinging();
   void CheckShouldSetTimer();
   void CheckShouldCancelTimer();
   void CheckShouldPlayAntic();
+  void CheckShouldShowTimeRemaining();
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

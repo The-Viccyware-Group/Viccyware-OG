@@ -42,10 +42,6 @@ enum {
 };
 typedef uint32_t RobotMotor;
 
-enum {
-  RUNNING_FLAGS_SENSORS_VALID = 1
-};
-
 // ENUM DropSensor
 enum {
   DROP_SENSOR_FRONT_LEFT  = 0,
@@ -58,6 +54,7 @@ typedef uint32_t DropSensor;
 
 // ENUM PayloadId
 enum {
+  PAYLOAD_LIGHT_STATE = 0x736c,
   PAYLOAD_DATA_FRAME  = 0x6466,
   PAYLOAD_CONT_DATA   = 0x6364,
   PAYLOAD_MODE_CHANGE = 0x6d64,
@@ -86,6 +83,7 @@ enum {
   NACK_SIZE_ALIGN   = -6,
   NACK_BAD_COMMAND  = -7,
   NACK_NOT_VALID    = -8,
+  NACK_OVERFLOW     = -9
 };
 typedef int32_t Ack;
 
@@ -93,21 +91,45 @@ typedef int32_t Ack;
 enum {
   POWER_ON_CHARGER    = 0x1,
   POWER_IS_CHARGING   = 0x2,
+  POWER_BATTERY_DISCONNECTED = 0x4,
+  POWER_IS_OVERHEATED = 0x8,
+  POWER_CHARGER_OVERHEAT = 0x10,
+  POWER_IS_TOO_LOW = 0x20,
+  POWER_BATTERY_SHUTDOWN = 0x40,
+  POWER_CHARGER_SHORTED = 0x8000
 };
 typedef uint16_t BatteryFlags;
 
+enum {
+  RUNNING_FLAGS_SENSORS_VALID = 1,
+  ENCODERS_DISABLED = 2,
+  ENCODER_HEAD_INVALID = 4,
+  ENCODER_LIFT_INVALID = 8
+};
+typedef uint8_t B2HFlags;
+
 // ENUM PowerState
 enum {
-  POWER_STATE_OFF               = 0,
-  POWER_STATE_OFF_WAKE_ON_RADIO = 1,
-  POWER_STATE_ON                = 2,
-  POWER_STATE_IDLE              = 3,
-  POWER_STATE_FORCE_RECOVERY    = 4,
-  POWER_STATE_OTA_MODE          = 5,
-  POWER_STATE_CHARGER_TEST_MODE = 6,
-  POWER_STATE_DTM_MODE          = 7,
+  POWER_MODE_ACTIVE = 0,
+  POWER_MODE_CALM   = 1,
 };
 typedef uint32_t PowerState;
+
+// ENUM PowerFlags
+enum {
+  POWER_DISCONNECT_CHARGER = 0x8000,
+  POWER_CONNECT_CHARGER    = 0x4000,
+};
+typedef uint32_t PowerFlags;
+
+// ENUM TemperatureAlarm
+enum {
+  TEMP_ALARM_SAFE = 0,
+  TEMP_ALARM_LOW = 1,
+  TEMP_ALARM_MID = 2,
+  TEMP_ALARM_HOT = 3
+};
+typedef uint8_t TemperatureAlarm;
 
 // ENUM LedIndexes
 enum {
@@ -151,10 +173,11 @@ struct MotorPower
 
 struct BatteryState
 {
-  int16_t battery;
+  int16_t main_voltage; // This is battery voltage when the charger is unpowered / disconnected from VEXT
   int16_t charger;
   int16_t temperature;
   BatteryFlags flags;
+  int16_t _unused[2];
 };
 
 struct ButtonState
@@ -170,7 +193,7 @@ struct RangeData
   uint16_t signalRate;
   uint16_t ambientRate;
   uint16_t spadCount;
-  uint16_t spare2;
+  uint16_t sampleCount;
   uint32_t calibrationResult;
 };
 
@@ -208,16 +231,16 @@ struct BodyToHead
 {
   uint32_t framecounter;
   uint8_t flags;
-  uint8_t _unused0;
+  TemperatureAlarm tempAlarm;
   FailureCode failureCode;
   struct MotorState motor[4];
   uint16_t cliffSense[4];
   struct BatteryState battery;
-  uint32_t _unused1;
   struct RangeData proximity;
   uint16_t touchLevel[2];
   uint16_t micError[2]; // Raw bits from a segment of mic data (stuck bit detect)
-  uint8_t _unused[28];  // Future expansion
+  uint16_t touchHires[2];
+  uint8_t _unused[24];  // Future expansion
 #if MICDATA_ENABLED
   int16_t audio[MICDATA_SAMPLES_COUNT];
 #endif
@@ -228,12 +251,18 @@ struct ContactData
   uint8_t data[32];
 };
 
+struct LightState
+{
+  // Note: Only the first 12 elements are used, and 4 are spares
+  uint8_t ledColors[16];
+};
+
 struct HeadToBody
 {
   uint32_t framecounter;
-  PowerState powerState;
+  PowerFlags powerFlags;
   int16_t motorPower[4];
-  uint8_t ledColors[16];
+  struct LightState lightState;
   uint8_t _unused[32];  // Future expansion
 };
 

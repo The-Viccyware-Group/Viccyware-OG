@@ -5,18 +5,29 @@
   "interruptActiveBehavior": true,
 
   "behaviors": [
-    "ReactToCliff",
+    "MandatoryPhysicalReactions",
+    "SDKDefault",
+    "SDKLock",
     "TriggerWordDetected",
+    "SingletonWallTimeCoordinator",
     "TimerUtilityCoordinator",
-    "MeetVictor",
-    "ReactToGreeting",
-    "ReactToGoodMorning",
-    "ReactToGoodBye",
-    "ReactToGoodNight",
-    "DoATrickVoiceCommand",
-    "ReactToSoundAwake",
-    "ReactToTouchDispatcher",
+    "WeatherResponses",
+    "TakeAPhotoCoordinator",
+    "ReactToRobotShaken",
+    "ReactToTouchPetting",
+    "SimpleVoiceResponses", // these are simple voice commands that we want to ignore obstacles
+    "ReactToObstacle",
+    "SingletonPounceDispatcher",
+    "VoiceFeatures",
+    "ChangeEyeColor",
     "ReactToUnclaimedIntent",
+    "HeldInPalmDispatcher",
+    "WhileInAirDispatcher",
+    "ReactToPutDown",
+    "OptionalReactions",
+    "StayOnChargerUntilCharged", // delegate includes ReactToSoundAwake
+    "ReactToSoundAwake",
+    "ConfirmHabitat",
     "HighLevelAI"
   ]
 }

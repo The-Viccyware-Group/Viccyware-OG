@@ -18,8 +18,9 @@
 #define __Cozmo_Basestation_Behaviors_BehaviorInteractWithFaces_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
-#include "engine/events/animationTriggerHelpers.h"
+#include "util/cladHelpers/cladFromJSONHelpers.h"
 #include "engine/smartFaceId.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "coretech/vision/engine/faceIdTypes.h"
 
 #include <string>
@@ -31,7 +32,7 @@ namespace Vision {
 class TrackedFace;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 namespace ExternalInterface {
 struct RobotObservedFace;
@@ -56,10 +57,7 @@ protected:
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // ICozmoBehavior API
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override {
-    modifiers.visionModesForActivatableScope->insert({ VisionMode::DetectingFaces, EVisionUpdateFrequency::Low });
-    modifiers.visionModesForActiveScope->insert({ VisionMode::DetectingFaces, EVisionUpdateFrequency::Standard });
-  }
+  virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override;
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
 
   virtual void OnBehaviorActivated() override;
@@ -76,8 +74,18 @@ private:
 
   struct InstanceConfig {
     InstanceConfig();
-    float minTimeToTrackFace_s;
-    float maxTimeToTrackFace_s;
+    float minTimeToTrackFaceLowerBound_s;
+    float minTimeToTrackFaceUpperBound_s;
+
+    float maxTimeToTrackFaceLowerBound_s;
+    float maxTimeToTrackFaceUpperBound_s;
+
+    float noEyeContactTimeout_s;
+    float trackingTimeout_s;
+    TimeStamp_t eyeContactWithinLast_ms;
+
+    float minTrackingTiltAngle_deg;
+    float minTrackingPanAngle_deg;
 
     float minClampPeriod_s;
     float maxClampPeriod_s;
@@ -90,7 +98,7 @@ private:
     mutable SmartFaceID targetFace;
     // We only want to run for faces we've seen since the last time we ran, so keep track of the final timestamp
     // when the behavior finishes
-    TimeStamp_t lastImageTimestampWhileRunning;
+    RobotTimeStamp_t lastImageTimestampWhileRunning;
     // In the face tracking stage the action will hang, so store a time at which we want to stop it (from within
     // Update)
     float trackFaceUntilTime_s;
@@ -114,7 +122,7 @@ private:
     
 }; // BehaviorInteractWithFaces
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_Behaviors_BehaviorInteractWithFaces_H__

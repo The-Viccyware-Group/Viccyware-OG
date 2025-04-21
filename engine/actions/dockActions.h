@@ -18,9 +18,9 @@
 #include "engine/actionableObject.h"
 #include "engine/actions/basicActions.h"
 #include "engine/actions/compoundActions.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "coretech/vision/shared/MarkerCodeDefinitions.h"
 #include "clad/types/dockingSignals.h"
-#include "clad/types/animationTrigger.h"
 
 
 #include "util/helpers/templateHelpers.h"
@@ -35,14 +35,16 @@ namespace Anki {
     class KnownMarker;
   }
   
-  namespace Cozmo {
+  namespace Vector {
     
     // Forward Declarations:
     class Animation;
+    enum class AnimationTrigger : int32_t;
     class BlockWorld;
     class CarryingComponent;
     class DriveToPlaceCarriedObjectAction;
     class DockingComponent;
+    class TriggerAnimationAction;
     class VisionComponent;
     class Robot;
     
@@ -59,6 +61,8 @@ namespace Anki {
                   const RobotActionType type);
       
       virtual ~IDockAction();
+
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return true; }
 
       virtual void OnRobotSet() override final;
 
@@ -89,13 +93,14 @@ namespace Anki {
       // Set whether or not to place carried object on ground
       void SetPlaceOnGround(bool placeOnGround);
       
-      // Sets the animation to play when lift moves after docking.
-      // The animation should only contain a sound track!
-      void SetPostDockLiftMovingAnimation(AnimationTrigger animTrigger);
+      // Sets the audio event to play when lift moves after docking
+      void SetPostDockLiftMovingAudioEvent(AudioMetaData::GameEvent::GenericEvent event);
       
       void SetDockingMethod(DockingMethod dockingMethod) { _dockingMethod = dockingMethod; }
       
       void SetDoLiftLoadCheck(bool enable) { _doLiftLoadCheck = enable; }
+      
+      void SetBackUpWhileLiftingCube(bool enable) { _backUpWhileLiftingCube = enable; }
       
       void SetNumDockingRetries(u8 numRetries) { _numDockingRetries = numRetries; }
       
@@ -108,9 +113,6 @@ namespace Anki {
       // that we are seeing any marker on the object
       // By default this is false (the action is looking for a specific marker)
       void SetShouldVisuallyVerifyObjectOnly(const bool b) { _visuallyVerifyObjectOnly = b; }
-      
-      // Whether or not we should look up to check if there is an object above the dockObject
-      void SetShouldCheckForObjectOnTopOf(const bool b) { _checkForObjectOnTopOf = b; }
       
       // Whether or not we should first turn towards and visually verify the dockObject
       void SetShouldFirstTurnTowardsObject(const bool b) { _firstTurnTowardsObject = b; }
@@ -190,7 +192,10 @@ namespace Anki {
       
       template<typename T>
       void HandleMessage(const T& msg);
-      
+
+      void SetDockAnimations(const AnimationTrigger& getIn,
+                             const AnimationTrigger& loop,
+                             const AnimationTrigger& getOut);
     protected:
       
       // IDockAction derived classes nearly universally require the same VisionModes. Special cases should
@@ -227,10 +232,13 @@ namespace Anki {
       virtual void GetCompletionUnion(ActionCompletedUnion& completionUnion) const override {
         // TODO: Annoying we have to copy this out, bet the Get_() method is const...
         ObjectInteractionCompleted interactionCompleted;
-        interactionCompleted.numObjects = 1;
-        interactionCompleted.objectIDs[0] = _dockObjectID;
+        interactionCompleted.objectID = _dockObjectID;
         completionUnion.Set_objectInteractionCompleted(interactionCompleted);
       }
+      
+      // Identify cases where the robot should play start, loop, and end animations while docking. Override this to
+      // false to prevent playing docking anims.
+      virtual bool ShouldPlayDockingAnimations() { return true; }
       
       // Purely to shorten the name for nice whitespace alignment
       using UniqueCompoundPtr = std::unique_ptr<ICompoundAction>;
@@ -255,21 +263,22 @@ namespace Anki {
       u8                         _numDockingRetries              = 0;
       DockingMethod              _dockingMethod                  = DockingMethod::BLIND_DOCKING;
       f32                        _preDockPoseDistOffsetX_mm      = 0;
-      bool                       _checkForObjectOnTopOf          = true;
       bool                       _doLiftLoadCheck                = false;
+      bool                       _backUpWhileLiftingCube         = false;
       LiftLoadState              _liftLoadState                  = LiftLoadState::UNKNOWN;
       bool                       _firstTurnTowardsObject         = true;
       DockingComponent*          _dockingComponentPtr            = nullptr;
       CarryingComponent*         _carryingComponentPtr           = nullptr;
+      std::unique_ptr<TriggerAnimationAction> _dockAnim;      
       
     private:
     
       // Sets up the turnTowardsObject action and the "glance up to see if there is a block on top of the
       // block we are docking with" action
       void SetupTurnAndVerifyAction(const ObservableObject* dockObject);
-      
-      // Identify cases where cozmo should squint while docking
-      bool ShouldApplyDockingSquint();
+
+      // Manually update the dock animation subaction
+      void UpdateDockingAnim();
       
       // Handler for when lift begins to move so that we can play an accompanying sound
       Signal::SmartHandle        _liftMovingSignalHandle;
@@ -280,14 +289,20 @@ namespace Anki {
       std::vector<Signal::SmartHandle> _signalHandles;
       
       // Name of animation to play when moving lift post-dock
-      AnimationTrigger           _liftMovingAnimation = AnimationTrigger::Count;
+      using GE = AudioMetaData::GameEvent::GenericEvent;
+      GE _liftMovingAudioEvent = GE::Invalid;
       
       bool _shouldSetCubeLights      = false;
       bool _lightsSet                = false;
       bool _visuallyVerifyObjectOnly = false;
+
+      // These default docking animation triggers can be overridden with SetDockAnimations()
+      AnimationTrigger _getInDockTrigger;
+      AnimationTrigger _loopDockTrigger;
+      AnimationTrigger _getOutDockTrigger;
       
-      const std::string _kEyeSquintLayerName = "IDockActionEyeSquintLayer";
-      
+      AnimationTrigger _curDockTrigger;
+
     }; // class IDockAction
     
     
@@ -301,6 +316,8 @@ namespace Anki {
       virtual void GetCompletionUnion(ActionCompletedUnion& completionUnion) const override;
       
     protected:
+      
+      virtual bool ShouldFailOnTransitionOffTreads() const override { return false; }
       
       virtual PreActionPose::ActionType GetPreActionType() override { return PreActionPose::ROLLING; }
       
@@ -395,10 +412,10 @@ namespace Anki {
     
       std::unique_ptr<IActionRunner> _verifyAction = nullptr;
       bool                           _verifyActionDone = false;
-      TimeStamp_t                    _firstVerifyCallTime = 0;
+      RobotTimeStamp_t               _firstVerifyCallTime = 0;
       
       const u32 kLiftLoadTimeout_ms = 500;
-      u32 _liftLoadWaitTime_ms = 0;
+      RobotTimeStamp_t _liftLoadWaitTime_ms = 0;
       
       // The max amount of time that cube motion is allowed to be moving after robot completes backup.
       // This is to check that the cube is not in the user's hands.
@@ -572,47 +589,6 @@ namespace Anki {
       
     }; // class RollObjectAction
 
-    
-    class CrossBridgeAction : public IDockAction
-    {
-    public:
-      CrossBridgeAction(ObjectID bridgeID);
-      
-    protected:
-      
-      virtual PreActionPose::ActionType GetPreActionType() override { return PreActionPose::ENTRY; }
-      
-      virtual ActionResult SelectDockAction(ActionableObject* object) override;
-      
-      virtual ActionResult Verify() override;
-      
-      // Crossing a bridge _does_ require the second dockMarker,
-      // so override the virtual method for setting it
-      virtual const Vision::KnownMarker* GetDockMarker2(const std::vector<PreActionPose>& preActionPoses,
-                                                        const size_t closestIndex) override;
-      
-    }; // class CrossBridgeAction
-    
-    
-    class AscendOrDescendRampAction : public IDockAction
-    {
-    public:
-      AscendOrDescendRampAction(ObjectID rampID);
-      
-    protected:
-      
-      virtual ActionResult SelectDockAction(ActionableObject* object) override;
-      
-      virtual ActionResult Verify() override;
-      
-      virtual PreActionPose::ActionType GetPreActionType() override { return PreActionPose::ENTRY; }
-      
-      // Give the robot a little longer to start ascending/descending before
-      // checking if it is done
-      virtual f32 GetCheckIfDoneDelayInSeconds() const override { return 1.f; }
-      
-    }; // class AscendOrDescendRampAction
-    
   }
 }
 

@@ -1,12 +1,39 @@
 {
-  "behaviorClass": "AnimSequence",
+  "behaviorClass": "AnimSequenceWithFace",
   "behaviorID": "ObservingEyeContact",
 
-  "animTriggers" : ["HikingSquintStart"],
+  "wantsToBeActivatedCondition": {
+    "conditionType" : "EyeContact"
+  },
 
-  "wantsToBeActivatedConditions": [
+  "animTriggers" : ["EyeContactLookLoop"],
+
+  "faceSelectionPenalties": [
     {
-      "conditionType" : "EyeContact"
+      "factor": "TrackingOnly",
+      "multiplier": 10000.0
+    },
+    {
+      "factor": "NotMakingEyeContact",
+      "multiplier": 1000.0
+    },
+    {
+      "factor": "TimeSinceSeen_s",
+      "multiplier": 100.0
+    },
+    {
+      "factor": "UnnamedFace",
+      "multiplier": 10.0
+    },
+    {
+      "factor": "RelativeBodyAngleRadians",
+      "multiplier": 3.0
+    },
+    {
+      "factor": "RelativeHeadAngleRadians",
+      "multiplier": 1.0
     }
-  ]
+  ],
+  
+  "emotionEventOnActivated": "EyeContactReaction"
 }

@@ -16,7 +16,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 ConditionOnCharger::ConditionOnCharger(const Json::Value& config)
   : IBEICondition(config)
@@ -25,7 +25,7 @@ ConditionOnCharger::ConditionOnCharger(const Json::Value& config)
 
 bool ConditionOnCharger::AreConditionsMetInternal(BehaviorExternalInterface& bei) const
 {
-  const bool onCharger = bei.GetRobotInfo().IsOnChargerPlatform();
+  const bool onCharger = bei.GetRobotInfo().IsOnChargerContacts();
   return onCharger;
 }
 

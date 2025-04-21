@@ -26,7 +26,7 @@
 #include <unordered_map>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 class ObjectInteractionCacheEntry;
 class ObservableObject;
@@ -103,6 +103,7 @@ private:
   static const char* ObjectUseIntentionToString(ObjectInteractionIntention intention);
   
   // Common logic for checking validity of blocks for any Pickup, PopAWheelie, or Roll Interactions
+  bool CanBeInteractedWith(const ObservableObject* object) const;
   bool CanPickupNoAxisCheck(const ObservableObject* object) const;
   bool CanPickupAxisCheck(const ObservableObject* object) const;
   bool CanUseAsStackTopNoAxisCheck(const ObservableObject* object) const;
@@ -158,7 +159,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorSystem_ObjectInteractionInfoCache_H__

@@ -22,7 +22,7 @@
 #include <set>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward Declaration
 class BehaviorSystemManager;
@@ -30,15 +30,16 @@ class IBehavior;
 
 class IBehaviorMessageSubscriber {
 public:
-  virtual void SubscribeToTags(IBehavior* subscriber, std::set<ExternalInterface::MessageGameToEngineTag>&& tags) const = 0;
-  virtual void SubscribeToTags(IBehavior* subscriber, std::set<ExternalInterface::MessageEngineToGameTag>&& tags) const = 0;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<GameToEngineTag>&& tags) const = 0;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<EngineToGameTag>&& tags) const = 0;
   virtual void SubscribeToTags(IBehavior* subscriber, std::set<RobotInterface::RobotToEngineTag>&& tags) const = 0;
+  virtual void SubscribeToTags(IBehavior* subscriber, std::set<AppToEngineTag>&& tags) const = 0;
 };
   
   
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Cozmo_Basestation_BehaviorComponent_IBehaviorMessageSubscriber_H__

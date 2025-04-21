@@ -14,7 +14,8 @@
 
 
 #define MAX_FIRMWARE_SZ 0xa0000
-#define FIXTURE_TTY "/dev/ttyHSL1"
+//#define FIXTURE_TTY "/dev/ttyHSL1"
+#define FIXTURE_TTY "/dev/ttyHS0"
 #define FIXTURE_BAUD B1000000
 
 
@@ -35,7 +36,7 @@ static struct {
 
 
 //Clean up open file handles and memory
-void on_exit(void)
+void core_common_on_exit(void)
 {
   if (gDFU.imageFd) {
     close(gDFU.imageFd);
@@ -177,9 +178,6 @@ int main(int argc, const char* argv[])
   }
   printf("Flash successful\n");
 
-  on_exit();
+  core_common_on_exit();
   return 0;
 }
-
-
-

@@ -15,9 +15,10 @@
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_DevBehaviors_BehaviorDispatchAfterShake_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
+#include "engine/engineTimeStamp.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorDispatchAfterShake : public ICozmoBehavior
 {
@@ -53,13 +54,14 @@ private:
     size_t countShaken;
     bool   shakingSession; // with memory, not instantaneous
     float  lastChangeTime_s; // either the last time it was shaken, or the last time it was stopped
+    EngineTimeStamp_t tickPlacedDown;
   };
 
   InstanceConfig   _iConfig;
   DynamicVariables _dVars;
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

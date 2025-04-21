@@ -15,6 +15,9 @@
 #include "util/logging/channelFilter.h"
 #include "util/logging/logging.h"
 #include "util/logging/printfLoggerProvider.h"
+
+#include "anki/cozmo/shared/factory/emrHelper.h"
+
 #include <cstdio>
 #include <string>
 
@@ -29,16 +32,19 @@ namespace WebotsCtrlShared {
 ParsedCommandLine ParseCommandLine(int argc, char** argv)
 {
   ParsedCommandLine ret;
-  
+
   if ( argc > 1 )
   {
     const std::string kFilterParam = "--applyLogFilter";
     const std::string kColorizeParam = "--colorizeStderrOutput";
+    const std::string kWhiskeyParam = "--whiskey";
     for( int i=1; i<argc; ++i) {
       if ( kFilterParam == argv[i] ) {
         ret.filterLog = true;
       } else if ( kColorizeParam == argv[i] ) {
         ret.colorizeStderrOutput = true;
+      } else if ( kWhiskeyParam == argv[i] ) {
+        Vector::Factory::SetWhiskey(true);
       }
     }
   }
@@ -54,16 +60,16 @@ Anki::Util::Data::DataPlatform CreateDataPlatformBS(const std::string& runningPa
   #else
     size_t pos = runningPath.rfind('/');
   #endif
-  
+
   // Get the path
   const std::string path = runningPath.substr(0,pos+1);
   const std::string outputPath = path + kRootDirectory + kBuildPath + platformID;
-  
+
   const std::string resourcePath = path + "resources";
   const std::string persistentPath = path + "persistent";
   const std::string& cachePath = outputPath;
   Anki::Util::Data::DataPlatform dataPlatform(persistentPath, cachePath, resourcePath);
-  
+
   return dataPlatform;
 }
 
@@ -75,16 +81,16 @@ Anki::Util::Data::DataPlatform CreateDataPlatformTest(const std::string& running
   #else
     size_t pos = runningPath.rfind('/');
   #endif
-  
+
   // Get the path
   const std::string path = runningPath.substr(0,pos+1);
   const std::string outputPath = path + kRootDirectory + kBuildPath + platformID;
-  
+
   const std::string resourcePath = path + "temp";
   const std::string persistentPath = path + "temp";
   const std::string& cachePath = outputPath;
   Anki::Util::Data::DataPlatform dataPlatform(persistentPath, cachePath, resourcePath);
-  
+
   return dataPlatform;
 }
 
@@ -106,7 +112,7 @@ AutoGlobalLogger::~AutoGlobalLogger()
   if ( _provider == Anki::Util::gLoggerProvider ) {
     Anki::Util::gLoggerProvider = nullptr;
   }
-  
+
   // now delete the provider
   Util::SafeDelete(_provider);
 }
@@ -123,7 +129,7 @@ void AutoGlobalLogger::Initialize(Util::IFormattedLoggerProvider* loggerProvider
   {
     using namespace Anki::Util;
     ChannelFilter* consoleFilter = new ChannelFilter();
-    
+
     // load file config
     Json::Value consoleFilterConfig;
     const std::string& consoleFilterConfigPath = "config/engine/console_filter_config.json";
@@ -131,16 +137,16 @@ void AutoGlobalLogger::Initialize(Util::IFormattedLoggerProvider* loggerProvider
     {
       PRINT_NAMED_ERROR("AutoGlobalLogger.Initialize", "Failed to parse Json file '%s'", consoleFilterConfigPath.c_str());
     }
-    
+
     // initialize console filter for this platform
     const std::string& platformOS = dataPlatform.GetOSPlatformString();
     const Json::Value& consoleFilterConfigOnPlatform = consoleFilterConfig[platformOS];
     consoleFilter->Initialize(consoleFilterConfigOnPlatform);
-    
+
     // set filter in the loggers
     std::shared_ptr<const IChannelFilter> filterPtr( consoleFilter );
     loggerProvider->SetFilter(filterPtr);
-    
+
     // also parse info for providers
     loggerProvider->ParseLogLevelSettings(consoleFilterConfigOnPlatform);
   }
@@ -158,7 +164,7 @@ AutoGlobalLogger(new Util::PrintfLoggerProvider(), dataPlatform, loadLoggerFilte
   // do a static_cast instead of dynamic_cast in shipping for performance.
   DEV_ASSERT(dynamic_cast<Util::PrintfLoggerProvider*>(_provider), "DefaultAutoGlobalLogger.DefaultLoggerIsNotPrintf");
   Util::PrintfLoggerProvider* provider = static_cast<Util::PrintfLoggerProvider*>(_provider);
-  provider->SetMinToStderrLevel(Util::ILoggerProvider::LOG_LEVEL_WARN);
+  provider->SetMinToStderrLevel(Anki::Util::LOG_LEVEL_WARN);
   provider->SetColorizeStderrOutput(colorizeStderrOutput);
 }
 

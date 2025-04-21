@@ -16,12 +16,12 @@
 #ifndef __BASESTATION_MINIMALANGLEPLANNER_H__
 #define __BASESTATION_MINIMALANGLEPLANNER_H__
 
-#include "coretech/common/engine/math/point.h"
-#include "coretech/common/shared/radians.h"
+#include "coretech/common/shared/math/point_fwd.h"
+#include "coretech/common/shared/math/radians.h"
 #include "pathPlanner.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class MinimalAnglePlanner : public IPathPlanner
 {
@@ -30,7 +30,8 @@ public:
   MinimalAnglePlanner() : IPathPlanner("MinimalAngle") {}
   
   virtual EComputePathStatus ComputeNewPathIfNeeded(const Pose3d& startPose,
-                                                    bool forceReplanFromScratch = false) override;
+                                                    bool forceReplanFromScratch = false,
+                                                    bool allowGoalChange = true) override;
 protected:
 
   virtual EComputePathStatus ComputePath(const Pose3d& startPose,

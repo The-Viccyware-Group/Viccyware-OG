@@ -13,15 +13,17 @@
 #include "engine/components/dockingComponent.h"
 
 #include "engine/blockWorld/blockWorld.h"
+#include "engine/blockWorld/blockWorldFilter.h"
 #include "engine/components/carryingComponent.h"
 #include "engine/components/visionComponent.h"
 #include "engine/cozmoContext.h"
 #include "engine/robot.h"
+#include "engine/vision/visionSystem.h"
 
 #include "util/console/consoleInterface.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Don't send docking error signal if body is rotating faster than this
 CONSOLE_VAR(f32, kDockingRotatingTooFastThresh_degPerSec, "WasRotatingTooFast.Dock.Body_deg/s", RAD_TO_DEG(0.4f));
@@ -33,7 +35,7 @@ DockingComponent::DockingComponent()
 }
 
 
-void DockingComponent::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents)
+void DockingComponent::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps)
 {
   _robot = robot;
 }
@@ -51,7 +53,8 @@ Result DockingComponent::DockWithObject(const ObjectID objectID,
                                         const f32 placementOffsetAngle_rad,
                                         const u8 numRetries,
                                         const DockingMethod dockingMethod,
-                                        const bool doLiftLoadCheck)
+                                        const bool doLiftLoadCheck,
+                                        const bool backUpWhileLiftingCube)
 {
   ActionableObject* object = dynamic_cast<ActionableObject*>(_robot->GetBlockWorld().GetLocatedObjectByID(objectID));
   if(object == nullptr) {
@@ -93,9 +96,10 @@ Result DockingComponent::DockWithObject(const ObjectID objectID,
     return RESULT_FAIL;
   }
   
-  // Mark as dirty so that the robot no longer localizes to this object
-  const bool propagateStack = false;
-  _robot->GetObjectPoseConfirmer().MarkObjectDirty(object, propagateStack);
+  // If the dock object is expected to move, then mark as dirty so that the robot no longer localizes to this object
+  if (ExpectDockObjectToMove(dockAction, true)) {
+    _robot->GetBlockWorld().MarkObjectDirty(object);
+  }
   
   _lastPickOrPlaceSucceeded = false;
   
@@ -108,28 +112,29 @@ Result DockingComponent::DockWithObject(const ObjectID objectID,
   // the marker can be seen anywhere in the image (same as above function), otherwise the
   // marker's center must be seen at the specified image coordinates
   // with pixel_radius pixels.
-  Result sendResult = _robot->SendRobotMessage<::Anki::Cozmo::DockWithObject>(0.0f,
-                                                                             speed_mmps,
-                                                                             accel_mmps2,
-                                                                             decel_mmps2,
-                                                                             dockAction,
-                                                                             numRetries,
-                                                                             dockingMethod,
-                                                                             doLiftLoadCheck);
+  Result sendResult = _robot->SendRobotMessage<::Anki::Vector::DockWithObject>(0.0f,
+                                                                               speed_mmps,
+                                                                               accel_mmps2,
+                                                                               decel_mmps2,
+                                                                               dockAction,
+                                                                               numRetries,
+                                                                               dockingMethod,
+                                                                               doLiftLoadCheck,
+                                                                               backUpWhileLiftingCube);
   
   return sendResult;
 }
 
 Result DockingComponent::AbortDocking() const
 {
-  return _robot->SendMessage(RobotInterface::EngineToRobot(Anki::Cozmo::AbortDocking()));
+  return _robot->SendMessage(RobotInterface::EngineToRobot(Anki::Vector::AbortDocking()));
 }
 
-void DockingComponent::UpdateDockingErrorSignal(const TimeStamp_t t) const
+void DockingComponent::UpdateDockingErrorSignal(const RobotTimeStamp_t t) const
 {
   // The WasRotatingTooFast threshold for sending the docking error signal should be
   // tighter than the general WasRotatingTooFast threshold for marker detection
-  DEV_ASSERT((kDockingRotatingTooFastThresh_degPerSec <= _robot->GetVisionComponent().GetBodyTurnSpeedThresh_degPerSec()),
+  DEV_ASSERT((kDockingRotatingTooFastThresh_degPerSec <= VisionSystem::GetBodyTurnSpeedThresh_degPerSec()),
              "VisionComponent.UpdateDockingErrorSignal.BodyTurnSpeedThreshTooRestrictive");
   
   const ObjectID& dockObjectID = GetDockObject();
@@ -139,12 +144,12 @@ void DockingComponent::UpdateDockingErrorSignal(const TimeStamp_t t) const
     return;
   }
   
-  if(_robot->GetVisionComponent().WasBodyRotatingTooFast(t, kDockingRotatingTooFastThresh_degPerSec))
+  if(_robot->GetImuComponent().GetImuHistory().WasBodyRotatingTooFast(t, kDockingRotatingTooFastThresh_degPerSec))
   {
     PRINT_CH_INFO("VisionComponent",
                   "VisionComponent.UpdateDockingErrorSignal.RotatingTooFast",
                   "Body rotating too fast at time %u",
-                  t);
+                  (TimeStamp_t)t);
     return;
   }
   
@@ -168,7 +173,7 @@ void DockingComponent::UpdateDockingErrorSignal(const TimeStamp_t t) const
         if(wrtSuccess)
         {          
           DockingErrorSignal dockErrMsg;
-          dockErrMsg.timestamp = t;
+          dockErrMsg.timestamp = (TimeStamp_t)t;
           // xOffset should always be positive distance in front of the object so subtract it from
           // the x dist error
           dockErrMsg.x_distErr = markerWrtRobot.GetTranslation().x() - _dockPlacementOffsetX_mm;
@@ -208,7 +213,7 @@ void DockingComponent::UpdateDockingErrorSignal(const TimeStamp_t t) const
         // Potentially expected?
         PRINT_NAMED_WARNING("VisionComponent.UpdateVisionMarkers.GetHistoricRobotPoseFailed",
                             "Failed to get computed state at time %u, result %u",
-                            t,
+                            (TimeStamp_t)t,
                             res);
       }
     }
@@ -281,28 +286,19 @@ bool DockingComponent::CanPickUpObjectFromGround(const ObservableObject& objectT
 
 bool DockingComponent::CanInteractWithObjectHelper(const ObservableObject& object, Pose3d& relPose) const
 {
-  // TODO:(bn) maybe there should be some central logic for which object families are valid here
-  if( object.GetFamily() != ObjectFamily::Block &&
-     object.GetFamily() != ObjectFamily::LightCube ) {
+  if (!IsBlockType(object.GetType(), false)) {
     return false;
   }
   
   // check that the object is ready to place on top of
   if( !object.IsRestingFlat() ||
      (_robot->GetCarryingComponent().IsCarryingObject() &&
-      _robot->GetCarryingComponent().GetCarryingObject() == object.GetID()) ) {
+      _robot->GetCarryingComponent().GetCarryingObjectID() == object.GetID()) ) {
        return false;
      }
   
   // check if we can transform to robot space
   if ( !object.GetPose().GetWithRespectTo(_robot->GetPose(), relPose) ) {
-    return false;
-  }
-  
-  // check if it has something on top
-  const ObservableObject* objectOnTop = _robot->GetBlockWorld().FindLocatedObjectOnTopOf(object,
-                                                                                        STACKED_HEIGHT_TOL_MM);
-  if ( nullptr != objectOnTop ) {
     return false;
   }
   

@@ -15,62 +15,99 @@
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/actions/animActions.h"
 #include "engine/actions/basicActions.h"
+#include "engine/aiComponent/behaviorComponent/sleepTracker.h"
+#include "engine/components/visionComponent.h"
+#include "engine/faceWorld.h"
 #include "util/console/consoleInterface.h"
 
-// includes needed for hack (see HoldFaceForTime and VIC-364)
-#include "engine/robot.h"
-#include "engine/actions/actionContainers.h"
-
-
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 
-static const char* kConsoleGroup = "Sleeping";
+#define CONSOLE_GROUP "Sleeping.Behavior"
 
-CONSOLE_VAR_RANGED(f32, kSleepingStirSpacing_min_s, kConsoleGroup, 20.0f, 0.0f, 7200.0f);
-CONSOLE_VAR_RANGED(f32, kSleepingStirSpacing_max_s, kConsoleGroup, 40.0f, 0.0f, 7200.0f);
+CONSOLE_VAR_RANGED(f32, kSleepingStirSpacing_min_s, CONSOLE_GROUP, 2700.0f, 0.0f, 7200.0f);
+CONSOLE_VAR_RANGED(f32, kSleepingStirSpacing_max_s, CONSOLE_GROUP, 5400.0f, 0.0f, 7200.0f);
 
-CONSOLE_VAR_RANGED(f32, kSleepingBoutSpacing_min_s, kConsoleGroup, 1.5f, 0.0f, 30.0f);
-CONSOLE_VAR_RANGED(f32, kSleepingBoutSpacing_max_s, kConsoleGroup, 8.0f, 0.0f, 7200.0f);
+CONSOLE_VAR_RANGED(f32, kSleepingBoutSpacing_min_s, CONSOLE_GROUP, 1.5f, 0.0f, 30.0f);
+CONSOLE_VAR_RANGED(f32, kSleepingBoutSpacing_max_s, CONSOLE_GROUP, 5.0f, 0.0f, 7200.0f);
 
-CONSOLE_VAR_RANGED(u32, kSleepingBoutNumStirs_min, kConsoleGroup, 2, 1, 10);
-CONSOLE_VAR_RANGED(u32, kSleepingBoutNumStirs_max, kConsoleGroup, 5, 1, 10);
+// note: the anim group includes a very subtle animation and a more noticeable one, so these numbers should be
+// a bit higher than they might otherwise be
+CONSOLE_VAR_RANGED(u32, kSleepingBoutNumStirs_min, CONSOLE_GROUP, 5, 1, 10);
+CONSOLE_VAR_RANGED(u32, kSleepingBoutNumStirs_max, CONSOLE_GROUP, 10, 1, 10);
 
-constexpr const char* kSleepingFaceLoopAnimClip = "anim_face_sleeping";
+constexpr const char* kEnablePowerSaveKey = "enablePowerSave";
+constexpr const char* kPlayEmergencyGetOut = "shouldPlayEmergencyGetOut";
+  
+const char* const kCanActivateOffTreads = "canActivateOffTreads";
 
 }
 
 BehaviorSleeping::BehaviorSleeping(const Json::Value& config)
   : ICozmoBehavior(config)
 {
+  _iConfig.shouldEnterPowerSave = config.get(kEnablePowerSaveKey, true).asBool();
+  _iConfig.shouldPlayEmergencyGetOut = config.get(kPlayEmergencyGetOut, true).asBool();
+  _iConfig.canActivateOffTreads = config.get(kCanActivateOffTreads, false).asBool();
+}
+
+void BehaviorSleeping::GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const
+{
+  modifiers.wantsToBeActivatedWhenOffTreads = _iConfig.canActivateOffTreads;
+}
+
+void BehaviorSleeping::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const
+{
+  expectedKeys.insert(kEnablePowerSaveKey);
+  expectedKeys.insert(kPlayEmergencyGetOut);
+  expectedKeys.insert(kCanActivateOffTreads);
 }
 
 bool BehaviorSleeping::CanBeGentlyInterruptedNow() const
 {
-  return !_animIsPlaying;
+  return !_dVars.animIsPlaying;
 }
 
 void BehaviorSleeping::OnBehaviorActivated()
 {
-  _animIsPlaying = false;
+  _dVars.animIsPlaying = false;
+
+  // Each time we go to sleep, re-load the album of named faces. This will clear out
+  // any session-only faces which the robot "forgets" between awake "sessions",
+  // and keeps the number of faces he knows about in check (and not growing without bound)
+  // In addition, clear all faces in FaceWorld.
+  GetBEI().GetFaceWorldMutable().ClearAllFaces();
+  GetBEI().GetVisionComponent().LoadFaceAlbum();
   
-  TransitionToSleeping();
+  GetBEI().GetSleepTracker().SetIsSleeping(true);
   
-  
+  if( _iConfig.shouldEnterPowerSave ) {
+    SmartRequestPowerSaveMode();
+  }
+
+  SmartDisableKeepFaceAlive();
+
+  // always start with one round of sleeping to make sure the face is in a good state
+  DelegateIfInControl(new TriggerAnimationAction(AnimationTrigger::GoToSleepSleeping),
+                      &BehaviorSleeping::TransitionToSleeping);
 }
   
 void BehaviorSleeping::OnBehaviorDeactivated()
 {
-  PlayEmergencyGetOut(AnimationTrigger::WakeupGetout);
+  if( _iConfig.shouldPlayEmergencyGetOut ) {
+    PlayEmergencyGetOut(AnimationTrigger::WakeupGetout);
+  }
+  
+  GetBEI().GetSleepTracker().SetIsSleeping(false);
 }
 
 void BehaviorSleeping::TransitionToSleeping()
 {
   SetDebugStateName("sleeping");
   
-  _numRemainingInBout = GetRNG().RandIntInRange(kSleepingBoutNumStirs_min, kSleepingBoutNumStirs_max);
+  _dVars.numRemainingInBout = GetRNG().RandIntInRange(kSleepingBoutNumStirs_min, kSleepingBoutNumStirs_max);
   
   const float waitTime_s = GetRNG().RandDblInRange(kSleepingStirSpacing_min_s, kSleepingStirSpacing_max_s);
   HoldFaceForTime(waitTime_s, &BehaviorSleeping::TransitionToBoutOfStirring);
@@ -80,9 +117,9 @@ void BehaviorSleeping::TransitionToBoutOfStirring()
 {
   SetDebugStateName("inBout");
 
-  _animIsPlaying = false;
+  _dVars.animIsPlaying = false;
 
-  if( _numRemainingInBout-- >= 0 ) {
+  if( _dVars.numRemainingInBout-- >= 0 ) {
     // start bout (wait first, then animate)    
     const float waitTime_s = GetRNG().RandDblInRange(kSleepingBoutSpacing_min_s, kSleepingBoutSpacing_max_s);
     HoldFaceForTime(waitTime_s, &BehaviorSleeping::TransitionToPlayStirAnim);
@@ -97,7 +134,7 @@ void BehaviorSleeping::TransitionToBoutOfStirring()
 void BehaviorSleeping::TransitionToPlayStirAnim()
 {
   SetDebugStateName("stirring");
-  _animIsPlaying = true;
+  _dVars.animIsPlaying = true;
 
   DelegateIfInControl(new TriggerAnimationAction(AnimationTrigger::GoToSleepSleeping),
                       &BehaviorSleeping::TransitionToBoutOfStirring);  
@@ -108,35 +145,8 @@ void BehaviorSleeping::HoldFaceForTime(
   const float waitTime_s,
   void(BehaviorSleeping::*callback)())
 {
-  // This implementation is a huge hack which should go away as soon as VIC-364 is implemented so we can have
-  // controls to directly turn off the procedural idles. In the meantime, we play an "engine-defined"
-  // animation which keeps the face still, and has a side-effect of disabling procedural idles (since an
-  // animation is playing). Then, after the given time, we cancel the animation. This hack was implemented
-  // this way to give the impression that this is a single action (rather than implementing the cut-off in the
-  // Update loop, which would require more code restructuring)
-
-  const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  _stopHoldingFaceAtTime_s = currTime_s + waitTime_s;
-
-  LoopHoldFace(callback);
+  DelegateIfInControl(new WaitAction(waitTime_s), callback);
 }
-
-void BehaviorSleeping::LoopHoldFace(
-  void(BehaviorSleeping::*callback)())
-{
-
-  const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
-  if( currTime_s > _stopHoldingFaceAtTime_s ) {
-    (this->*callback)();
-  }
-  else {
-    // play one iteration of the animation, then check the time again
-    DelegateIfInControl(new PlayAnimationAction(kSleepingFaceLoopAnimClip),
-                        [this, callback](){
-                          BehaviorSleeping::LoopHoldFace(callback);});
-  }
-}
-
 
 }
 }

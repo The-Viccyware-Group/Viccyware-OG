@@ -5,18 +5,19 @@
 
 namespace Anki {
 
-  namespace Cozmo {
+  namespace Vector {
 
     namespace Robot {
 
-      Result Init();
+      Result Init(const int * shutdownSignal);
+
       void Destroy();
 
       Result step_MainExecution();
 
     } // namespace Robot
 
-  } // namespace Cozmo
+  } // namespace Vector
 
 } // namespace Anki
 

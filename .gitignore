@@ -39,6 +39,7 @@ simulator/controllers/webotsCtrlRobot2/nvStorage
 #
 simulator/controllers/webotsCtrlAnim/webotsCtrlAnim
 simulator/controllers/webotsCtrlAnim/resources
+simulator/controllers/webotsCtrlAnim/persistent
 #
 simulator/controllers/webotsCtrlWebServer/webotsCtrlWebServer
 simulator/controllers/webotsCtrlWebServer/resources
@@ -59,7 +60,11 @@ simulator/controllers/webotsCtrlKeyboard/resources
 #
 simulator/controllers/webotsCtrlDevLog/webotsCtrlDevLog
 #
-simulator/controllers/webotsCtrlHandEmitter/webotsCtrlHandEmitter
+simulator/controllers/webotsCtrlNeuralNets/webotsCtrlNeuralNets
+simulator/controllers/webotsCtrlNeuralNets/resources
+#
+simulator/controllers/webotsCtrlGateway/webotsCtrlGateway
+simulator/controllers/webotsCtrlGateway/vic-gateway
 #
 simulator/plugins/physics/cozmo_physics/libcozmo_physics.dylib
 simulator/worlds/__generated__.wbt
@@ -73,7 +78,7 @@ project/build-scripts/webots/__GENERATED_ANIMATIONS_TEST__.cfg
 *.mexmaci64
 *.o
 *.obj
-*.so
+#*.so
 *.la
 *.a
 *.ko
@@ -235,7 +240,8 @@ UnityDASDll/UnityDASDll/bin/*
 .idea
 
 # Anki specific
-EXTERNALS
+# kercre123 - turn this into a submodule
+#EXTERNALS
 TAGS
 .subtreeconfig
 
@@ -258,7 +264,7 @@ resources/config/engine/firmware_*
 binary_cache
 perf.data
 symbol_cache
-
+.projectile
 
 # victor envsetup.sh
 filelist
@@ -394,3 +400,19 @@ apps/xamarin/chewie/codelab.Droid/bin
 apps/xamarin/chewie/codelab.Droid/obj
 apps/xamarin/chewie/codelab.iOS/bin
 apps/xamarin/chewie/codelab.iOS/obj
+robot_ip.txt
+
+# Allow us to include okaoVision libs
+!okaoVision/lib/Android/armeabi-v7a/*.a
+!okaoVision/lib/MacOSX/*.a
+
+# The 3rd directory contains drops from 3rd party vendors and all files should be allowed
+!3rd/**
+
+victor-packages
+log.txt
+
+robot_sshkey
+ota/out
+ota/ota-server/*.ota
+snowboy/server/main

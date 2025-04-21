@@ -11,13 +11,16 @@
  **/
 
 #include "engine/actions/visuallyVerifyActions.h"
+#include "clad/externalInterface/messageEngineToGame.h"
 #include "engine/blockWorld/blockWorld.h"
 #include "engine/drivingAnimationHandler.h"
 #include "engine/externalInterface/externalInterface.h"
 #include "engine/robot.h"
 
+#define LOG_CHANNEL "Actions"
+
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 #pragma mark - 
 #pragma mark IVisuallyVerifyAction
@@ -70,9 +73,9 @@ namespace Cozmo {
     const ActionResult compoundResult = _compoundAction->Update();
     if(ActionResult::RUNNING != compoundResult)
     {
-      PRINT_NAMED_INFO("IVisuallyVerifyAction.CheckIfDone.TimedOut",
-                       "%s: Did not see object before processing %d images",
-                       GetName().c_str(), GetNumImagesToWaitFor());
+      LOG_INFO("IVisuallyVerifyAction.CheckIfDone.TimedOut",
+               "%s: Did not see object before processing %d images",
+               GetName().c_str(), GetNumImagesToWaitFor());
       
       return ActionResult::VISUAL_OBSERVATION_FAILED;
     }
@@ -87,7 +90,7 @@ VisuallyVerifyObjectAction::VisuallyVerifyObjectAction(ObjectID objectID,
                                                        Vision::Marker::Code whichCode)
   : IVisuallyVerifyAction("VisuallyVerifyObject" + std::to_string(objectID.GetValue()),
                           RobotActionType::VISUALLY_VERIFY_OBJECT,
-                          VisionMode::DetectingMarkers,
+                          VisionMode::Markers,
                           LiftPreset::OUT_OF_FOV)
 , _objectID(objectID)
 , _whichCode(whichCode)
@@ -100,9 +103,22 @@ VisuallyVerifyObjectAction::~VisuallyVerifyObjectAction()
 
 }
 
+void VisuallyVerifyObjectAction::SetUseCyclingExposure()
+{
+  _useCyclingExposure = true;
+
+  // The CyclingExposure mode cycles exposures every 5 frames, with a cycle length of 3. Therefore, wait for 15 images.
+  // Note: This should be computed directly from the vision config instead (VIC-12803)
+  const int kNumImagesToWaitFor = 15;
+  SetNumImagesToWaitFor(kNumImagesToWaitFor);
+}
+
 void VisuallyVerifyObjectAction::GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const
 {
-  requests.insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::High });
+  requests.insert({ VisionMode::Markers, EVisionUpdateFrequency::High });
+  if (_useCyclingExposure) {
+    requests.insert({ VisionMode::AutoExp_Cycling, EVisionUpdateFrequency::High });
+  }
 }
 
 ActionResult VisuallyVerifyObjectAction::InitInternal()
@@ -169,9 +185,9 @@ bool VisuallyVerifyObjectAction::HaveSeenObject()
           observedMarkerNames += " ";
         }
         
-        PRINT_NAMED_INFO("VisuallyVerifyObjectAction.HaveSeenObject.WrongMarker",
-                         "[%d] Have seen object %d, but not marker code %d. Have seen: %s",
-                         GetTag(), _objectID.GetValue(), _whichCode, observedMarkerNames.c_str());
+        LOG_INFO("VisuallyVerifyObjectAction.HaveSeenObject.WrongMarker",
+                 "[%d] Have seen object %d, but not marker code %d. Have seen: %s",
+                 GetTag(), _objectID.GetValue(), _whichCode, observedMarkerNames.c_str());
       }
     } // if(!_markerSeen)
     
@@ -192,7 +208,7 @@ bool VisuallyVerifyObjectAction::HaveSeenObject()
 VisuallyVerifyFaceAction::VisuallyVerifyFaceAction(Vision::FaceID_t faceID)
 : IVisuallyVerifyAction("VisuallyVerifyFace" + std::to_string(faceID),
                         RobotActionType::VISUALLY_VERIFY_FACE,
-                        VisionMode::DetectingFaces,
+                        VisionMode::Faces,
                         LiftPreset::LOW_DOCK)
 , _faceID(faceID)
 {
@@ -206,7 +222,7 @@ VisuallyVerifyFaceAction::~VisuallyVerifyFaceAction()
 
 void VisuallyVerifyFaceAction::GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const
 {
-  requests.insert({ VisionMode::DetectingFaces, EVisionUpdateFrequency::High });
+  requests.insert({ VisionMode::Faces, EVisionUpdateFrequency::High });
 }
 
 ActionResult VisuallyVerifyFaceAction::InitInternal()
@@ -258,7 +274,6 @@ VisuallyVerifyNoObjectAtPoseAction::VisuallyVerifyNoObjectAtPoseAction(const Pos
   name += std::to_string((int)_pose.GetTranslation().z()) + ")";
   SetName(name);
   
-  _filter.SetIgnoreFamilies({ObjectFamily::MarkerlessObject});
   // Augment the default filter (object not in unknown pose state) with one that
   // checks that this object was observed in the last frame
   _filter.AddFilterFcn([this](const ObservableObject* object)
@@ -287,7 +302,7 @@ VisuallyVerifyNoObjectAtPoseAction::~VisuallyVerifyNoObjectAtPoseAction()
 
 void VisuallyVerifyNoObjectAtPoseAction::GetRequiredVisionModes(std::set<VisionModeRequest>& requests) const
 {
-  requests.insert({ VisionMode::DetectingMarkers, EVisionUpdateFrequency::High });
+  requests.insert({ VisionMode::Markers, EVisionUpdateFrequency::High });
 }
 
 ActionResult VisuallyVerifyNoObjectAtPoseAction::Init()
@@ -302,7 +317,7 @@ ActionResult VisuallyVerifyNoObjectAtPoseAction::Init()
   if (_waitForImagesAction != nullptr) {
     _waitForImagesAction->PrepForCompletion();
   }
-  _waitForImagesAction.reset(new WaitForImagesAction(_numImagesToWaitFor, VisionMode::DetectingMarkers));
+  _waitForImagesAction.reset(new WaitForImagesAction(_numImagesToWaitFor, VisionMode::Markers));
   _waitForImagesAction->SetRobot(&GetRobot());
 
   _turnTowardsPoseAction->ShouldSuppressTrackLocking(true);
@@ -348,11 +363,11 @@ ActionResult VisuallyVerifyNoObjectAtPoseAction::CheckIfDone()
     // there isn't actually an object at the pose but blockworld thinks there is
     if(GetRobot().GetBlockWorld().FindLocatedObjectClosestTo(_pose, _thresholds_mm, _filter) != nullptr)
     {
-      PRINT_CH_DEBUG("Actions", "VisuallyVerifyNoObjectAtPose.FoundObject",
-                     "Seeing object near pose (%f %f %f)",
-                     _pose.GetTranslation().x(),
-                     _pose.GetTranslation().y(),
-                     _pose.GetTranslation().z());
+      LOG_DEBUG("VisuallyVerifyNoObjectAtPose.FoundObject",
+                "Seeing object near pose (%f %f %f)",
+                _pose.GetTranslation().x(),
+                _pose.GetTranslation().y(),
+                _pose.GetTranslation().z());
       return ActionResult::VISUAL_OBSERVATION_FAILED;
     }
     
@@ -367,5 +382,5 @@ ActionResult VisuallyVerifyNoObjectAtPoseAction::CheckIfDone()
 
 
   
-} // namespace Cozmo
+} // namespace Vector
 } // namesace Anki

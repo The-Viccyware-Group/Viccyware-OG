@@ -4,7 +4,7 @@
 // Copyright: Anki, inc. 2015
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 enum uint_8 EmotionType {
@@ -13,10 +13,11 @@ enum uint_8 EmotionType {
     Confident,
     Social,
     Stimulated,
+    Trust,
 
     Count
 }
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

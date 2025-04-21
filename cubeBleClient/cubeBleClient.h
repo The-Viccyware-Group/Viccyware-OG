@@ -14,9 +14,9 @@
 #ifndef __Victor_CubeBleClient_H__
 #define __Victor_CubeBleClient_H__
 
-#include "coretech/common/shared/types.h"
+#include "clad/types/cubeCommsTypes.h"
 
-#include "util/singleton/dynamicSingleton.h"
+#include "coretech/common/shared/types.h"
 
 #include <vector>
 #include <functional>
@@ -27,7 +27,7 @@ namespace webots {
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace ExternalInterface {
   struct ObjectAvailable;
@@ -36,18 +36,17 @@ class MessageEngineToCube;
 class MessageCubeToEngine;
 
 // Alias for BLE factory ID (TODO: should be defined in CLAD)
-using BleFactoryId = int;
+using BleFactoryId = std::string;
   
-class CubeBleClient : private Util::DynamicSingleton<CubeBleClient>
+class CubeBleClient
 {
-  ANKIUTIL_FRIEND_SINGLETON(CubeBleClient);
-  
 public:
-
-  // Method to fetch singleton instance.
-  static CubeBleClient* GetInstance();
+  CubeBleClient();
+  virtual ~CubeBleClient();
   
-  Result Update();
+  bool Init();
+  
+  bool Update();
 
 #ifdef SIMULATOR
   // Assign Webots supervisor
@@ -58,8 +57,9 @@ public:
 
   using ObjectAvailableCallback   = std::function<void(const ExternalInterface::ObjectAvailable&)>;
   using CubeMessageCallback       = std::function<void(const BleFactoryId&, const MessageCubeToEngine&)>;
-  using CubeConnectedCallback     = std::function<void(const BleFactoryId&)>;
-  using CubeDisconnectedCallback  = std::function<void(const BleFactoryId&)>;
+  using CubeConnectionCallback    = std::function<void(const BleFactoryId&, const bool connected)>;
+  using ScanFinishedCallback      = std::function<void(void)>;
+  using ConnectionFailedCallback  = std::function<void(const BleFactoryId&)>;
   
   void RegisterObjectAvailableCallback(const ObjectAvailableCallback& callback) {
     _objectAvailableCallbacks.push_back(callback);
@@ -67,31 +67,43 @@ public:
   void RegisterCubeMessageCallback(const CubeMessageCallback& callback) {
     _cubeMessageCallbacks.push_back(callback);
   }
-
-  void RegisterCubeConnectedCallback(const CubeConnectedCallback& callback) {
-    _cubeConnectedCallbacks.push_back(callback);
+  void RegisterCubeConnectionCallback(const CubeConnectionCallback& callback) {
+    _cubeConnectionCallbacks.push_back(callback);
+  }
+  void RegisterScanFinishedCallback(const ScanFinishedCallback& callback) {
+    _scanFinishedCallbacks.push_back(callback);
+  }
+  void RegisterConnectionFailedCallback(const ConnectionFailedCallback& callback) {
+    _connectionFailedCallbacks.push_back(callback);
   }
 
-  void RegisterCubeDisconnectedCallback(const CubeDisconnectedCallback& callback) {
-    _cubeDisconnectedCallbacks.push_back(callback);
-  }
+  // Begin scanning for available cubes. Should not
+  // be connected to a cube when starting a scan.
+  void StartScanning();
   
-  // Send a message to the specified light cube. Returns true on success.
-  bool SendMessageToLightCube(const BleFactoryId&, const MessageEngineToCube&);
+  // Stop scanning for available cubes
+  void StopScanning();
+  
+  // Send a message to the connected light cube. Returns true on success.
+  bool SendMessageToLightCube(const MessageEngineToCube&);
   
   // Request to connect to an advertising cube. Returns true on success.
-  bool ConnectToCube(const BleFactoryId&);
+  bool RequestConnectToCube(const BleFactoryId&);
   
-  // Request to disconnect from a connected cube. Returns true on success.
-  bool DisconnectFromCube(const BleFactoryId&);
+  // Request to disconnect from the connected cube. Returns true on success.
+  bool RequestDisconnectFromCube();
   
-  // Is this cube connected?
-  bool IsConnectedToCube(const BleFactoryId&);
+  // Get the current cube connection state
+  CubeConnectionState GetCubeConnectionState() const { return _cubeConnectionState; }
+  
+  BleFactoryId GetCurrentCube() const { return _currentCube; }
   
 private:
   
-  // private constructor:
-  CubeBleClient();
+#ifdef SIMULATOR
+  // sim-only: Turn off cube lights on the connected cube
+  void SendLightsOffToCube();
+#endif
   
   // callbacks for advertisement messages:
   std::vector<ObjectAvailableCallback> _objectAvailableCallbacks;
@@ -99,16 +111,56 @@ private:
   // callbacks for raw light cube messages:
   std::vector<CubeMessageCallback> _cubeMessageCallbacks;
   
-  // callbacks for when a cube is connected:
-  std::vector<CubeConnectedCallback> _cubeConnectedCallbacks;
+  // callbacks for when a cube is connected/disconnected:
+  std::vector<CubeConnectionCallback> _cubeConnectionCallbacks;
   
-  // callbacks for when a cube is disconnected:
-  std::vector<CubeDisconnectedCallback> _cubeDisconnectedCallbacks;
+  // callbacks for when scanning for cubes has completed:
+  std::vector<ScanFinishedCallback> _scanFinishedCallbacks;
+  
+  // callbacks for when a connection attempt times out or fails
+  std::vector<ConnectionFailedCallback> _connectionFailedCallbacks;
+  
+  bool _inited = false;
+  
+  // Current state of cube connection
+  CubeConnectionState _cubeConnectionState = CubeConnectionState::UnconnectedIdle;
+  
+  // This is the factory ID of the cube we are either currently
+  // connected to, or pending connection or disconnection to.
+  // It is an empty string if there is no current cube.
+  BleFactoryId _currentCube;
+
+////////////////////////////////////////////////////////////////////////////
+// ---------- Implementation-specific (mac vs. vicos) methods. ---------- //
+// These are defined in their respective *_mac.cpp and *_vicos.cpp files  //
+////////////////////////////////////////////////////////////////////////////
+  
+public:
+  
+  void SetScanDuration(const float duration_sec);
+  
+  void SetCubeFirmwareFilepath(const std::string& path);
+  
+private:
+  
+  bool InitInternal();
+  
+  bool UpdateInternal();
+  
+  void StartScanInternal();
+  
+  void StopScanInternal();
+  
+  bool SendMessageInternal(const MessageEngineToCube&);
+  
+  bool RequestConnectInternal(const BleFactoryId&);
+  
+  bool RequestDisconnectInternal();
   
 }; // class CubeBleClient
   
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Victor_CubeBleClient_H__

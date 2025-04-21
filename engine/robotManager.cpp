@@ -6,36 +6,33 @@
 //  Copyright (c) 2013 Anki, Inc. All rights reserved.
 //
 
+#include "engine/components/battery/batteryComponent.h"
 #include "engine/cozmoContext.h"
-#include "engine/externalInterface/externalInterface.h"
-#include "engine/perfMetric.h"
+#include "engine/externalInterface/externalMessageRouter.h"
+#include "engine/externalInterface/gatewayInterface.h"
 #include "engine/robot.h"
 #include "engine/robotInitialConnection.h"
 #include "engine/robotInterface/messageHandler.h"
 #include "engine/robotManager.h"
-#include "coretech/common/engine/utils/timer.h"
 #include "coretech/common/robot/config.h"
-#include "clad/externalInterface/messageEngineToGame.h"
-#include "json/json.h"
 #include "util/cpuProfiler/cpuProfiler.h"
 #include "util/fileUtils/fileUtils.h"
 #include "util/logging/logging.h"
 #include "util/time/stepTimers.h"
-#include <sys/stat.h>
 
-#include "coretech/common/robot/config.h"
+#include "osState/osState.h"
+
+#include "anki/cozmo/shared/factory/faultCodes.h"
+
 #include "util/global/globalDefinitions.h"
-
-#if USE_DAS
-#include <DAS/DAS.h>
-#endif
+#include "util/logging/DAS.h"
 
 #define LOG_CHANNEL "RobotState"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
-RobotManager::RobotManager(const CozmoContext* context)
+RobotManager::RobotManager(CozmoContext* context)
 : _robot(nullptr)
 , _context(context)
 , _robotEventHandler(context)
@@ -73,15 +70,68 @@ void RobotManager::Init(const Json::Value& config)
     }
   }
 
-  LOG_EVENT("robot.init.time_spent_ms", "%lld", timeSpent_millis);
+  PRINT_NAMED_INFO("robot.init.time_spent_ms", "%lld", timeSpent_millis);
 }
 
-void RobotManager::Shutdown()
+void RobotManager::Shutdown(ShutdownReason reason)
 {
   // Order of destruction matters! Robot actions call back into robot manager, so
   // they must be released before robot manager itself.
   LOG_INFO("RobotManager.Shutdown", "Shutting down");
-  _robot.reset();
+
+  if(_robot != nullptr)
+  {
+    const auto battFilt_mV = static_cast<int>(1000 * _robot->GetBatteryComponent().GetBatteryVolts());
+    const auto battRaw_mV  = static_cast<int>(1000 * _robot->GetBatteryComponent().GetBatteryVoltsRaw());
+
+    _robot.reset();
+
+    // SHUTDOWN_UNKNOWN can occur when the process is being stopped
+    // so ignore it for the purposes of DAS and fault codes
+    if(reason != ShutdownReason::SHUTDOWN_UNKNOWN)
+    {
+      // Write DAS message
+      float idleTime_sec;
+      auto upTime_sec   = static_cast<uint32_t>(OSState::getInstance()->GetUptimeAndIdleTime(idleTime_sec));
+      auto numFreeBytes = Util::FileUtils::GetDirectoryFreeSize("/data");
+
+      LOG_INFO("Robot.Shutdown.ShuttingDown",
+               "Reason: %s, upTime: %u, numFreeBytes: %llu",
+               EnumToString(reason), upTime_sec, numFreeBytes);
+
+      DASMSG(robot_power_off, "robot.power_off", "Reason why robot powered off during the previous run");
+      DASMSG_SET(s1, EnumToString(reason), "Reason for shutdown");
+      DASMSG_SET(i1, upTime_sec,           "Uptime (seconds)");
+      DASMSG_SET(i2, numFreeBytes,         "Free space in /data (bytes)");
+      DASMSG_SET(i3, battFilt_mV,          "Battery voltage (mV) - filtered");
+      DASMSG_SET(i4, battRaw_mV,           "Battery voltage (mV) - raw");
+      DASMSG_SEND();
+  
+      // Send fault code
+      // Fault code handler will kill vic-dasMgr and do other stuff as necessary
+
+      // For simplicity, make sure that the ShutdownReason and corresponding
+      // FaultCode are named the same.
+#define SHUTDOWN_CASE(x) case ShutdownReason::x:        \
+      shutdownCode = FaultCode::x;                      \
+      break;
+      auto shutdownCode = 0;
+      switch (reason) {
+        SHUTDOWN_CASE(SHUTDOWN_BATTERY_CRITICAL_VOLT)
+        SHUTDOWN_CASE(SHUTDOWN_BATTERY_CRITICAL_TEMP)
+        SHUTDOWN_CASE(SHUTDOWN_GYRO_NOT_CALIBRATING)
+        SHUTDOWN_CASE(SHUTDOWN_BUTTON)
+        default:
+          LOG_ERROR("Robot.Shutdown.UnknownFaultCode", "reason: %s", EnumToString(reason));
+          break;
+      }
+#undef SHUTDOWN_CASE
+
+      if (shutdownCode != 0) {
+        FaultCode::DisplayFaultCode(shutdownCode);
+      }
+    }
+  }
 }
 
 void RobotManager::AddRobot(const RobotID_t withID)
@@ -100,24 +150,10 @@ void RobotManager::RemoveRobot(bool robotRejectedConnection)
   if(_robot != nullptr) {
     LOG_INFO("RobotManager.RemoveRobot.Removing", "Removing robot with ID=%d", _robot->GetID());
 
-    // ask initial connection tracker if it's handling this
-    bool handledDisconnect = false;
     if (_initialConnection) {
       const auto result = robotRejectedConnection ? RobotConnectionResult::ConnectionRejected : RobotConnectionResult::ConnectionFailure;
-      handledDisconnect = _initialConnection->HandleDisconnect(result);
+      _initialConnection->HandleDisconnect(result);
     }
-    if (!handledDisconnect) {
-      _context->GetExternalInterface()->OnRobotDisconnected(_robot->GetID());
-      _context->GetExternalInterface()->Broadcast(ExternalInterface::MessageEngineToGame(ExternalInterface::RobotDisconnected(0.0f)));
-    }
-
-    _context->GetPerfMetric()->OnRobotDisconnected();
-
-#if USE_DAS
-    // Resume trying to upload DAS files to the server, because at
-    // least now we know we're no longer connected to the robot
-    DASPauseUploadingToServer(false);
-#endif
 
     _robot.reset();
     _initialConnection.reset();
@@ -145,38 +181,34 @@ bool RobotManager::DoesRobotExist(const RobotID_t withID) const
 }
 
 
-void RobotManager::UpdateRobot()
+Result RobotManager::UpdateRobot()
 {
   ANKI_CPU_PROFILE("RobotManager::UpdateRobot");
 
-  if (_robot) {
-    // Call update
-    Result result = _robot->Update();
-
-    switch (result)
-    {
-      case RESULT_FAIL_IO_TIMEOUT:
-      {
-        LOG_WARNING("RobotManager.UpdateRobot.FailIOTimeout", "Signaling robot disconnect");
-        RemoveRobot(false);
-        break;
-      }
-
-      // TODO: Handle other return results here
-
-      default:
-        break;
-    }
+  if (_robot)
+  {
+    _robot->Update();
 
     if (_robot->HasReceivedRobotState()) {
       _context->GetExternalInterface()->Broadcast(ExternalInterface::MessageEngineToGame(_robot->GetRobotState()));
+      _context->GetGatewayInterface()->Broadcast(ExternalMessageRouter::Wrap(_robot->GenerateRobotStateProto()));
     }
     else {
       LOG_PERIODIC_INFO(10, "RobotManager.UpdateRobot",
                         "Not sending robot %d state (none available).", _robot->GetID());
     }
+
+    // If the robot got a message to shutdown
+    ShutdownReason shutdownReason = ShutdownReason::SHUTDOWN_UNKNOWN;
+    if(_robot->ToldToShutdown(shutdownReason))
+    {
+      LOG_INFO("RobotManager.UpdateRobot.Shutdown","");
+      Shutdown(shutdownReason);
+      return RESULT_SHUTDOWN;
+    }
   }
 
+  return RESULT_OK;
 }
 
 Result RobotManager::UpdateRobotConnection()
@@ -201,5 +233,5 @@ bool RobotManager::ShouldFilterMessage(const RobotInterface::EngineToRobotTag ms
   return false;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

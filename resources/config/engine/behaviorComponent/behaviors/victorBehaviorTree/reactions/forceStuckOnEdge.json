@@ -1,0 +1,24 @@
+{
+  "behaviorClass": "AskForHelp",
+  "behaviorID": "ForceStuckOnEdge",
+  "associatedActiveFeature": "StuckOnEdge",
+  
+  "wantsToCancelSelfCondition": {
+    "conditionType": "Compound",
+    "or": [
+      {
+        "conditionType": "Compound",
+        "not": {
+          "conditionType": "CliffDetected"
+        }
+      },
+      {
+        "conditionType": "Compound",
+        "not": {
+          "conditionType": "OffTreadsState",
+          "targetState": "OnTreads"
+        }
+      }
+    ]
+  }
+}

@@ -6,18 +6,15 @@
  *
  **/
 
-#include "clad/externalInterface/messageGameToEngine.h"
-
 #include "engine/aiComponent/behaviorComponent/behaviors/freeplay/userInteractive/behaviorPuzzleMaze.h"
 
 #include "engine/actions/animActions.h"
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/puzzleComponent.h"
 #include "engine/cozmoContext.h"
-#include "engine/externalInterface/externalInterface.h"
 #include "engine/robot.h"
 
-#include "coretech/common/engine/math/rect_impl.h"
+#include "coretech/common/shared/math/rect.h"
 #include "coretech/common/engine/jsonTools.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "anki/cozmo/shared/cozmoConfig.h"
@@ -37,7 +34,7 @@
 #endif
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
   const char* kTileSizeKey = "tileSize_pixels";
@@ -487,7 +484,7 @@ void BehaviorPuzzleMaze::BehaviorUpdate()
     case MazeState::GetOut:
     {
       if (!IsControlDelegated()) {
-        StartAnimation(AnimationTrigger::CubePounceGetOut, MazeState::Complete);
+        StartAnimation(AnimationTrigger::CubePounceGetOutBored, MazeState::Complete);
       }
       break;
     }
@@ -530,5 +527,5 @@ bool BehaviorPuzzleMaze::IsPuzzleCompleted()
   return _dVars.isMazeSolved;
 }
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

@@ -15,10 +15,11 @@
 
 #include "util/logging/logging.h"
 
-#include "coretech/common/engine/math/matrix.h"
-#include "coretech/common/engine/math/point.h"
-#include "coretech/common/engine/math/rotation.h"
-#include "coretech/common/shared/radians.h"
+#include "coretech/common/shared/math/matrix_fwd.h"
+#include "coretech/common/shared/math/rotation.h"
+#include "coretech/common/shared/math/radians.h"
+
+#include "coretech/common/engine/math/quad_fwd.h"
 
 #include <list>
 

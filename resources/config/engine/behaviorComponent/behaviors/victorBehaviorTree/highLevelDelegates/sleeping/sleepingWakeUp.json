@@ -2,7 +2,7 @@
   "behaviorID" : "SleepingWakeUp",
   "behaviorClass" : "AnimSequence",
 
-  "playOnChargerWithoutBody": true,
+  "associatedActiveFeature": "Sleeping",
   
   "animTriggers": [
     "ConnectWakeUp"

@@ -24,9 +24,10 @@
 #include "coretech/common/engine/utils/timer.h"
 #include "util/helpers/templateHelpers.h"
 
+#define LOG_CHANNEL "Actions"
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
 #pragma mark ---- ICompoundAction ----
     
@@ -257,10 +258,10 @@ namespace Anki {
       {
         for(auto action : _actions) {
           if(action->GetTag() == _proxyTag) {
-            PRINT_CH_DEBUG("Actions", "ICompoundAction.GetCompletionUnion.UsingProxy",
-                           "%s [%d] using proxy action %s [%d] completion union",
-                           GetName().c_str(), GetTag(),
-                           action->GetName().c_str(), action->GetTag());
+            LOG_DEBUG("ICompoundAction.GetCompletionUnion.UsingProxy",
+                      "%s [%d] using proxy action %s [%d] completion union",
+                      GetName().c_str(), GetTag(),
+                      action->GetName().c_str(), action->GetTag());
             
             return action->GetCompletionUnion(completionUnion);
           }
@@ -268,10 +269,10 @@ namespace Anki {
 
         auto iter = _completedActionInfoStack.find(_proxyTag);
         if(iter != _completedActionInfoStack.end()) {
-          PRINT_CH_DEBUG("Actions", "ICompoundAction.GetCompletionUnion.UsingProxy",
-                         "%s [%d] using proxy action with tag %d completion union",
-                         GetName().c_str(), GetTag(),
-                         iter->first);
+          LOG_DEBUG("ICompoundAction.GetCompletionUnion.UsingProxy",
+                    "%s [%d] using proxy action with tag %d completion union",
+                    GetName().c_str(), GetTag(),
+                    iter->first);
           
           completionUnion = iter->second.completionUnion;
           return;
@@ -324,18 +325,22 @@ namespace Anki {
       
       // if that was the last action, we're done
       if(_currentAction == _actions.end()) {
-        if(USE_ACTION_CALLBACKS) {
+        # if USE_ACTION_CALLBACKS
+        {
           RunCallbacks(ActionResult::SUCCESS);
         }
+        # endif
         return ActionResult::SUCCESS;
       } else if(currentTime_secs >= _waitUntilTime) {
-        PRINT_NAMED_INFO("CompoundActionSequential.Update.NextAction",
-                         "Moving to action %s [%d]",
-                         (*_currentAction)->GetName().c_str(),
-                         (*_currentAction)->GetTag());
+        LOG_INFO("CompoundActionSequential.Update.NextAction",
+                 "Moving to action %s [%d]",
+                 (*_currentAction)->GetName().c_str(),
+                 (*_currentAction)->GetTag());
         
         // If the compound action is suppressing track locking then the constituent actions should too
-        (*_currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        if ((*_currentAction)->IsSuppressingTrackLocking() != IsSuppressingTrackLocking()) {
+          (*_currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        }
         
         // Otherwise, we are still running. Go ahead and immediately do an
         // update on the next action now to get its initialization and
@@ -350,9 +355,11 @@ namespace Anki {
           
           if(_currentAction == _actions.end()) {
             // no more actions, safe to return success for the compound action
-            if(USE_ACTION_CALLBACKS) {
+            # if USE_ACTION_CALLBACKS
+            {
               RunCallbacks(subResult);
             }
+            # endif
             return subResult;
           // more actions, just say we're still running
           } else if(subResult == ActionResult::SUCCESS) {
@@ -376,7 +383,7 @@ namespace Anki {
       
       Result derivedUpdateResult = UpdateDerived();
       if(RESULT_OK != derivedUpdateResult) {
-        PRINT_NAMED_INFO("CompoundActionSequential.UpdateInternal.UpdateDerivedFailed", "");
+        LOG_INFO("CompoundActionSequential.UpdateInternal.UpdateDerivedFailed", "");
         return ActionResult::UPDATE_DERIVED_FAILED;
       }
       
@@ -394,7 +401,9 @@ namespace Anki {
         }
 
         // If the compound action is suppressing track locking then the constituent actions should too
-        (*_currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        if ((*_currentAction)->IsSuppressingTrackLocking() != IsSuppressingTrackLocking()) {
+          (*_currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        }
         
         const float currentTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
         if(_waitUntilTime < 0.0f || currentTime >= _waitUntilTime)
@@ -417,8 +426,8 @@ namespace Anki {
               // A constituent action failed . Reset all the constituent actions
               // and try again as long as there are retries remaining
               if(RetriesRemain()) {
-                PRINT_NAMED_INFO("CompoundActionSequential.Update.Retrying",
-                                 "%s triggered retry", (*_currentAction)->GetName().c_str());
+                LOG_INFO("CompoundActionSequential.Update.Retrying",
+                         "%s triggered retry", (*_currentAction)->GetName().c_str());
                 Reset();
                 return ActionResult::RUNNING;
               }
@@ -427,27 +436,28 @@ namespace Anki {
             case ActionResultCategory::ABORT:
             case ActionResultCategory::CANCELLED:
             {
-              if(USE_ACTION_CALLBACKS)
+              # if USE_ACTION_CALLBACKS
               {
                 RunCallbacks(subResult);
               }
+              # endif
               
               if(ShouldIgnoreFailure(subResult, *_currentAction))
               {
                 // We are ignoring this action's failures, so just move to next action
-                PRINT_CH_INFO("Actions", "CompoundActionSequential.UpdateInternal",
-                              "Ignoring failure for %s[%d] moving to next action",
-                              (*_currentAction)->GetName().c_str(),
-                              (*_currentAction)->GetTag());
+                LOG_INFO("CompoundActionSequential.UpdateInternal",
+                         "Ignoring failure for %s[%d] moving to next action",
+                         (*_currentAction)->GetName().c_str(),
+                         (*_currentAction)->GetTag());
                 return MoveToNextAction(currentTime);
               }
               else
               {
-                PRINT_CH_DEBUG("Actions", "CompoundActionSequential.UpdateInternal",
-                               "Current action %s[%d] failed with %s deleting",
-                               (*_currentAction)->GetName().c_str(),
-                               (*_currentAction)->GetTag(),
-                               EnumToString(subResult));
+                LOG_DEBUG("CompoundActionSequential.UpdateInternal",
+                          "Current action %s[%d] failed with %s deleting",
+                          (*_currentAction)->GetName().c_str(),
+                          (*_currentAction)->GetTag(),
+                          EnumToString(subResult));
                 StoreUnionAndDelete(_currentAction);
                 return subResult;
               }
@@ -491,6 +501,14 @@ namespace Anki {
       
       SetStatus(GetName());
       
+      Result derivedUpdateResult = UpdateDerived();
+      if(RESULT_OK != derivedUpdateResult) {
+        PRINT_CH_INFO("Actions", "CompoundActionParallel.UpdateInternal.UpdateDerivedFailed", "");
+        return ActionResult::UPDATE_DERIVED_FAILED;
+      }
+      
+      bool subActionCompleted = false;
+      
       for(auto currentAction = _actions.begin(); currentAction != _actions.end();)
       {
         assert((*currentAction) != nullptr); // should not have been allowed in by constructor
@@ -499,7 +517,9 @@ namespace Anki {
         }
           
         // If the compound action is suppressing track locking then the constituent actions should too
-        (*currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        if ((*currentAction)->IsSuppressingTrackLocking() != IsSuppressingTrackLocking()) {
+          (*currentAction)->ShouldSuppressTrackLocking(IsSuppressingTrackLocking());
+        }
 
         const ActionResult subResult = (*currentAction)->Update();
         SetStatus((*currentAction)->GetStatus());
@@ -509,6 +529,10 @@ namespace Anki {
           {
             // Just finished this action, delete it
             StoreUnionAndDelete(currentAction);
+            if(_endWhenFirstActionCompletes) {
+              result = subResult;
+            }
+            subActionCompleted = true;
             break;
           }
           case ActionResultCategory::RUNNING:
@@ -522,8 +546,8 @@ namespace Anki {
           {
             // If any retries are left, reset the group and try again.
             if(RetriesRemain()) {
-              PRINT_CH_INFO("Actions", "CompoundActionParallel.Update.Retrying",
-                            "%s triggered retry", (*currentAction)->GetName().c_str());
+              LOG_INFO("CompoundActionParallel.Update.Retrying",
+                       "%s triggered retry", (*currentAction)->GetName().c_str());
               Reset();
               return ActionResult::RUNNING;
             }
@@ -533,10 +557,16 @@ namespace Anki {
           case ActionResultCategory::ABORT:
           {
             // Return failure, aborting updating remaining actions the group
-            if(USE_ACTION_CALLBACKS)
+            # if USE_ACTION_CALLBACKS
             {
               RunCallbacks(subResult);
             }
+            # endif
+            
+            if(_endWhenFirstActionCompletes) {
+              result = subResult;
+            }
+            subActionCompleted = true;
             
             if(ShouldIgnoreFailure(subResult, *currentAction))
             {
@@ -551,16 +581,22 @@ namespace Anki {
             break;
           }
         } // switch(subResultCategory)
+        
+        if(_endWhenFirstActionCompletes && subActionCompleted) {
+          break;
+        }
       } // for each action in the group
       
-      if(USE_ACTION_CALLBACKS) {
+      # if USE_ACTION_CALLBACKS
+      {
         if(result != ActionResult::RUNNING) {
           RunCallbacks(result);
         }
       }
+      # endif
       
       return result;
     } // CompoundActionParallel::Update()
     
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki

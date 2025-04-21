@@ -13,11 +13,16 @@
 #include "util/helpers/includeGTest.h"
 #include "util/fileUtils/fileUtils.h"
 
+#include "coretech/common/engine/utils/data/dataPlatform.h"
 #include "coretech/vision/engine/camera.h"
+#include "coretech/vision/engine/compressedImage.h"
 #include "coretech/vision/engine/faceTracker.h"
 #include "coretech/vision/engine/eyeContact.h"
+#include "engine/cozmoContext.h"
 
 #include <fstream>
+
+extern Anki::Vector::CozmoContext* cozmoContext;
 
 using namespace Anki::Vision;
 using namespace Anki;
@@ -46,7 +51,7 @@ TEST(EyeContact, GazeEstimationInterface)
   config["FaceRecognition"] = faceRecognition;
 
   Json::Value initialVisionModes;
-  initialVisionModes["DetectingFaces"] = true;
+  initialVisionModes["Faces"] = true;
   config["InitialVisionModes"] = initialVisionModes;
   config["FaceAlbum"] = "robot";
 
@@ -57,12 +62,8 @@ TEST(EyeContact, GazeEstimationInterface)
 
   Result lastResult = RESULT_OK;
 
-  const char* root_dir = getenv("ROOT_DIR");
-  ASSERT_NE(nullptr, root_dir);
-  std::string base = root_dir;
-  std::string pathToImages =
-    Util::FileUtils::FullFilePath({base, "resources", "test", "gazeEstimationTests"});
-
+  const std::string pathToImages = cozmoContext->GetDataPlatform()->pathToResource(Util::Data::Scope::Resources,
+                                                                                   "test/gazeEstimationTests");
   std::vector<std::string> imageFiles = 
     Anki::Util::FileUtils::FilesInDirectory(pathToImages, true, ".jpg");
 
@@ -74,7 +75,9 @@ TEST(EyeContact, GazeEstimationInterface)
     // Do the gaze estimation
     std::list<TrackedFace> faces;
     std::list<UpdatedFaceID> updatedIDs;
-    lastResult = faceTracker.Update(image, faces, updatedIDs);
+    DebugImageList<CompressedImage> debugImages;
+    const float cropFactor = 1.f;
+    lastResult = faceTracker.Update(image, cropFactor, faces, updatedIDs, debugImages);
     // We don't detect a face in the first frame (even though
     // there is one present) but should find one face in the
     // rest of the frames
@@ -99,11 +102,10 @@ TEST(EyeContact, GazeEstimationInterface)
 TEST(EyeContact, EyeContactInterface)
 {
   Json::Value gazeData;
-  const char* root_dir = getenv("ROOT_DIR");
-  ASSERT_NE(nullptr, root_dir);
-  std::string base = root_dir;
-  std::string inputPath = Util::FileUtils::FullFilePath(
-    {base, "resources", "test", "gazeEstimationTests", "gazePoints.json"});
+  
+  const std::string base = cozmoContext->GetDataPlatform()->pathToResource(Util::Data::Scope::Resources,
+                                                                           "test/gazeEstimationTests");
+  std::string inputPath = Util::FileUtils::FullFilePath({base, "gazePoints.json"});
   std::ifstream gazeDataFile(inputPath, std::ifstream::binary);
   gazeDataFile >> gazeData;
 

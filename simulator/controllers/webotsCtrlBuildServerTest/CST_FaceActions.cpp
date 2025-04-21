@@ -11,15 +11,22 @@
  */
 
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/robot.h"
-
+#include "engine/components/visionScheduleMediator/iVisionModeSubscriber.h"
+#include "util/bitFlags/bitFlags.h"
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
+    
+    namespace
+    {
+      const float kTestDoneGoalTilt_deg = 41.0f;
+      const float kTestDoneGoalTiltTol_deg = 6.0f;
+    }
     
     enum class TestState {
+      SetupVisionMode,
       TurnToFace,
       TurnAwayFromFace,
       TurnBackToFace,
@@ -33,12 +40,12 @@ namespace Anki {
       
       virtual s32 UpdateSimInternal() override;
       
-      TestState _testState = TestState::TurnToFace;
+      TestState _testState = TestState::SetupVisionMode;
       
       bool _lastActionSucceeded = false;
       
-      TimeStamp_t _prevFaceSeenTime = 0;
-      TimeStamp_t _faceSeenTime = 0;
+      RobotTimeStamp_t _prevFaceSeenTime = 0;
+      RobotTimeStamp_t _faceSeenTime = 0;
       
       // Message handlers
       virtual void HandleRobotCompletedAction(const ExternalInterface::RobotCompletedAction& msg) override;
@@ -54,6 +61,22 @@ namespace Anki {
     s32 CST_FaceActions::UpdateSimInternal()
     {
       switch (_testState) {
+        case TestState::SetupVisionMode:
+        {
+          // enable the correct vision modes (using the console var message for this will also ensure
+          // the right schedule is used as well)
+          using namespace ExternalInterface;
+          MessageGameToEngine wrap(SetDebugConsoleVarMessage("Faces", "1"));
+          
+          if(SendMessage(wrap)==Anki::RESULT_OK) {
+            _testState = TestState::TurnToFace;
+            break;
+          } else {
+            PRINT_NAMED_ERROR("CST_FaceActions.SetupVisionMode.Failed","");
+            _result = 255;
+            QuitWebots(_result);
+          }
+        }
         case TestState::TurnToFace:
         {
           SendMoveHeadToAngle(MAX_HEAD_ANGLE, 100, 100);
@@ -102,8 +125,22 @@ namespace Anki {
             ExternalInterface::QueueSingleAction m;
             m.position = QueueActionPosition::NOW;
             m.idTag = 10;
-            // Turn towards the last face pose
-            m.action.Set_turnTowardsLastFacePose(ExternalInterface::TurnTowardsLastFacePose(M_PI_F, 0, 0, 0, 0, 0, 0, false, AnimationTrigger::Count, AnimationTrigger::Count));
+            
+            // note: we set the tolerance of the tilt-angle for the action
+            //       to be half the tolerance of the test-expected tilt angle
+            //       because there is noise in the estimation of pose from vision
+            m.action.Set_turnTowardsLastFacePose(
+              ExternalInterface::TurnTowardsLastFacePose(
+                M_PI_F,
+                0,
+                0,
+                0,
+                0,
+                0,
+                DEG_TO_RAD(kTestDoneGoalTiltTol_deg)/2, // action's tilt tolerance
+                false,
+                AnimationTrigger::Count,
+                AnimationTrigger::Count));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -116,7 +153,7 @@ namespace Anki {
           // Verify robot has turned back towards the face
           IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(DEFAULT_TIMEOUT,
                                                 !IsRobotStatus(RobotStatusFlag::IS_MOVING),
-                                                NEAR(GetRobotHeadAngle_rad(), DEG_TO_RAD(42.5f), DEG_TO_RAD(5.f)),
+                                                NEAR(GetRobotHeadAngle_rad(), DEG_TO_RAD(kTestDoneGoalTilt_deg), DEG_TO_RAD(kTestDoneGoalTiltTol_deg)),
                                                 NEAR(GetRobotPose().GetRotation().GetAngleAroundZaxis().getDegrees(), -90, 10),
                                                 _prevFaceSeenTime < _faceSeenTime,
                                                 _prevFaceSeenTime != 0)
@@ -146,6 +183,6 @@ namespace Anki {
     
     // ================ End of message handler callbacks ==================
     
-  } // end namespace Cozmo
+  } // end namespace Vector
 } // end namespace Anki
 

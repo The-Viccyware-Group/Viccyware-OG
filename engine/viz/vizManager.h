@@ -16,12 +16,14 @@
 
 #include "coretech/common/engine/math/fastPolygon2d.h"
 #include "coretech/common/engine/math/pose.h"
-#include "coretech/common/engine/math/polygon.h"
+#include "coretech/common/engine/math/polygon_fwd.h"
+#include "coretech/common/engine/math/quad.h"
 #include "coretech/common/engine/colorRGBA.h"
-#include "coretech/common/shared/types.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "util/helpers/ankiDefines.h"
 #include "coretech/planning/shared/path.h"
 #include "coretech/messaging/shared/UdpClient.h"
+#include "engine/viz/vizTextLabelTypes.h"
 #include "clad/types/cameraParams.h"
 #include "clad/types/imageTypes.h"
 #include "clad/types/vizTypes.h"
@@ -34,9 +36,6 @@
 #include <vector>
 #include <map>
 
-// Send viz to unity?
-#define VIZ_TO_UNITY 0
-
 namespace Anki {
   
   // Forward declaration
@@ -44,31 +43,18 @@ namespace Anki {
     class TrackedFace;
   }
   
-  namespace Cozmo {
+  namespace Vector {
 
   namespace VizInterface {
   class MessageViz;
   enum class MessageVizTag : uint8_t;
-  struct RobotMood;
   } // end namespace VizInterface
     
-    class GameMessagePort;
     class IExternalInterface;
 
     class VizManager
     {
     public:
-      
-      typedef enum : u8 {
-        OFF_TREADS_STATE,
-        ACTION,
-        LOCALIZED_TO,
-        WORLD_ORIGIN,
-        VISION_MODE,
-        BEHAVIOR_STATE,
-        ANIMATION_NAME,
-        NEEDS_STATE
-      } TextLabelType;
       
       using Handle_t = u32;
       static const Handle_t INVALID_HANDLE;
@@ -76,7 +62,7 @@ namespace Anki {
       VizManager();
       
       // NOTE: Connect() will call Disconnect() first if already connected.
-      Result Connect(const char *udp_host_address, const unsigned short port, const char* unity_host_address, const unsigned short unity_port);
+      Result Connect(const char *udp_host_address, const unsigned short port);
       Result Disconnect();
 
       // Whether or not to display the viz objects
@@ -87,8 +73,7 @@ namespace Anki {
       // function below which is just a wrapper around DrawObject. This one
       // actually sets the pose of a CozmoBot model in the world providing
       // more detailed visualization capabilities.
-      void DrawRobot(const u32 robotID,
-                     const Pose3d &pose,
+      void DrawRobot(const Pose3d &pose,
                      const f32 headAngle,
                      const f32 liftAngle);
       
@@ -116,14 +101,6 @@ namespace Anki {
                                const Pose3d &pose,
                                const ColorRGBA& color = ::Anki::NamedColors::DEFAULT);
       
-      Handle_t DrawRamp(const u32 rampID,
-                        const f32 platformLength,
-                        const f32 slopeLength,
-                        const f32 width,
-                        const f32 height,
-                        const Pose3d& pose,
-                        const ColorRGBA& color = ::Anki::NamedColors::DEFAULT);
-      
       Handle_t DrawCharger(const u32 chargerID,
                            const f32 platformLength,
                            const f32 slopeLength,
@@ -136,12 +113,14 @@ namespace Anki {
                              const Point3f& size,
                              const Pose3d& pose,
                              const ColorRGBA& color = ::Anki::NamedColors::DEFAULT);
+
+      // Draws XYZ axes as corresponding RGB lines
+      void DrawFrameAxes(const std::string identifier, 
+                         const Pose3d& pose, 
+                         const f32 scale_mm = 100.f);
       
       void DrawCameraFace(const Vision::TrackedFace& face,
                           const ColorRGBA& color);
-      
-      //void DrawRamp();
-      
       
       void EraseRobot(const u32 robotID);
       void EraseCuboid(const u32 blockID);
@@ -161,7 +140,8 @@ namespace Anki {
         const Point3f &size,
         const Pose3d &pose,
         const ColorRGBA& color = ::Anki::NamedColors::DEFAULT,
-        const f32* params = nullptr);
+        const f32* params = nullptr,
+        const std::string& text = "");
       
       // Erases the object corresponding to the objectID
       void EraseVizObject(const Handle_t objectID);
@@ -218,9 +198,6 @@ namespace Anki {
                            const T zHeight,
                            const ColorRGBA& color);
       
-      
-      void DisplayCameraImage(const TimeStamp_t timestamp);
-      
       // Draw a generic 2D quad in the camera display
       // TopColor is the color of the line connecting the upper left and upper right corners.
       template<typename T>
@@ -239,6 +216,11 @@ namespace Anki {
       void DrawCameraLine(const Point2f& start,
                           const Point2f& end,
                           const ColorRGBA& color);
+      
+      // Draw a polygon (as a set of line segments) in the camera display
+      void DrawCameraPoly(const Poly2f& poly,
+                          const ColorRGBA& color,
+                          const bool isClosed = true);
       
       // Draw an oval in the camera display
       void DrawCameraOval(const Point2f& center,
@@ -259,12 +241,6 @@ namespace Anki {
       void DrawRobotBoundingBox(const u32 quadID,
                                 const Quadrilateral<3,T>& quad,
                                 const ColorRGBA& color);
-      
-      template<typename T>
-      void DrawPlannerObstacle(const bool isReplan,
-                               const u32 quadID,
-                               const Polygon<2,T>& poly,
-                               const ColorRGBA& color);
 
       template<typename T>
       void DrawPoseMarker(const u32 quadID,
@@ -299,12 +275,10 @@ namespace Anki {
       // Erases all quads
       void EraseAllQuads();
       
-      void EraseAllPlannerObstacles(const bool isReplan);
-      
       void EraseAllMatMarkers();
 
       // ==== Draw functions without identifier =====
-      // This supports sending requests to draw primitives without requiring to assign a single ID to every
+      // This supports sending requests to draw segments without requiring to assign a single ID to every
       // one of them, but a group. Used for debugging purposes where the underlaying geometry is not directly
       // related to a given object
       
@@ -312,11 +286,6 @@ namespace Anki {
       void DrawSegment(const std::string& identifier,
         const Point<3,T>& from, const Point<3,T>& to, const ColorRGBA& color, bool clearPrevious, float zOffset=0.0f);
       void EraseSegments(const std::string& identifier);
-      
-      // vector of simple quads (note a simple quad is an axis aligned quad with a color)
-      using SimpleQuadVector = std::vector<VizInterface::SimpleQuad>;
-      void DrawQuadVector(const std::string& identifier, const SimpleQuadVector& quads);
-      void EraseQuadVector(const std::string& identifier);
       
       // circle as segments
       template <typename T>
@@ -328,10 +297,7 @@ namespace Anki {
       void DrawQuadAsSegments(const std::string& identifier, const Quadrilateral<2, T>& quad, T z, const ColorRGBA& color, bool clearPrevious);
       template <typename T>
       void DrawQuadAsSegments(const std::string& identifier, const Quadrilateral<3, T>& quad, const ColorRGBA& color, bool clearPrevious);
-      
-      // helper to create SimpleQuads from Color and coordinates/size in millimeters. Note SimpleQuad uses floats
-      template <typename T>
-      static VizInterface::SimpleQuad MakeSimpleQuad(const ColorRGBA& color, const Point<3, T>& centerMM, T sideSizeMM);
+
       
       // ==== Circle functions =====
       template<typename T>
@@ -345,50 +311,24 @@ namespace Anki {
     
       // ==== Text functions =====
       void SetText(const TextLabelType& labelType, const ColorRGBA& color, const char* format, ...);
-      
-      
-      // ==== Color functions =====
-      /*
-      // Sets the index colorID to correspond to the specified color vector
-      void DefineColor(const u32 colorID,
-                       const f32 red, const f32 green, const f32 blue,
-                       const f32 alpha);
-      */
-      //void ClearAllColors();
 
+      Handle_t DrawTextAtPose(const u32 textObjectID, const std::string& text, const ColorRGBA& color, const Pose3d& pose);
         
       // ==== Misc. Debug functions =====
       void SetDockingError(const f32 x_dist, const f32 y_dist, const f32 z_dist, const f32 angle);
       
-      void SendCameraParams(const CameraParams& params);
+      void SendCameraParams(const Vision::CameraParams& params);
 
       void EnableImageSend(bool tf) { _sendImages = tf; }
-      /*
-      void SendGreyImage(const RobotID_t robotID, const u8* data, const Vision::CameraResolution res, const TimeStamp_t timestamp);
-      void SendColorImage(const RobotID_t robotID, const u8* data, const Vision::CameraResolution res, const TimeStamp_t timestamp);
 
-      void SendImage(const RobotID_t robotID, const u8* data, const u32 dataLength,
-                     const Vision::CameraResolution res,
-                     const TimeStamp_t timestamp,
-                     const Vision::ImageEncoding_t encoding);
-      */
-
-      void SendImageChunk(const RobotID_t robotID, const ImageChunk& robotImageChunk);
+      void SendImageChunk(const ImageChunk& robotImageChunk);
       
       void SendTrackerQuad(const u16 topLeft_x, const u16 topLeft_y,
                            const u16 topRight_x, const u16 topRight_y,
                            const u16 bottomRight_x, const u16 bottomRight_y,
                            const u16 bottomLeft_x, const u16 bottomLeft_y);
       
-      void SendRobotState(const RobotState &msg,
-                          const u8  videoFrameRateHz,
-                          const u8  imageProcFrameRateHz,
-                          const u32 numProcAnimFaceKeyframes,
-                          const u8  lockedTracks,
-                          const u8  tracksInUse,
-                          const f32 imuTemperature_degC,
-                          std::array<uint16_t, 4> cliffThresholds,
-                          const float batteryVolts);
+      void SendRobotState(VizInterface::RobotStateMessage&& msg);
       
       void SendCurrentAnimation(const std::string& animName, u8 animTag);
 
@@ -400,24 +340,12 @@ namespace Anki {
       template <typename T>
       void HandleMessage(const T& msg);
       
-      void SendRobotMood(VizInterface::RobotMood&& robotMood);
-      void SendRobotBehaviorSelectData(VizInterface::RobotBehaviorSelectData&& robotBehaviorSelectData);
-      void SendNewBehaviorSelected(VizInterface::NewBehaviorSelected&& newBehaviorSelected);
-      void SendNewReactionTriggered(VizInterface::NewReactionTriggered&& newReactionTriggered);
-      void SendStartRobotUpdate();
-      void SendEndRobotUpdate();
       void SendSaveImages(ImageSendMode mode, std::string path = "");
       void SendSaveState(bool enabled, std::string path = "");
       void SendBehaviorStackDebug(VizInterface::BehaviorStackDebug&& behaviorStackDebug);
       void SendVisionModeDebug(VizInterface::VisionModeDebug&& visionModeDebug);
       void SendVizMessage(VizInterface::MessageViz&& event);
-
-      
-      // ============= ActiveObjectInfo ===========
-      void SendObjectConnectionState(u32 activeID, ObjectType type, bool connected);
-      void SendObjectMovingState(u32 activeID, bool moving);
-      void SendObjectUpAxisState(u32 activeID, UpAxis upAxis);
-      void SendObjectAccelState(u32 activeID, const ActiveAccel& accel);
+      void SendEnabledVisionModes(VizInterface::EnabledVisionModes&& modes);
 
       uint32_t GetMessageCountViz() const { return _messageCountViz; }
       void     ResetMessageCount() { _messageCountViz = 0; }
@@ -431,16 +359,7 @@ namespace Anki {
       bool               _isConnected;
       UdpClient          _vizClient;
 
-      #if VIZ_TO_UNITY
-      UdpClient          _unityVizClient;
-      #endif
-      
       uint32_t           _messageCountViz = 0;
-
-      /*
-      // Image sending
-      std::map<RobotID_t, u8> _imgID;
-      */
 
       bool               _sendImages;
       
@@ -607,19 +526,7 @@ namespace Anki {
     {
       DrawQuad(VizQuadType::VIZ_QUAD_MAT_MARKER, quadID, quad, color);
     }
-    
-    template<typename T>
-    void VizManager::DrawPlannerObstacle(const bool isReplan,
-                                         const u32 polyID,
-                                         const Polygon<2,T>& poly,
-                                         const ColorRGBA& color)
-    {
-      // const u32 polyType = (isReplan ? VIZ_QUAD_PLANNER_OBSTACLE_REPLAN : VIZ_QUAD_PLANNER_OBSTACLE);
-      
-      DrawPoly(polyID, poly, color);
-    }
 
-    
     template<typename T>
     void VizManager::DrawRobotBoundingBox(const u32 quadID,
                                           const Quadrilateral<3,T>& quad,
@@ -641,7 +548,7 @@ namespace Anki {
     void VizManager::DrawSegment(const std::string& identifier,
       const Point<3,T>& from, const Point<3,T>& to, const ColorRGBA& color, bool clearPrevious, float zOffset)
     {
-      SendMessage(VizInterface::MessageViz(VizInterface::SegmentPrimitive
+      SendMessage(VizInterface::MessageViz(VizInterface::LineSegment
         {identifier,
          color.AsRGBA(),
          { {Anki::Util::numeric_cast<float>(MM_TO_M(from.x())),
@@ -721,19 +628,6 @@ namespace Anki {
       DrawSegment(identifier, bottomRight, bottomLeft, color, false);
       DrawSegment(identifier, bottomLeft, topLeft, color, false);
     }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    template <typename T>
-    VizInterface::SimpleQuad VizManager::MakeSimpleQuad(const ColorRGBA& color, const Point<3, T>& centerMM, T sideSizeMM)
-    {
-      VizInterface::SimpleQuad ret;
-      ret.color = color.AsRGBA();
-      ret.sideSize = Anki::Util::numeric_cast<float>(MM_TO_M(sideSizeMM));;
-      ret.center[0] = Anki::Util::numeric_cast<float>(MM_TO_M(centerMM[0]));
-      ret.center[1] = Anki::Util::numeric_cast<float>(MM_TO_M(centerMM[1]));
-      ret.center[2] = Anki::Util::numeric_cast<float>(MM_TO_M(centerMM[2]));
-      return ret;
-    }
     
     template <typename T>
     void VizManager::DrawXYCircle(u32 polyID,
@@ -770,7 +664,7 @@ namespace Anki {
       }
       DrawPoly(polyID, newCircle, color);
     }
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki
 
 

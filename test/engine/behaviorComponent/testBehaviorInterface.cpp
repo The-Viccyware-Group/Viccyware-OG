@@ -12,8 +12,8 @@
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
-#include "clad/types/behaviorComponent/behaviorTypes.h"
-#include "clad/types/behaviorComponent/userIntent.h"
+#include "clad/types/behaviorComponent/behaviorClasses.h"
+#include "clad/types/behaviorComponent/behaviorIDs.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/actions/basicActions.h"
 #include "engine/aiComponent/aiComponent.h"
@@ -28,9 +28,10 @@
 #include "engine/robot.h"
 #include "gtest/gtest.h"
 #include "test/engine/behaviorComponent/testBehaviorFramework.h"
+#include "test/engine/callWithoutError.h"
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 static const BehaviorClass emptyClass = BEHAVIOR_CLASS(Wait);
 static const BehaviorID emptyID = BEHAVIOR_ID(Wait);
@@ -85,7 +86,7 @@ TEST(BehaviorInterface, Init)
   b.OnEnteredActivatableScope();
 
   EXPECT_FALSE( b._inited );
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
   EXPECT_TRUE( b._inited );
   EXPECT_EQ( b._numUpdates, 0 );
@@ -113,7 +114,7 @@ TEST(BehaviorInterface, InitWithInterface)
   b.OnEnteredActivatableScope();
 
   EXPECT_FALSE( b._inited );
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
   EXPECT_TRUE( b._inited );
   EXPECT_EQ( b._numUpdates, 0 );
@@ -144,7 +145,7 @@ TEST(BehaviorInterface, Run)
   b.InitBehaviorOperationModifiers();
   b.OnEnteredActivatableScope();
   
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
 
@@ -177,7 +178,7 @@ TEST(BehaviorInterface, HandleMessages)
   b2.Init(behaviorExternalInterface);
   b2.InitBehaviorOperationModifiers();
   b2.OnEnteredActivatableScope();
-  b2.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b2.WantsToBeActivated();
   InjectBehaviorIntoStack(b2, testBehaviorFramework);
 
   Robot& robot = testBehaviorFramework.GetRobot();
@@ -251,7 +252,7 @@ TEST(BehaviorInterface, OutsideAction)
   b.Init(behaviorExternalInterface);
   b.InitBehaviorOperationModifiers();
   b.OnEnteredActivatableScope();
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
   
@@ -348,18 +349,28 @@ TEST(BehaviorInterface, DelegateIfInControlFailures)
   
   bool done = false;
   EXPECT_TRUE( b.CallDelegateIfInControl(robot, done) );
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  
+  bool errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
 
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   EXPECT_FALSE(robot.GetActionList().IsEmpty());
 
   done = true;
 
   // action hasn't updated yet, so it's done. Should still fail to start a new action
-  EXPECT_FALSE( b.CallDelegateIfInControl(robot, done) );
+  errGGotSet = CallWithoutError( [&robot,&done,&b]() {
+    EXPECT_FALSE( b.CallDelegateIfInControl( robot, done ) );
+  });
+  EXPECT_TRUE( errGGotSet );
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
 
@@ -496,7 +507,7 @@ TEST(BehaviorInterface, DelegateIfInControlWhenNotRunning)
   b.OnLeftActivatableScope();
   b.OnEnteredActivatableScope();
   
-  b.WantsToBeActivated();
+  const bool wtba __attribute((unused)) = b.WantsToBeActivated();
   b.OnActivated();
 
   DoBehaviorComponentTicks(robot, b, testBehaviorFramework.GetBehaviorComponent(), 3);
@@ -696,13 +707,9 @@ public:
       intent.Set_test_name( UserIntent_Test_Name{""} );
       AddWaitForUserIntent( std::move(intent) );
     }
-    else if( _type == "trigger" ) {
-      SetRespondToTriggerWord( true );
-    }
     // otherwise don't do anything
   }
   
-  std::function<void(const UserIntent&)> _onGetData;
   std::string _type;
 
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override {}
@@ -712,11 +719,7 @@ public:
     return true;
   }
 
-  virtual void OnBehaviorActivated() override {
-    if( _onGetData ) {
-      _onGetData( GetTriggeringUserIntent() );
-    }
-  }
+  virtual void OnBehaviorActivated() override {}
 
 };
 
@@ -736,7 +739,6 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
   auto& uic = bei.GetAIComponent().GetComponent<BehaviorComponent>().GetComponent<UserIntentComponent>();
   
   for( int i=0; i<=11; ++i ) {
-    bool callbackFired = false;
     bool expectingCallback = false;
     Json::Value config = ICozmoBehavior::CreateDefaultBehaviorConfig(emptyClass, emptyID);
     
@@ -755,20 +757,12 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
     else if( i == 10 || i == 11 ) { // 10-11 are intents with null string (intent with null string, intent with nonnull string)
       config["responseType"] = "user intent intent empty";
     }
-    else if( i == 12 ) { // 12 is trigger
-      config["responseType"] = "trigger";
-    }
     TestBehavior_RespondsUserIntents b(config);
     
     UserIntent passedIntent;
     
     if( i==1 || i==2 || i==4 || i==7 || i==10 ) {
       expectingCallback = true;
-      // these ones should have data and it should match
-      b._onGetData = [&](const UserIntent& intent) {
-        EXPECT_EQ( intent, passedIntent );
-        callbackFired = true;
-      };
     }
     
     b.Init( bei );
@@ -785,33 +779,44 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
       {
         passedIntent.Set_test_name( UserIntent_Test_Name{""} );
         EXPECT_TRUE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( std::move(passedIntent) );
+        uic.DevSetUserIntentPending( std::move(passedIntent) , UserIntentSource::Voice);
         EXPECT_TRUE( b.WantsToBeActivatedInternal() );
-        uic.ClearUserIntent( USER_INTENT(test_name) );
+        uic.DropUserIntent( USER_INTENT(test_name) );
       }
         break;
-      case 1: // behavior is waiting for test_user_intent_1; also, it should clear the intent
+      case 1: // behavior is waiting for test_user_intent_1; also, it should activate the intent
       {
         passedIntent.Set_test_user_intent_1({});
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( passedIntent.GetTag() );
+        uic.DevSetUserIntentPending( passedIntent.GetTag() , UserIntentSource::Voice);
         EXPECT_TRUE( b.WantsToBeActivated() );
         b.OnActivated();
         EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_user_intent_1)) );
         EXPECT_FALSE( uic.IsAnyUserIntentPending() );
+        EXPECT_TRUE( uic.IsUserIntentActive(USER_INTENT(test_user_intent_1)) );
+        b.OnDeactivated();
+        EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_user_intent_1)) );
+        EXPECT_FALSE( uic.IsAnyUserIntentPending() );
+        EXPECT_FALSE( uic.IsUserIntentActive(USER_INTENT(test_user_intent_1)) );
       }
         break;
-      case 2: // behavior is waiting for test_name; also, it should clear the intent
+      case 2: // behavior is waiting for test_name; also, it should activate the intent
       case 4: // behavior is waiting for test_name with "Victor"
       case 7: // behavior is waiting for test_name with "Victor"
       {
         passedIntent.Set_test_name( UserIntent_Test_Name{"Victor"} );
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( std::move(passedIntent) );
+        uic.DevSetUserIntentPending( std::move(passedIntent) , UserIntentSource::Voice);
         EXPECT_TRUE( b.WantsToBeActivated() );
         b.OnActivated();
         EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_name)) );
         EXPECT_FALSE( uic.IsAnyUserIntentPending() );
+        EXPECT_TRUE( uic.IsUserIntentActive(USER_INTENT(test_name)) );
+        b.OnDeactivated();
+        EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_name)) );
+        EXPECT_FALSE( uic.IsAnyUserIntentPending() );
+        EXPECT_FALSE( uic.IsUserIntentActive(USER_INTENT(test_name)) );
+
       }
         break;
       case 3: // passing a different tag. should not want to start
@@ -820,9 +825,9 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
       {
         passedIntent.Set_test_user_intent_2({});
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( passedIntent.GetTag() );
+        uic.DevSetUserIntentPending( passedIntent.GetTag() , UserIntentSource::Voice);
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.ClearUserIntent( USER_INTENT(test_user_intent_2) );
+        uic.DropUserIntent( USER_INTENT(test_user_intent_2) );
       }
         break;
       case 5: // behavior is waiting for test_name with "Victor" but we give it Cozmo
@@ -831,34 +836,23 @@ TEST(BehaviorInterface, BehaviorRespondsToUserIntents)
       {
         passedIntent.Set_test_name( UserIntent_Test_Name{"Cozmo"} );
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( std::move(passedIntent) );
+        uic.DevSetUserIntentPending( std::move(passedIntent) , UserIntentSource::Voice);
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.ClearUserIntent( USER_INTENT(test_name) );
+        uic.DropUserIntent( USER_INTENT(test_name) );
       }
         break;
       case 10: // behavior is waiting for test_name with "".
       {
         passedIntent.Set_test_name( UserIntent_Test_Name{""} );
         EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetUserIntentPending( std::move(passedIntent) );
+        uic.DevSetUserIntentPending( std::move(passedIntent) , UserIntentSource::Voice);
         EXPECT_TRUE( b.WantsToBeActivated() );
         b.OnActivated();
         EXPECT_FALSE( uic.IsUserIntentPending(USER_INTENT(test_name)) );
         EXPECT_FALSE( uic.IsAnyUserIntentPending() );
       }
         break;
-      case 12: // behavior is waiting for a trigger
-      {
-        EXPECT_FALSE( b.WantsToBeActivated() );
-        uic.SetTriggerWordPending();
-        EXPECT_TRUE( b.WantsToBeActivated() );
-        b.OnActivated();
-        EXPECT_FALSE( uic.IsTriggerWordPending() );
-      }
-        break;
     }
-    
-    EXPECT_EQ(callbackFired, expectingCallback);
   }
   
 }

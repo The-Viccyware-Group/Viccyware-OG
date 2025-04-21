@@ -16,7 +16,8 @@
 
 #include "gtest/gtest.h"
 
-#include "clad/types/behaviorComponent/behaviorTypes.h"
+#include "clad/types/behaviorComponent/behaviorClasses.h"
+#include "clad/types/behaviorComponent/behaviorIDs.h"
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/behaviorEventComponent.h"
@@ -28,7 +29,7 @@
 #include "engine/robotInterface/messageHandler.h"
 #include "test/engine/behaviorComponent/testBehaviorFramework.h"
 
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 
 static const char* kTestBehaviorJson =

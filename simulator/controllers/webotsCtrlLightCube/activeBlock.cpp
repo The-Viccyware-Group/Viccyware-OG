@@ -15,6 +15,7 @@
 #include "util/helpers/templateHelpers.h"
 #include "util/math/math.h"
 #include "util/math/numericCast.h"
+#include "util/random/randomGenerator.h"
 
 #include "robot/cube_firmware/app/animation.h"
 
@@ -30,6 +31,7 @@
 #include <webots/LED.hpp>
 
 #include <array>
+#include <iomanip>
 #include <map>
 
 webots::Supervisor active_object_controller;
@@ -38,13 +40,22 @@ webots::Supervisor active_object_controller;
 uint8_t intensity[ANIMATION_CHANNELS * COLOR_CHANNELS];
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 namespace ActiveBlock {
 
 namespace {
 
-  // Number of cycles (of length SIM_CUBE_TIME_STEP_MS) in between transmission of ObjectAvailable messages
-  const u32 OBJECT_AVAILABLE_MESSAGE_PERIOD = 100;
+  // Length of time in between transmission of ObjectAvailable messages
+  const u32 kObjectAvailableMessagePeriod_ms = 1000;
+  const u32 kObjectAvailableMessagePeriod_cycles = kObjectAvailableMessagePeriod_ms / CUBE_TIME_STEP_MS;
+  
+  // Length of time in between transmission of battery voltage messages
+  const u32 kBatteryVoltageMessagePeriod_ms = 1000;
+  const u32 kBatteryVoltageMessagePeriod_cycles = kBatteryVoltageMessagePeriod_ms / CUBE_TIME_STEP_MS;
+  
+  // To convert between battery voltage and the cube firmware's raw ADC counts (used to simulate how the physical cube
+  // sends battery voltage to engine). The raw ADC value follows the equation: actualVolts = railVoltageCnts * 3.6 / 1024
+  const float kBatteryVoltsToRawCnts = 1024.f / 3.6f;
   
   constexpr int kNumCubeLeds = Util::EnumToUnderlying(CubeConstants::NUM_CUBE_LEDS);
   
@@ -53,9 +64,17 @@ namespace {
   webots::Emitter*  discoveryEmitter_;
   
   // Webots comm channel used for the discovery emitter/receiver
-  constexpr int kDiscoveryChannel = 99;
+  constexpr int kDiscoveryChannel = 0;
   
   webots::Accelerometer* accel_;
+  
+  // The cube accelerometer/tap message to be sent to engine
+  CubeAccelData cubeAccelMsg_;
+  
+  // Raw accelerometer readings are buffered before being sent
+  // to engine (due to BLE message rate limits on the cubes),
+  // so keep track of which index we're on.
+  size_t rawCubeAccelInd = 0;
   
   // Accelerometer filter window
   const u32 MAX_ACCEL_BUFFER_SIZE = 30;
@@ -68,13 +87,8 @@ namespace {
   const u32 TAP_DETECT_WINDOW_MS = 100;
   const f32 CUTOFF_FREQ = 50;
   const f32 RC = 1.0f/(CUTOFF_FREQ*2*3.14f);
-  const f32 dt = 0.001f*SIM_CUBE_TIME_STEP_MS;
+  const f32 dt = 0.001f*CUBE_TIME_STEP_MS;
   const f32 alpha = RC/(RC + dt);
-  
-  // This block's "ActiveID". Note that engine will set its own
-  // activeID for this cube, and eventually the messaging will
-  // change and this will be removed from the raw cube messages.
-  s32 blockID_ = -1;
   
   // Pointers to the LED object to set the simulated cube's lights
   webots::LED* led_[kNumCubeLeds];
@@ -87,8 +101,15 @@ namespace {
   // Store them here (key is LED index, value is RGB color).
   std::map<u32, std::array<double, 3>> pendingLedColors_;
   
-  u32 factoryID_ = 0;
+  std::string factoryID_;
+  
   ObjectType objectType_ = ObjectType::UnknownObject;  
+  
+  Util::RandomGenerator randGen_;
+  
+  // Pointer to webots field which contains the current battery voltage of the cube (this is to be able to simulate a
+  // low cube battery condition)
+  webots::Field* batteryVoltsField_ = nullptr;
   
 } // private namespace
 
@@ -143,7 +164,9 @@ void ProcessMessage(const MessageEngineToCube& msg)
     }
     break;
     default:
-      // Ignore unexpected messages
+      PRINT_NAMED_ERROR("ActiveBlock.ProcessMessage.UnexpectedTag",
+                        "Received message with unexpected tag %s",
+                        MessageEngineToCubeTagToString(tag));
       break;
   }
 }
@@ -153,7 +176,7 @@ Result Init()
 {
   animation_init();
 
-  active_object_controller.step(SIM_CUBE_TIME_STEP_MS);
+  active_object_controller.step(CUBE_TIME_STEP_MS);
   
   webots::Node* selfNode = active_object_controller.getSelf();
   
@@ -166,40 +189,32 @@ Result Init()
   
   // Grab ObjectType and its integer value
   const auto& typeString = typeField->getSFString();
+  objectType_ = ObjectTypeFromString(typeString);
   
-  // Hack to map Victor's circle and square cube types to "1" and "2"
-  if(typeString == "Block_LIGHTCUBE_CIRCLE") {
-    objectType_ = ObjectType::Block_LIGHTCUBE1;
-    blockID_ = 1;
-  }
-  else if(typeString == "Block_LIGHTCUBE_SQUARE") {
-    objectType_ = ObjectType::Block_LIGHTCUBE2;
-    blockID_ = 2;
-  }
-  else {
-    objectType_ = ObjectTypeFromString(typeString);
-    
-    // Simply set the cube's active ID to be the light cube type's integer value
-    int typeInt = -1;
-    sscanf(typeString.c_str(), "Block_LIGHTCUBE%d", &typeInt);
-    DEV_ASSERT(typeInt != -1, "ActiveBlock.Init.FailedToParseLightCubeInt");
-    blockID_ = typeInt;
-  }
-  DEV_ASSERT(IsValidLightCube(objectType_, false), "ActiveBlock.Init.InvalidObjectType");
+  DEV_ASSERT_MSG(objectType_ == ObjectType::Block_LIGHTCUBE1,
+                 "ActiveBlock.Init.InvalidLightCubeType",
+                 "Invalid object type \"%s\". Only Block_LIGHTCUBE1 should be an active "
+                 "object. All other object types should not be active blocks.",
+                 typeString.c_str());
 
   // Generate a factory ID
-  // If PROTO factoryID is > 0, use that.
-  // Otherwise use blockID as factoryID.
+  // If PROTO factoryID is nonempty, use that.
+  // Otherwise randomly generate a factoryID.
   webots::Field* factoryIdField = selfNode->getField("factoryID");
   if (factoryIdField) {
-    s32 fID = factoryIdField->getSFInt32();
-    if (fID > 0) {
-      factoryID_ = fID;
-    } else {
-      factoryID_ = blockID_;
-    }
+    factoryID_ = factoryIdField->getSFString();
   }
-  PRINT_NAMED_INFO("ActiveBlock", "Starting active object %d (factoryID %d)", blockID_, factoryID_);
+  if (factoryID_.empty()) {
+    // factoryID is still empty - generate a unique one.
+    std::ostringstream ss;
+    for (int i=0 ; i < 6 ; i++) {
+      const int rand = randGen_.RandIntInRange(0, std::numeric_limits<uint8_t>::max());
+      ss << std::setw(2) << std::setfill('0') << std::hex << (int) rand << ":";
+    }
+    factoryID_ = ss.str();
+    factoryID_.pop_back(); // pop off the trailing ":"
+  }
+  PRINT_NAMED_INFO("ActiveBlock", "Starting active object (factoryID %s)", factoryID_.c_str());
   
   // Get all LED handles
   for (int i=0; i<kNumCubeLeds; ++i) {
@@ -213,17 +228,23 @@ Result Init()
   ledColorField_ = selfNode->getField("ledColors");
   assert(ledColorField_ != nullptr);
   
-  // Get radio receiver
-  receiver_ = active_object_controller.getReceiver("receiver");
-  assert(receiver_ != nullptr);
-  receiver_->enable(SIM_CUBE_TIME_STEP_MS);
-  receiver_->setChannel(factoryID_ + 1);
+  // Field for battery voltage
+  batteryVoltsField_ = selfNode->getField("batteryVolts");
+  assert(batteryVoltsField_ != nullptr);
   
   // Get radio emitter
   emitter_ = active_object_controller.getEmitter("emitter");
   assert(emitter_ != nullptr);
-  emitter_->setChannel(factoryID_);
+  // Generate a unique channel for this cube using factory ID
+  const int emitterChannel = (int) (std::hash<std::string>{}(factoryID_) & 0x3FFFFFFF);
+  emitter_->setChannel(emitterChannel);
   
+  // Get radio receiver (channel = 1 + emitterChannel)
+  receiver_ = active_object_controller.getReceiver("receiver");
+  assert(receiver_ != nullptr);
+  receiver_->setChannel(emitterChannel + 1);
+  receiver_->enable(CUBE_TIME_STEP_MS);
+
   // Get radio emitter for discovery
   discoveryEmitter_ = active_object_controller.getEmitter("discoveryEmitter");
   assert(discoveryEmitter_ != nullptr);
@@ -232,7 +253,7 @@ Result Init()
   // Get accelerometer
   accel_ = active_object_controller.getAccelerometer("accel");
   assert(accel_ != nullptr);
-  accel_->enable(SIM_CUBE_TIME_STEP_MS);
+  accel_->enable(CUBE_TIME_STEP_MS);
   
   return RESULT_OK;
 }
@@ -291,7 +312,7 @@ bool CheckForTap(f32 accelX, f32 accelY, f32 accelZ)
           
           // Fast forward in buffer so that we don't allow tap detection again until
           // TAP_DETECT_WINDOW_MS later.
-          u32 idxOffset = i + (TAP_DETECT_WINDOW_MS / SIM_CUBE_TIME_STEP_MS);
+          u32 idxOffset = i + (TAP_DETECT_WINDOW_MS / CUBE_TIME_STEP_MS);
           accelBufferStartIdx_ = (accelBufferStartIdx_ + idxOffset) % MAX_ACCEL_BUFFER_SIZE;
           if (accelBufferSize_ > idxOffset) {
             accelBufferSize_ -= idxOffset;
@@ -309,9 +330,9 @@ bool CheckForTap(f32 accelX, f32 accelY, f32 accelZ)
 }
 
 
-Result Update() {
-  if (active_object_controller.step(SIM_CUBE_TIME_STEP_MS) != -1) {
-    const s32 currTime_ms = Util::numeric_cast<s32>(active_object_controller.getTime() * 1000.0);
+Result Update()
+{
+  if (active_object_controller.step(CUBE_TIME_STEP_MS) != -1) {
     
     // Read incoming messages
     while (receiver_->getQueueLength() > 0) {
@@ -322,24 +343,30 @@ Result Update() {
       receiver_->nextPacket();
     }
     
-    // Send ObjectAvailable message
-    static u32 objAvailableSendCtr = 0;
+    // Send ObjectAvailable message if it's time.
+    // Start the counter at a random number, or else all cubes
+    // will send advertisement messages at the same time.
+    static u32 objAvailableSendCtr = (u32) randGen_.RandIntInRange(0, kObjectAvailableMessagePeriod_cycles);
     if (objAvailableSendCtr-- == 0) {
       SendMessageHelper(discoveryEmitter_,
                         ExternalInterface::ObjectAvailable(factoryID_,
                                                            objectType_,
                                                            0));
-      objAvailableSendCtr = OBJECT_AVAILABLE_MESSAGE_PERIOD;
+      objAvailableSendCtr = kObjectAvailableMessagePeriod_cycles;
+    }
+    
+    // Send BatteryVoltage message if it's time
+    static u32 batteryVoltageSendCtr = kBatteryVoltageMessagePeriod_cycles;
+    if (batteryVoltageSendCtr-- == 0) {
+      const auto batteryVolts = batteryVoltsField_->getSFFloat();
+      CubeVoltageData msg;
+      msg.railVoltageCnts = static_cast<decltype(msg.railVoltageCnts)>(batteryVolts * kBatteryVoltsToRawCnts);
+      SendMessageHelper(emitter_, msg);
+      batteryVoltageSendCtr = kBatteryVoltageMessagePeriod_cycles;
     }
     
     // Update cube LED animations
-    // animation_tick() gets called once every CUBE_TIME_STEP_MS in the
-    // cube firmware, so call it the appropriate number of times here.
-    static s32 nextAnimationTick_ms = 0;
-    while (nextAnimationTick_ms <= currTime_ms) {
-      animation_tick();
-      nextAnimationTick_ms += CUBE_TIME_STEP_MS;
-    }
+    animation_tick();
     
     // Extract the RGB color for each LED from the
     // intensity variable
@@ -355,26 +382,30 @@ Result Update() {
     // Get accel values (units of m/sec^2)
     const double* accelVals = accel_->getValues();
     
-    // Check for taps and send accelerometer values
-    CubeAccelData cubeAccelMsg;
-    for (int i = 0 ; i < cubeAccelMsg.accel.size() ; i++) {
+    // Tap count just increments if a tap was detected (this emulates
+    // the behavior of the actual cube firmware)
+    if (CheckForTap(accelVals[0], accelVals[1], accelVals[2])) {
+      ++cubeAccelMsg_.tap_count;
+    }
+    
+    // For cube accel message, cube firmware buffers ACCEL_FRAMES_PER_MSG of them before
+    // sending (due to BLE message rate limits)
+    auto& thisRawAccel = cubeAccelMsg_.accelReadings[rawCubeAccelInd];
+    for (int i = 0 ; i < 3 ; i++) {
       // Webots accelerometer returns values in m/sec^2
       // Convert from this to what the actual cube would report.
       // Actual cubes send 16 bit signed accelerations, with a
       // range of -4g to 4g.
       const double accel_g = accelVals[i] / 9.81;
-      const double fakeAccelValue = accel_g * std::numeric_limits<int16_t>::max() / 4.0;
-      cubeAccelMsg.accel[i] = Util::numeric_cast_clamped<int16_t>(fakeAccelValue);
+      const double scaledAccelValue = accel_g * std::numeric_limits<int16_t>::max() / 4.0;
+      thisRawAccel.accel[i] = Util::numeric_cast_clamped<int16_t>(scaledAccelValue);
     }
     
-    if (CheckForTap(accelVals[0], accelVals[1], accelVals[2])) {
-      cubeAccelMsg.tap_count = 1;
-      cubeAccelMsg.tap_neg = -50;  // Hard-coded tap intensity.
-      cubeAccelMsg.tap_pos = 50;   // Just make sure that tapPos - tapNeg > BlockTapFilterComponent::kTapIntensityMin
-      cubeAccelMsg.tap_time = static_cast<u32>(active_object_controller.getTime() / 0.035f) % std::numeric_limits<u8>::max();  // Each tapTime count should be 35ms
+    // Send the cube accel message if it's time
+    if (++rawCubeAccelInd >= ACCEL_FRAMES_PER_MSG) {
+      SendMessageHelper(emitter_, CubeAccelData(cubeAccelMsg_));
+      rawCubeAccelInd = 0;
     }
-    
-    SendMessageHelper(emitter_, std::move(cubeAccelMsg));
 
     // Set any pending LED color fields. This must be done here since setMFVec3f can only
     // be called once per simulation time step for a given field (known Webots R2018a bug)
@@ -395,5 +426,5 @@ Result Update() {
 
 
 }  // namespace ActiveBlock
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki

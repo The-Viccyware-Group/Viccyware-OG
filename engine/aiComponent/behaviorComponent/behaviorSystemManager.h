@@ -15,10 +15,10 @@
 
 #include "coretech/common/shared/types.h"
 
+#include "clad/types/robotCompletedAction.h"
 #include "engine/aiComponent/behaviorComponent/asyncMessageGateComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior_fwd.h"
 #include "engine/aiComponent/behaviorComponent/iBehaviorRunner.h"
-#include "engine/aiComponent/behaviorComponent/behaviorStack.h"
 #include "json/json-forwards.h"
 #include "util/signals/simpleSignal_fwd.h"
 
@@ -26,10 +26,11 @@
 #include <unordered_map>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // Forward declarations
 class BehaviorExternalInterface;
+class BehaviorStack;
 class IBehavior;
 class Robot;
 
@@ -50,13 +51,18 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComponents) override;
-  virtual void UpdateDependent(const BCCompMap& dependentComponents) override;
+  virtual void InitDependent(Robot* robot, const BCCompMap& dependentComps) override;
+  virtual void UpdateDependent(const BCCompMap& dependentComps) override;
   virtual void GetInitDependencies(BCCompIDSet& dependencies) const override 
   {
-    dependencies.insert(BCComponentID::BaseBehaviorWrapper);
+    dependencies.insert(BCComponentID::BehaviorsBootLoader);
     dependencies.insert(BCComponentID::BehaviorExternalInterface);
     dependencies.insert(BCComponentID::AsyncMessageComponent);
+  }
+
+  virtual void GetUpdateDependencies(BCCompIDSet& dependencies) const override
+  {
+    dependencies.insert(BCComponentID::UserIntentComponent);
   }
 
   virtual void AdditionalUpdateAccessibleComponents(BCCompIDSet& components) const override
@@ -75,7 +81,7 @@ public:
   
   // destroy the current behavior stack and setup a new one - provides
   // no gaurentees that other aspects of behavior system or component state are reset
-  void ResetBehaviorStack(IBehavior* baseBehavior);
+  void ResetBehaviorStack(IBehavior* baseBehavior, bool waitUntilNextTick = false);
   
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   //
@@ -83,8 +89,14 @@ public:
   
   bool IsControlDelegated(const IBehavior* delegator) override;
   bool CanDelegate(IBehavior* delegator) override;
+
+  // delegate and return true if delegation was successful
   bool Delegate(IBehavior* delegator, IBehavior* delegated) override;
-  void CancelDelegates(IBehavior* delegator) override;
+
+  // cancel delegates, and return true if any were canceled (note that false here isn't an error, it's OK for
+  // a behavior with no delegates to call this function and have false returned)
+  bool CancelDelegates(IBehavior* delegator) override;
+  
   void CancelSelf(IBehavior* delegator) override;
 
   // If control of the passed in behavior is delegated (to another behavior), return the pointer of the
@@ -92,8 +104,25 @@ public:
   // action or helper)
   const IBehavior* GetBehaviorDelegatedTo(const IBehavior* delegatingBehavior) const;
   
+  // Return the pointer of the behavior which delegated to the passed in behavior. If at the base behavior,
+  // return nullptr
+  const IBehavior* GetBehaviorDelegatedFrom(const IBehavior* behavior) const;
+
+  // Returns the behavior at the base of the stack
+  const IBehavior* GetBaseBehavior() const;
+
+  // Returns the behavior at the top of the stack
+  const IBehavior* GetTopBehavior() const;
+  
+  // Returns string label of the behavior at the top of the stack
+  const std::string& GetTopBehaviorDebugLabel() const;
+  
   // calls upon the behavior stack to build and return the behavior tree as a flat array in json
   Json::Value BuildDebugBehaviorTree(BehaviorExternalInterface& bei) const;
+
+  // Return the last tick when the behavior stack was updated (i.e. new behavior delegated to or one was
+  // canceled)  
+  size_t GetLastTickBehaviorStackChanged() const { return _lastBehaviorStackUpdateTick; }
 
 private:
   enum class InitializationStage{
@@ -108,6 +137,7 @@ private:
   InitializationStage _initializationStage;
   // Store the base behavior until the stack is initialized
   IBehavior* _baseBehaviorTmp;
+  IBehavior* _baseBehaviorOnNextTick = nullptr;
   
   // - - - - - - - - - - - - - - -
   // others/shared
@@ -120,6 +150,8 @@ private:
 
   std::unique_ptr<BehaviorStack> _behaviorStack;
 
+  size_t _lastBehaviorStackUpdateTick = 0;
+
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Methods
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -128,7 +160,7 @@ private:
   
 }; // class BehaviorSystemManager
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

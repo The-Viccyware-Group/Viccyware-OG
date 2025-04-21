@@ -15,9 +15,10 @@
 
 #include <type_traits>
 #include <memory>
+#include <assert.h>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class MemoryMapData;
 
@@ -48,7 +49,7 @@ private:
   std::shared_ptr<T> dataPtr;
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif

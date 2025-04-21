@@ -1,12 +1,10 @@
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/rotation.h"
+#include "coretech/common/shared/math/rotation.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 enum class TestState {
   Init,
-  MoveCubeOutOfWay,
-  WaitOneSecond,
   ExecuteStraightPath,
   IntroduceObstacle,
   VerifyDriveToPoseCompleted,
@@ -25,12 +23,11 @@ private:
   TestState _testState = TestState::Init;
   s32 _result = 0;
 
-  bool _observedLightCube = false;
-  ObjectType _lightCubeType = ObjectType::InvalidObject;
   bool _driveToPoseSucceeded = false;
 
+  webots::Node* _duckNode = nullptr;
+  
   void HandleRobotCompletedAction(const ExternalInterface::RobotCompletedAction& msg) override;
-  void HandleRobotObservedObject(const ExternalInterface::RobotObservedObject& msg) override;
 };
 
 REGISTER_COZMO_SIM_TEST_CLASS(CST_IntroducedObstacleAvoidance);
@@ -41,41 +38,25 @@ s32 CST_IntroducedObstacleAvoidance::UpdateSimInternal()
 {
   const f32 kHeadLookupAngle_rad = DEG_TO_RAD(7);
 
-  // At a Z height of 22mm, the cube sits flat on the floor since the origin of the cube is in the
-  // middle of it.
-  const int kCubeHeight_mm = 22;
-  const Pose3d kCubeObstructingPose = {0, {0, 0, 1}, {300, 0, kCubeHeight_mm}, _webotsOrigin};
-  const Pose3d kRobotDestination = {0, {0, 0, 1}, {500, 0, 0}, _webotsOrigin};
+  const int kDuckHeight_mm = 25;
+  const Pose3d kObstructingPose = {M_PI_2_F, {1, 0, 0}, {200, 0, kDuckHeight_mm}, _webotsOrigin};
+  const Pose3d kRobotDestination = {0, {0, 0, 1}, {600, 0, 0}, _webotsOrigin};
 
   switch (_testState) {
     case TestState::Init:
     {
       SendMoveHeadToAngle(kHeadLookupAngle_rad, 100, 100);
 
-      SET_TEST_STATE(MoveCubeOutOfWay);
-      break;
-    }
-
-    case TestState::MoveCubeOutOfWay:
-    {
-      const f32 kHeadAngleTolerance_rad = DEG_TO_RAD(1);
-      IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(5,
-                                            NEAR(GetRobotHeadAngle_rad(), kHeadLookupAngle_rad, kHeadAngleTolerance_rad),
-                                            _observedLightCube,
-                                            _lightCubeType != ObjectType::InvalidObject) {
-        // Move cube out of the way before path planning.
-        SET_TEST_STATE(WaitOneSecond);
-        // Additional Z height to drop the cube and force a cube delocalization.
-        SetLightCubePose(_lightCubeType, {0, {0, 0, 1}, {0, 500, kCubeHeight_mm + 10}});
-      }
-      break;
-    }
-
-    case TestState::WaitOneSecond:
-    {
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(HasXSecondsPassedYet(1), 2){
-        SET_TEST_STATE(ExecuteStraightPath);
-      }
+      _duckNode = GetNodeByDefName("duck");
+      CST_ASSERT(_duckNode != nullptr, "null duck");
+      
+      // We do not want to play driving animations, so push empty anims
+      SendPushDrivingAnimations("webots_test",
+                                AnimationTrigger::Count,
+                                AnimationTrigger::Count,
+                                AnimationTrigger::Count);
+      
+      SET_TEST_STATE(ExecuteStraightPath);
       break;
     }
 
@@ -92,11 +73,12 @@ s32 CST_IntroducedObstacleAvoidance::UpdateSimInternal()
 
     case TestState::IntroduceObstacle:
     {
-      // The time to wait is a somewhat arbitrary choice. It allows the robot to execute some part
-      // of the original path but still leave enough room to introduce the obstacle.
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(HasXSecondsPassedYet(1.8), 3){
-        // Put the cube in the way of the robot path.
-        SetLightCubePose(_lightCubeType, kCubeObstructingPose);
+      float distanceToObstructingPose_mm = 0.f;
+      const bool result = ComputeDistanceBetween(GetRobotPoseActual(), kObstructingPose, distanceToObstructingPose_mm);
+      CST_ASSERT(result, "Failed computing distance between robot pose and obstructing pose");
+      IF_CONDITION_WITH_TIMEOUT_ASSERT(distanceToObstructingPose_mm < 150.0, 10){
+        // Put the rubber duck in the way of the robot path.
+        SetNodePose(_duckNode, kObstructingPose);
         _driveToPoseSucceeded = false;  // reset var just before we check for it in the next stage just in case
         SET_TEST_STATE(VerifyDriveToPoseCompleted);
       }
@@ -105,8 +87,8 @@ s32 CST_IntroducedObstacleAvoidance::UpdateSimInternal()
 
     case TestState::VerifyDriveToPoseCompleted:
     {
-      // Takes about 12 seconds for robot to complete the path, set timeout at 15 for some leeway.
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(_driveToPoseSucceeded, 15){
+      // Takes about 12 seconds for robot to complete the path, set timeout at 20 for some leeway.
+      IF_CONDITION_WITH_TIMEOUT_ASSERT(_driveToPoseSucceeded, 20){
         SET_TEST_STATE(VerifyObstacleAvoidance);
       }
       break;
@@ -115,13 +97,13 @@ s32 CST_IntroducedObstacleAvoidance::UpdateSimInternal()
     case TestState::VerifyObstacleAvoidance:
     {
       const Point3f kDistanceThreshold = {5, 5, 5};
-      const Radians kAngleThreshold = DEG_TO_RAD(1);
+      const Radians kAngleThreshold = DEG_TO_RAD(10);
 
-      const Pose3d lightCubePoseActual = GetLightCubePoseActual(_lightCubeType);
+      const Pose3d obstaclePoseActual = GetPose3dOfNode(_duckNode);
       
-      CST_ASSERT(lightCubePoseActual.IsSameAs(kCubeObstructingPose,
-                                              kDistanceThreshold, kAngleThreshold),
-                 "The cube was moved when it should have been avoided by the robot.")
+      CST_ASSERT(obstaclePoseActual.IsSameAs(kObstructingPose,
+                                             kDistanceThreshold, kAngleThreshold),
+                 "The rubber duck was moved when it should have been avoided by the robot.")
 
       const Pose3d robotPoseActual = GetRobotPoseActual();
       
@@ -152,13 +134,6 @@ void CST_IntroducedObstacleAvoidance::HandleRobotCompletedAction(const ExternalI
   }
 }
 
-void CST_IntroducedObstacleAvoidance::HandleRobotObservedObject(const ExternalInterface::RobotObservedObject& msg)
-{
-  if (!_observedLightCube){
-    _lightCubeType = msg.objectType;
-    _observedLightCube = true;
-  }
-}
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki

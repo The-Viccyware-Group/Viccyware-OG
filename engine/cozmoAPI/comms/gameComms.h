@@ -22,7 +22,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
   
   class GameComms : public Comms::IComms {
@@ -82,13 +82,13 @@ namespace Cozmo {
     const char*    advertisementRegIP_;
     int            advertisementRegPort_;
     
-    static const int MAX_RECV_BUF_SIZE = 1920000; // [TODO] 1.9MB seems excessive?
+    static const size_t MAX_RECV_BUF_SIZE = 1920000; // [TODO] 1.9MB seems excessive?
     u8  _recvBuf[MAX_RECV_BUF_SIZE];
     ssize_t recvDataSize = 0;
     
   };
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki
 
 #endif  // #ifndef BASESTATION_COMMS_TCPCOMMS_H_

@@ -19,20 +19,19 @@
 #define __Basestation_Audio_BehaviorAudioComponent_H__
 
 #include "engine/aiComponent/behaviorComponent/behaviorComponents_fwd.h"
+#include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior_fwd.h"
 #include "util/entityComponent/iDependencyManagedComponent.h"
 #include "engine/events/ankiEventMgr.h"
 
 #include "clad/audio/audioStateTypes.h"
 #include "clad/audio/audioSwitchTypes.h"
-#include "clad/types/behaviorComponent/behaviorTypes.h"
 #include "clad/types/robotPublicState.h"
-#include "clad/types/unlockTypes.h"
 
 
 #define kBehaviorRound  0
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorExternalInterface;
 class BehaviorManager;
@@ -48,7 +47,7 @@ public:
   //////
   // IDependencyManagedComponent functions
   //////
-  virtual void InitDependent(Cozmo::Robot* robot, const BCCompMap& dependentComponents) override;
+  virtual void InitDependent(Vector::Robot* robot, const BCCompMap& dependentComps) override;
   virtual void GetInitDependencies(BCCompIDSet& dependencies) const override { 
     dependencies.insert(BCComponentID::BehaviorExternalInterface);
   };
@@ -66,24 +65,9 @@ public:
   int GetRound() const { return _round; }
   
   // Change music switch state for Ai Goals in freeplay
-  void UpdateActivityMusicState(BehaviorID activityID);
+  void UpdateActivityMusicState(const BehaviorID& activityID);
   
 protected:
-  // Activate to allow behavior to update audio engine
-  // If GameState::Music::Invalid is passed in audio engine music state will not be updated
-  // If SwitchState::Sparked::Invalid is passed in audio engine switch state will not be updated
-  // Return false if behavior UnlockId is Invalid
-  bool ActivateSparkedMusic(const UnlockId behaviorUnlockId,
-                            const AudioMetaData::GameState::Music musicState,
-                            const AudioMetaData::SwitchState::Sparked sparkedState,
-                            const int round = kBehaviorRound);
-  
-  // This deactivates the BehaviorAudioComponent and set new music state to freeplay
-  void DeactivateSparkedMusic();
-  
-  // Update the behavior's current round
-  // Return false behavior UnlockId does not match the UnlockId that was used to activate the sparked music
-  bool UpdateBehaviorRound(const UnlockId behaviorUnlockId, const int round);
   
   void HandleRobotPublicStateChange(BehaviorExternalInterface& behaviorExternalInterface,
                                     const RobotPublicState& stateEvent);
@@ -91,10 +75,8 @@ protected:
 private:
   // Track second unlockID value for instances where we receive the appropriate
   // music state from game after a spark activity has already started
-  UnlockId  _activeSparkMusicID = UnlockId::Count;
   //UnlockId  _lastUnlockIDReceived = UnlockId::Count;
   
-  AudioMetaData::SwitchState::Sparked _sparkedMusicState = AudioMetaData::SwitchState::Sparked::Invalid;
   bool      _isActive = false;
   int       _round    = kBehaviorRound;
   

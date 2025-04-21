@@ -29,12 +29,8 @@ SCRIPTDIR=$(dirname $([ -L $0 ] && echo "$(dirname $0)/$(readlink -n $0)" || ech
 : ${ANKI_PROFILE_PERFDATA:="${SCRIPTDIR}/${ANKI_PROFILE_PROCNAME}/perf.data"}
 mkdir -p ${SCRIPTDIR}/${ANKI_PROFILE_PROCNAME}
 
-#
-# If ANDROID_NDK is set, use it, else provide default location
-#
-if [ -z "${ANDROID_NDK+x}" ]; then
-  ANDROID_NDK=`${TOPLEVEL}/tools/build/tools/ankibuild/android.py`
-fi
+# Where is adb?
+: ${ADB:="adb"}
 
 #
 # Create symbol cache
@@ -42,6 +38,11 @@ fi
 if [ ! -d ${ANKI_PROFILE_SYMBOLCACHE} ] ; then
   bash ${SCRIPTDIR}/make_symbol_cache.sh ${ANKI_PROFILE_SYMBOLCACHE}
 fi
+
+#
+# Remount /data to allow execution
+#
+${ADB} shell "mount /data -o remount,exec"
 
 #
 # Run app_profiler.py to start profiling.
@@ -60,3 +61,9 @@ python ${PROFILER} -nc -nb \
   -lib ${ANKI_PROFILE_SYMBOLCACHE} \
   -bin ${ANKI_PROFILE_BINARYCACHE} \
   -o ${ANKI_PROFILE_PERFDATA}
+
+#
+# Remount /data to prevent execution
+#
+${ADB} shell "mount /data -o remount,noexec"
+

@@ -13,7 +13,7 @@
 
 #include "coretech/vision/engine/imageCache.h"
 
-#include "coretech/common/engine/array2d_impl.h"
+#include "coretech/common/shared/array2d.h"
 
 #include "util/math/math.h"
 
@@ -44,22 +44,48 @@ namespace Vision {
     {
       return "Gray";
     }
+
+    inline static const char * GetColorStr(const ImageBuffer&)
+    {
+      return "Buffer";
+    }
   }
 #endif
   
 // =====================================================================================================================
 //                                  RESIZED ENTRY
 // =====================================================================================================================
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  
 template<>
-inline Image& ImageCache::ResizedEntry::Get<Image>(bool computeFromOpposite)
+inline Image& ImageCache::ResizedEntry::Get<Image>()
 {
-  if(computeFromOpposite)
+  // Don't already have gray
+  if(!_hasValidGray)
   {
-    DEV_ASSERT(_hasValidRGB, "ImageCache.ResizedEntry.GetGray.NoColorAvailable");
-    _rgb.FillGray(_gray);
-    _hasValidGray = true;
+    // If buffer is valid use that to get gray
+    if(_buffer.HasValidData())
+    {
+      _hasValidGray = _buffer.GetGray(_gray, _size);
+    }
+
+    // If we failed to get gray from buffer
+    if(!_hasValidGray)
+    {
+      if(!_hasValidRGB)
+      {
+        // GetGray from buffer failed so try RGB
+        // Buffer had better be valid because _rgb is not valid and we don't already have Gray
+        DEV_ASSERT(_buffer.HasValidData(), "ImageCache.ResizeEntry.GetGray.NoBufferOrRGB");
+        
+        // ImageBuffer has more support for getting rgb so do that first
+        // and then fill gray from rgb
+        _hasValidRGB = _buffer.GetRGB(_rgb, _size);
+        DEV_ASSERT(_hasValidRGB, "ImageCache.ResizeEntry.GetGray.FailedToGetFromBuffer");
+      }
+      
+      _rgb.FillGray(_gray, ImageRGB::RGBToGrayMethod::GreenChannel);
+      _hasValidGray = true;
+    }
   }
   
   DEV_ASSERT(_hasValidGray, "ImageCache.ResizedEntry.GetGray.InvalidEntry");
@@ -68,13 +94,28 @@ inline Image& ImageCache::ResizedEntry::Get<Image>(bool computeFromOpposite)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<>
-inline ImageRGB& ImageCache::ResizedEntry::Get<ImageRGB>(bool computeFromOpposite)
+inline ImageRGB& ImageCache::ResizedEntry::Get<ImageRGB>()
 {
-  if(computeFromOpposite)
+  // Don't already have RGB
+  if(!_hasValidRGB)
   {
-    DEV_ASSERT(!_gray.IsEmpty(), "ImageCache.ResizedEntry.GetRGB.NoGrayAvailable");
-    _rgb.SetFromGray(_gray);
-    _hasValidRGB = true;
+    if(_buffer.HasValidData())
+    {
+      _hasValidRGB = _buffer.GetRGB(_rgb, _size);
+    }
+
+    // Buffer is either invalid or GetRGB failed but we have a valid gray image
+    // already so use it
+    if(!_hasValidRGB && _hasValidGray)
+    {
+      // This is not expected to happen and is likely not what the caller intended to happen
+      // This should never happen, the ImageBuffer should always be valid.
+      // There is also the additional (HasColor() && IsRequestingColor()) check in GetImageHelper()
+      // which should also prevent this from happening
+      PRINT_NAMED_WARNING("ImageCache.ResizedEntry.GetRGB.ComputingFromGray", "");
+      _rgb.SetFromGray(_gray);
+      _hasValidRGB = true;
+    }
   }
   
   DEV_ASSERT(_hasValidRGB, "ImageCache.ResizedEntry.GetRGB.InvalidEntry");
@@ -92,114 +133,67 @@ template<> inline bool ImageCache::ResizedEntry::IsValid<ImageRGB>() const
   return _hasValidRGB;
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static inline f32 GetScaleFactor(ImageCache::Size size)
+template<> inline bool ImageCache::ResizedEntry::IsValid<ImageBuffer>() const
 {
-  switch(size)
-  {
-    case ImageCache::Size::Full:
-      DEV_ASSERT(false, "ImageCache.GetScaleFactor.FullRequiresNoResize");
-      return 1.f;
-      
-    case ImageCache::Size::Double_NN:
-    case ImageCache::Size::Double_Linear:
-      return 2.f;
-      
-    case ImageCache::Size::Half_NN:
-    case ImageCache::Size::Half_Linear:
-    case ImageCache::Size::Half_AverageArea:
-      return 0.5f;
-      
-    case ImageCache::Size::Quarter_NN:
-    case ImageCache::Size::Quarter_Linear:
-    case ImageCache::Size::Quarter_AverageArea:
-      return 0.25f;
-  }
+  return _buffer.HasValidData();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-s32 ImageCache::GetNumRows(const Size atSize) const
+s32 ImageCache::GetNumRows(const ImageCacheSize atSize) const
 {
-  return std::round(GetScaleFactor(atSize)*(f32)GetOrigNumRows());
+  return std::round(ImageCacheSizeToScaleFactor(atSize)*(f32)_sensorNumRows);
 }
   
-s32 ImageCache::GetNumCols(const Size atSize) const
+s32 ImageCache::GetNumCols(const ImageCacheSize atSize) const
 {
-  return std::round(GetScaleFactor(atSize)*(f32)GetOrigNumCols());
-}
-  
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-static inline ResizeMethod GetMethod(ImageCache::Size size)
-{
-  switch(size)
-  {
-    case ImageCache::Size::Full:
-      DEV_ASSERT(false, "ImageCache.GetScaleFactor.FullRequiresNoResize");
-      return ResizeMethod::NearestNeighbor;
-      
-    case ImageCache::Size::Double_NN:
-    case ImageCache::Size::Half_NN:
-    case ImageCache::Size::Quarter_NN:
-      return ResizeMethod::NearestNeighbor;
-      
-    case ImageCache::Size::Double_Linear:
-    case ImageCache::Size::Half_Linear:
-    case ImageCache::Size::Quarter_Linear:
-      return ResizeMethod::Linear;
-
-    case ImageCache::Size::Half_AverageArea:
-    case ImageCache::Size::Quarter_AverageArea:  
-      return ResizeMethod::AverageArea;
-
-  }
+  return std::round(ImageCacheSizeToScaleFactor(atSize)*(f32)_sensorNumCols);
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<class ImageType>
-static void ResizeHelper(const ImageType& origImg, ImageCache::Size size,
+static void ResizeHelper(const ImageType& origImg, ImageCacheSize size,
                          ImageType& resizedImg_out)
 {
-  const f32 scaleFactor = GetScaleFactor(size);
-  const s32 resizedNumRows = std::round((f32)origImg.GetNumRows() * scaleFactor);
-  const s32 resizedNumCols = std::round((f32)origImg.GetNumCols() * scaleFactor);
-  
-  const ResizeMethod method = GetMethod(size);
-  resizedImg_out.Allocate(resizedNumRows, resizedNumCols);
-  origImg.Resize(resizedImg_out, method);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void ImageCache::ResizedEntry::Update(const Image& origImg, Size size)
-{
-  if(Size::Full == size)
+  f32 scaleFactor = ImageCacheSizeToScaleFactor(size);
+  if(Util::IsNear(scaleFactor, 1.f))
   {
-    // Special case: no resize needed. Note that this does not copy origImg's data.
-    _gray = origImg;
+    resizedImg_out = origImg;
   }
   else
   {
-    ResizeHelper(origImg, size, _gray);
+    const s32 resizedNumRows = std::round((f32)origImg.GetNumRows() * scaleFactor);
+    const s32 resizedNumCols = std::round((f32)origImg.GetNumCols() * scaleFactor);
+    resizedImg_out.Allocate(resizedNumRows, resizedNumCols);
+    origImg.Resize(resizedImg_out, ResizeMethod::Linear);
   }
-  _hasValidRGB  = false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void ImageCache::ResizedEntry::Update(const Image& origImg, ImageCacheSize size)
+{
+  ResizeHelper(origImg, size, _gray);
   _hasValidGray = true;
+  _size = size;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void ImageCache::ResizedEntry::Update(const ImageRGB& origImg, Size size)
+template<>
+void ImageCache::ResizedEntry::Update(const ImageRGB& origImg, ImageCacheSize size)
 {
-  if(Size::Full == size)
-  {
-    // Special case: no resize needed. Note that this does not copy origImg's data.
-    _rgb = origImg;
-  }
-  else
-  {
-    ResizeHelper(origImg, size, _rgb);
-  }
-  _hasValidRGB  = true;
-  _hasValidGray = false;
+  ResizeHelper(origImg, size, _rgb);
+  _hasValidRGB = true;
+  _size = size;
 }
-  
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<>
+void ImageCache::ResizedEntry::Update(const ImageBuffer& origImg, ImageCacheSize size)
+{
+  _buffer = origImg;
+  _size = size;
+}
+
 
 // =====================================================================================================================
 //                                  IMAGE CACHE
@@ -214,86 +208,74 @@ ImageCache::ImageCache()
 void ImageCache::ReleaseMemory()
 {
   _resizedVersions.clear();
-  _origNumRows = 0;
-  _origNumCols = 0;
+  _sensorNumRows = 0;
+  _sensorNumCols = 0;
   _hasColor = false;
   _timeStamp = 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ImageCache::Size ImageCache::GetSize(s32 scale, Vision::ResizeMethod method)
+ImageCacheSize ImageCache::GetSize(s32 subsample)
 {
-  Size size = Size::Full;
+  ImageCacheSize size = ImageCacheSize::Full;
   
-  if(scale != 1)
+  if(subsample != 1)
   {
-    switch(method)
+    switch(subsample)
     {
-      case Vision::ResizeMethod::NearestNeighbor:
-      {
-        switch(scale)
-        {
-          case 2:
-            size = Size::Half_NN;
-            break;
-            
-          case 4:
-            size = Size::Quarter_NN;
-            break;
-            
-          default:
-            DEV_ASSERT(false, "ImageCache.GetSize.UnsupportedScaleNN");
-            break;
-        }
+      case 2:
+        size = ImageCacheSize::Half;
         break;
-      }
-        
-      case Vision::ResizeMethod::Linear:
-      {
-        switch(scale)
-        {
-          case 2:
-            size = Size::Half_Linear;
-            break;
             
-          case 4:
-            size = Size::Quarter_Linear;
-            break;
-            
-          default:
-            DEV_ASSERT(false, "ImageCache.GetSize.UnsupportedScaleLinear");
-            break;
-        }
+      case 4:
+        size = ImageCacheSize::Quarter;
         break;
-      }
-        
-      case Vision::ResizeMethod::AverageArea:
-      {
-        switch(scale)
-        {
-          case 2:
-            size = Size::Half_AverageArea;
-            break;
-          
-          case 4:
-            size = Size::Quarter_AverageArea;
-            break;
-            
-          default:
-            DEV_ASSERT(false, "ImageCache.GetSize.UnsupportedScaleLinear");
-            break;
-        }
-      }
 
+      case 8:
+        size = ImageCacheSize::Eighth;
+        break;
+            
       default:
-        DEV_ASSERT(false, "ImageCache.GetSize.UnsupportedMethod");
+        DEV_ASSERT(false, "ImageCache.GetSize.UnsupportedSubsample");
         break;
     }
   }
-  
+
   return size;
 }
   
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const char* const kScaleFullString    = "full";
+const char* const kScaleHalfString    = "half";
+const char* const kScaleQuarterString = "quarter";
+const char* const kScaleEighthString  = "eighth";
+ImageCacheSize ImageCache::StringToSize(const std::string& scaleStr)
+{
+  s32 scale = 0;
+  if(kScaleFullString == scaleStr)
+  {
+    scale = 1;
+  }
+  else if(kScaleHalfString == scaleStr)
+  {
+    scale = 2;
+  }
+  else if(kScaleQuarterString == scaleStr)
+  {
+    scale = 4;
+  }
+  else if(kScaleEighthString == scaleStr)
+  {
+    scale = 8;
+  }
+  else
+  {
+    PRINT_NAMED_ERROR("ImageCache.StringToSize.InvalidScale", "%s", scaleStr.c_str());
+  }
+
+  return ImageCache::GetSize(scale);
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<class ImageType>
 void ImageCache::ResetHelper(const ImageType& img)
@@ -308,38 +290,91 @@ void ImageCache::ResetHelper(const ImageType& img)
     entry.second.Invalidate();
   }
   
-  auto iter = _resizedVersions.find(Size::Full);
+  auto iter = _resizedVersions.find(ImageCacheSize::Full);
   if(iter == _resizedVersions.end())
   {
-    _resizedVersions.emplace(Size::Full, ResizedEntry(img, Size::Full));
+    _resizedVersions.emplace(ImageCacheSize::Full, ResizedEntry(img, ImageCacheSize::Full));
   }
   else
   {
-    iter->second.Update(img, Size::Full);
+    iter->second.Update(img, ImageCacheSize::Full);
   }
   
-  _origNumRows = img.GetNumRows();
-  _origNumCols = img.GetNumCols();
+  _sensorNumRows = img.GetNumRows();
+  _sensorNumCols = img.GetNumCols();
   
   _hasColor = (img.GetNumChannels() != 1);
   
   _timeStamp = img.GetTimestamp();
 }
-  
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void ImageCache::Reset(const Image& imgGray)
+void ImageCache::Reset(const Image& imgGray, ResizeMethod method)
 {
-  ResetHelper(imgGray);
+  // This is kind of gross but this function should only ever be called from unit tests.
+  // The tests were written when ImageCache was Reset with a Full image instead of a Sensor image.
+  // Calling ResetHelper with an Image would have caused the image to be resized incorrectly
+  // compared to what the unit tests were expecting. Wrapping the Image in an ImageBuffer
+  // allows ImageBuffer to deal with the special resizing/scaleFactor for Images
+  // Might get better with VIC-8052
+  _buffer = ImageBuffer(const_cast<u8*>(imgGray.GetRawDataPointer()),
+                        imgGray.GetNumRows(),
+                        imgGray.GetNumCols(),
+                        ImageEncoding::RawGray,
+                        imgGray.GetTimestamp(),
+                        imgGray.GetImageId());
+  _buffer.SetResizeMethod(method);
+  
+  ResetHelper(_buffer);
+
+  // This is basically a no-op from an image creation standpoint, will just wrap an Image around the
+  // ImageBuffer's data but it will have the side effect of "caching" the image in the Sensor ResizedEntry.
+  // If this is not done then the first call to get the Sensor sized gray image will think it had to
+  // "ComputeFromExisting" instead of having "FullyCached" image
+  auto iter = _resizedVersions.find(ImageCacheSize::Full);
+  DEV_ASSERT(iter != _resizedVersions.end(), "ImageCache.Reset.Image.ExpectingToHaveSensor");
+  (void)iter->second.Get<Image>();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void ImageCache::Reset(const ImageRGB& imgColor)
+void ImageCache::Reset(const ImageRGB& imgColor, ResizeMethod method)
 {
-  ResetHelper(imgColor);
+  // This is kind of gross but this function should only ever be called from unit tests.
+  // The tests were written when ImageCache was Reset with a Full image instead of a Sensor image.
+  // Calling ResetHelper with an ImageRGB would have caused the image to be resized incorrectly
+  // compared to what the unit tests were expecting. Wrapping the ImageRGB in an ImageBuffer
+  // allows ImageBuffer to deal with the special resizing/scaleFactor for ImageRGBs
+  // Might get better with VIC-8052
+  _buffer = ImageBuffer(const_cast<u8*>(reinterpret_cast<const u8*>(imgColor.GetDataPointer())),
+                        imgColor.GetNumRows(),
+                        imgColor.GetNumCols(),
+                        ImageEncoding::RawRGB,
+                        imgColor.GetTimestamp(),
+                        imgColor.GetImageId());
+  _buffer.SetResizeMethod(method);
+  
+  ResetHelper(_buffer);
+
+  // This is basically a no-op from an image creation standpoint, will just wrap an ImageRGB around the
+  // ImageBuffer's data but it will have the side effect of "caching" the image in the Sensor ResizedEntry.
+  // If this is not done then the first call to get the Sensor sized rgb image will think it had to
+  // "ComputeFromExisting" instead of having "FullyCached" image
+  auto iter = _resizedVersions.find(ImageCacheSize::Full);
+  DEV_ASSERT(iter != _resizedVersions.end(), "ImageCache.Reset.ImageRGB.ExpectingToHaveSensor");
+  (void)iter->second.Get<ImageRGB>();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void ImageCache::Reset(const ImageBuffer& buffer)
+{
+  // Note: This is a copy but is totally fine as ImageBuffer is just a wrapper around image data
+  // so no images are actually copied
+  _buffer = buffer;
+  ResetHelper(_buffer);
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const Image& ImageCache::GetGray(Size size, GetType* getType)
+const Image& ImageCache::GetGray(ImageCacheSize size, GetType* getType)
 {
   GetType dummy;
   const Image& imgGray = GetImageHelper<Image>(size, (getType == nullptr ? dummy : *getType));
@@ -348,7 +383,7 @@ const Image& ImageCache::GetGray(Size size, GetType* getType)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const ImageRGB& ImageCache::GetRGB(Size size, GetType* getType)
+const ImageRGB& ImageCache::GetRGB(ImageCacheSize size, GetType* getType)
 {
   GetType dummy;
   const ImageRGB& imgRGB = GetImageHelper<ImageRGB>(size, (getType == nullptr ? dummy : *getType));
@@ -358,60 +393,109 @@ const ImageRGB& ImageCache::GetRGB(Size size, GetType* getType)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 template<class ImageType>
-const ImageType& ImageCache::GetImageHelper(Size size, GetType& getType)
+static inline bool IsRequestingColor() {
+  return false;
+}
+
+template<>
+inline bool IsRequestingColor<ImageRGB>() {
+  return true;
+}
+  
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+template<class ImageType>
+const ImageType& ImageCache::GetImageHelper(ImageCacheSize size, GetType& getType)
 {
   DEV_ASSERT(!_resizedVersions.empty(), "ImageCache.GetImageHelper.EmptyCache");
-  
+   
   auto iter = _resizedVersions.find(size);
-  if(iter == _resizedVersions.end() || !iter->second.IsValid<void>())
+  
+  // We should compute a new entry (either "completely new" or reusing an invalidated entry at the same size) if:
+  //  - there is no entry at the requested size, OR
+  //  - the entry at the requested size is not valid for either ImageType, OR
+  //  - there is a valid entry at the requested (non-sensor) size, but color data is being requested and the cache
+  //     was originally reset with color data from which we could resize (instead of computing from gray)
+  const bool shouldComputeNewValidEntry = (iter == _resizedVersions.end() ||
+                                           !iter->second.IsValid<void>() ||
+                                           ((ImageCacheSize::Full != size) &&
+                                            HasColor() && IsRequestingColor<ImageType>()));
+  if(shouldComputeNewValidEntry)
   {
-    // No valid entry available at this scale factor, so compute, cache, and return it.
-    DEV_ASSERT(Size::Full != size, "ImageCache.GetImageHelper.NoOriginalVersion");
-    
-    // Start with the original image (at full size) for computing any new entry
-    GetType dummy;
-    const ImageType& origImg = GetImageHelper<ImageType>(Size::Full, dummy);
-    
-    VERBOSE_DEBUG_PRINT("ImageCache", "ImageCache.GetImageHelper.AddNewResizedEntry",
-                        "Computing new resized %s image from original at t=%ums at scaleFactor=%.2f",
-                        GetColorStr(origImg), origImg.GetTimestamp(), scaleFactor);
-    
     if(iter == _resizedVersions.end())
     {
       // Insert a completely new entry
-      auto insertion = _resizedVersions.emplace(size, ResizedEntry(origImg, size));
-      DEV_ASSERT(insertion.second, "ImageCache.GetImageHelper.NewEntryNotInserted");
-      getType = GetType::NewEntry;
-      return insertion.first->second.Get<ImageType>();
+      if(_buffer.HasValidData())
+      {
+        auto insertion = _resizedVersions.emplace(size, ResizedEntry(_buffer, size));
+
+        DEV_ASSERT(insertion.second, "ImageCache.GetImageHelper.NewEntryNotInserted");
+        
+        const ImageType& img = insertion.first->second.Get<ImageType>();
+        getType = GetType::NewEntry;
+        
+        return img;
+      }
+      else
+      {
+        GetType dummy;
+        const auto origImg = GetImageHelper<ImageType>(ImageCacheSize::Full, dummy);
+        auto insertion = _resizedVersions.emplace(size, ResizedEntry(origImg, size));
+
+        DEV_ASSERT(insertion.second, "ImageCache.GetImageHelper.NewEntryNotInserted");
+        
+        const ImageType& img = insertion.first->second.Get<ImageType>();
+        getType = (img.GetDataPointer() == origImg.GetDataPointer() ? GetType::FullyCached : GetType::NewEntry);
+        
+        return img;
+      }
     }
     else
     {
       // Resize directly into the existing (but invalid) entry's image
       ResizedEntry& entry = iter->second;
-      entry.Update(origImg, size);
+      if(_buffer.HasValidData())
+      {
+        entry.Update(_buffer, size);
+      }
+      else
+      {
+        GetType dummy;
+        const auto& origImg = GetImageHelper<ImageType>(ImageCacheSize::Full, dummy);
+        entry.Update(origImg, size);
+      }
       getType = GetType::ResizeIntoExisting;
       return entry.Get<ImageType>();
     }
   }
   else
   {
-    // Valid entry available at this scale factor.
+    // Valid entry already available at this ImageCacheSize.
     ResizedEntry& entry = iter->second;
     
-    // If gray version not available, compute and cache it from color (or vice versa).
-    const bool computeFromOpposite = !entry.IsValid<ImageType>();
-    ImageType& img = entry.Get<ImageType>(computeFromOpposite);
+    // If the entry is already valid for the requested ImageType then it is FullyCached otherwise
+    // we will be computing it from the existing entry
+    getType = (entry.IsValid<ImageType>() ? GetType::FullyCached : GetType::ComputeFromExisting);
     
-    getType = (computeFromOpposite ? GetType::ComputeFromExisting : GetType::FullyCached);
-    
+    ImageType& img = entry.Get<ImageType>();
+
     VERBOSE_DEBUG_PRINT("ImageCache", "ImageCache.GetImageHelper.UsingCached",
                         "%s %s image from existing entry at t=%ums and scaleFactor=%.2f",
-                        (computeFromOpposite ? "Computing new" : "Returning existing"),
+                        (entry.IsValid<ImageType>() ? "Returning existing" : "Computing new"),
                         GetColorStr(img), img.GetTimestamp(), scaleFactor);
     
     return img;
   }
 }
-  
+
+bool ImageCache::GetResizeMethod(ResizeMethod& method) const
+{
+  if(_buffer.HasValidData())
+  {
+    method = _buffer.GetResizeMethod();
+    return true;
+  }
+  return false;
+}
+
 } // namespace Vision
 } // namespace Anki

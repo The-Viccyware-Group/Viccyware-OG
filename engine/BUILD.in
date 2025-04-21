@@ -2,13 +2,24 @@ cxx_project(
     name = 'cozmo_engine',
     srcs = cxx_src_glob(['.'],
                         excludes = [
-                            '**/android/*',
+                            '**/vicos/*',
                             'tools/**/*',
                         ]),
+    data = glob([
+                  '../resources/**/*.json',
+                  '../resources/webserver/**/*',
+                  '**/CMakeLists.txt',
+                  '../cmake/*.cmake',
+                  # '**/BUILD.in', NOTE: dangerous!! Xcode likes to silently rename BUILD.in to Build.in on save!
+                  '../clad/**/*.clad',
+                  '../docs/**/*.md', 
+                  '../simulator/**/*.proto',
+                  '../simulator/**/*.wbt'
+                ]),
     platform_srcs = [
-        ('android', glob([
-                            '**/*_android.cpp',
-                            '**/android/*.cpp',
+        ('vicos', glob([
+                            '**/*_vicos.cpp',
+                            '**/vicos/*.cpp',
                          ])),
         ('mac', glob([
                         '**/*_iososx*.mm',
@@ -17,11 +28,11 @@ cxx_project(
                      ]))
     ],
     headers = cxx_header_glob(['.'],
-                              excludes = ['**/android/*']),
+                              excludes = []),
     platform_headers = [
-        ('android', glob([
-                            '**/*_android.h',
-                            '**/android/*.h',
+        ('vicos', glob([
+                            '**/*_vicos.h',
+                            '**/vicos/*.h',
                          ])),
         ('mac', glob([
                         '**/*_ios*.h',

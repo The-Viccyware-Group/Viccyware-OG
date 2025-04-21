@@ -18,16 +18,19 @@
 #define __Engine_AiComponent_BeiConditions_Conditions_ConditionTimedDedup_H__
 
 #include "engine/aiComponent/beiConditions/iBEICondition.h"
+#include "engine/engineTimeStamp.h"
+#include "coretech/common/shared/types.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class ConditionTimedDedup : public IBEICondition
 {
 public:
   explicit ConditionTimedDedup(const Json::Value& config);
   explicit ConditionTimedDedup(IBEIConditionPtr subCondition,
-                               float dedupInterval_ms);
+                               float dedupInterval_ms,
+                               const std::string& ownerDebugLabel);
 
   virtual void InitInternal(BehaviorExternalInterface& behaviorExternalInterface) override;
   virtual bool AreConditionsMetInternal(BehaviorExternalInterface& behaviorExternalInterface) const override;
@@ -39,7 +42,7 @@ private:
   } _instanceParams;
 
   mutable struct {
-   TimeStamp_t nextTimeValid_ms = 0;
+   EngineTimeStamp_t nextTimeValid_ms = 0;
   } _lifetimeParams;
 
 };

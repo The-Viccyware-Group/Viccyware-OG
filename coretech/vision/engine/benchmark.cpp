@@ -10,7 +10,7 @@
  * Copyright: Anki, Inc. 2017
  **/
 
-#include "coretech/common/engine/array2d_impl.h"
+#include "coretech/common/shared/array2d.h"
 
 #include "coretech/vision/engine/benchmark.h"
 #include "coretech/vision/engine/image.h"
@@ -28,12 +28,14 @@ namespace {
   
 CONSOLE_VAR(s32,  kVisionBenchmark_PrintFrequency_ms, CONSOLE_GROUP, 3000);
 CONSOLE_VAR(bool, kVisionBenchmark_DisplayImages,     CONSOLE_GROUP, false); // Only works if running synchronously
-CONSOLE_VAR(s32,  kVisionBenchmark_ScaleMultiplier,   CONSOLE_GROUP, 1);
+CONSOLE_VAR(s32,  kVisionBenchmark_ScaleMultiplier,   CONSOLE_GROUP, 2);
   
 // Toggle corresponding modes at runtime
+#if REMOTE_CONSOLE_ENABLED
 CONSOLE_VAR(std::underlying_type<Benchmark::Mode>::type, kVisionBenchmark_ToggleMode, CONSOLE_GROUP, 0);
 CONSOLE_VAR(bool, kVisionBenchmark_EnableAllModes,  CONSOLE_GROUP, false);
 CONSOLE_VAR(bool, kVisionBenchmark_DisableAllModes, CONSOLE_GROUP, false);
+#endif // REMOTE_CONSOLE_ENABLED
   
 #undef CONSOLE_GROUP
 }
@@ -63,6 +65,7 @@ Result Benchmark::Update(ImageCache& imageCache)
     return RESULT_OK;
   }
   
+#if REMOTE_CONSOLE_ENABLED
   // Update modes based on any console vars that are set:
   if(kVisionBenchmark_ToggleMode != 0)
   {
@@ -85,6 +88,7 @@ Result Benchmark::Update(ImageCache& imageCache)
     _enabledModes.ClearFlags();
     kVisionBenchmark_DisableAllModes = false;
   }
+#endif // REMOTE_CONSOLE_ENABLED
   
   Result result = RESULT_OK;
   bool anyFailures = false;
@@ -96,7 +100,7 @@ Result Benchmark::Update(ImageCache& imageCache)
     anyFailures |= (result != RESULT_OK); \
   }
   
-  const ImageCache::Size whichSize = ImageCache::GetSize(kVisionBenchmark_ScaleMultiplier, ResizeMethod::NearestNeighbor);
+  const ImageCacheSize whichSize = ImageCache::GetSize(kVisionBenchmark_ScaleMultiplier);
   const ImageRGB& image = imageCache.GetRGB(whichSize);
   
   {

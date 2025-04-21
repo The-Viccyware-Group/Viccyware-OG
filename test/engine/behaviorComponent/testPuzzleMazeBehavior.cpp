@@ -15,7 +15,8 @@
 
 #include "gtest/gtest.h"
 
-#include "clad/types/behaviorComponent/behaviorTypes.h"
+#include "clad/types/behaviorComponent/behaviorClasses.h"
+#include "clad/types/behaviorComponent/behaviorIDs.h"
 #include "coretech/common/engine/utils/timer.h"
 #include "engine/aiComponent/aiComponent.h"
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
@@ -23,6 +24,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/freeplay/userInteractive/behaviorPuzzleMaze.h"
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 #include "engine/aiComponent/puzzleComponent.h"
+#include "engine/cozmoAPI/comms/protoMessageHandler.h"
 #include "engine/cozmoAPI/comms/uiMessageHandler.h"
 #include "engine/cozmoContext.h"
 #include "engine/robot.h"
@@ -32,7 +34,7 @@
 #include "coretech/common/engine/utils/data/dataPlatform.h"
 
 using namespace Anki;
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CreatePuzzleMazeBehavior(Robot& robot, ICozmoBehaviorPtr& puzzleMazeBehavior, BehaviorExternalInterface& behaviorExternalInterface,
@@ -108,7 +110,8 @@ TEST(PuzzleMazeBehavior, DISABLED_BalanceTool)
   // This isn't really a unit test, we just needed a way to show time it took to solve puzzles.
   // Just run through the test N times and print the average of each puzzle.
   
-  UiMessageHandler handler(0, nullptr);
+  UiMessageHandler handler(0);
+  ProtoMessageHandler protoHandler;
   
   char cwdPath[1256];
   getcwd(cwdPath, 1255);
@@ -119,7 +122,7 @@ TEST(PuzzleMazeBehavior, DISABLED_BalanceTool)
   
   // Really need a data Platform for configs.
   Anki::Util::Data::DataPlatform dataPlatform(persistentPath, cachePath, resourcePath);
-  CozmoContext context(&dataPlatform, &handler);
+  CozmoContext context(&dataPlatform, &handler, &protoHandler);
   
   TestBehaviorFramework testBehaviorFramework;
   RobotDataLoader::BehaviorIDJsonMap emptyBehaviorMap;

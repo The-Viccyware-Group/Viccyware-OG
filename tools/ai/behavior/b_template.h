@@ -12,11 +12,12 @@
 
 #ifndef __Engine_AiComponent_BehaviorComponent_Behaviors_${class_name}__
 #define __Engine_AiComponent_BehaviorComponent_Behaviors_${class_name}__
+#pragma once
 
 #include "engine/aiComponent/behaviorComponent/behaviors/iCozmoBehavior.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class $class_name : public ICozmoBehavior
 {
@@ -30,7 +31,7 @@ protected:
   explicit ${class_name}(const Json::Value& config);  
 
   virtual void GetBehaviorOperationModifiers(BehaviorOperationModifiers& modifiers) const override;
-  virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override ;
+  virtual void GetAllDelegates(std::set<IBehavior*>& delegates) const override;
   virtual void GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const override;
   
   virtual bool WantsToBeActivatedBehavior() const override;
@@ -54,7 +55,7 @@ private:
   
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_${class_name}__

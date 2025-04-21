@@ -12,6 +12,8 @@
  **/
 
 #include "engine/actions/actionContainers.h"
+
+#include "clad/externalInterface/messageEngineToGame.h"
 #include "engine/actions/actionInterface.h"
 #include "engine/actions/actionWatcher.h"
 #include "engine/cozmoContext.h"
@@ -21,8 +23,10 @@
 #include "util/helpers/templateHelpers.h"
 #include "util/logging/logging.h"
 
+#define LOG_CHANNEL "Actions"
+
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
 #pragma mark ---- ActionList ----
     
@@ -38,7 +42,7 @@ namespace Anki {
       Clear();
     }
     
-    void ActionList::InitDependent(Cozmo::Robot* robot, const RobotCompMap& dependentComponents) 
+    void ActionList::InitDependent(Vector::Robot* robot, const RobotCompMap& dependentComps) 
     {
       _robot = robot;
     }
@@ -63,9 +67,9 @@ namespace Anki {
       {
         if (action->GetRobot().GetIgnoreExternalActions())
         {
-          PRINT_NAMED_INFO("ActionQueue.QueueAction.ExternalActionsDisabled",
-                           "Ignoring %s action while external actions are disabled",
-                           EnumToString(action->GetType()));
+          LOG_INFO("ActionQueue.QueueAction.ExternalActionsDisabled",
+                   "Ignoring %s action while external actions are disabled",
+                   EnumToString(action->GetType()));
         }
         else
         {
@@ -526,11 +530,11 @@ namespace Anki {
         // (right after any cleanup due to the cancellation completes)
         if(currentAction != nullptr)
         {
-          PRINT_NAMED_DEBUG("ActionQueue.QueueNow.CancelingPrevious", "Canceling %s [%d] in favor of action %s [%d]",
-                            currentAction->GetName().c_str(),
-                            currentAction->GetTag(),
-                            action->GetName().c_str(),
-                            action->GetTag());
+          LOG_DEBUG("ActionQueue.QueueNow.CancelingPrevious", "Canceling %s [%d] in favor of action %s [%d]",
+                    currentAction->GetName().c_str(),
+                    currentAction->GetTag(),
+                    action->GetName().c_str(),
+                    action->GetTag());
         }
         DeleteAction(_currentAction);
         action->SetNumRetries(numRetries);
@@ -557,10 +561,10 @@ namespace Anki {
         if(_currentAction != nullptr && _currentAction->Interrupt()) {
           // Current action is interruptable so push it back onto the queue and then
           // push new action in front of it
-          PRINT_NAMED_INFO("ActionQueue.QueueAtFront.Interrupt",
-                           "Interrupting %s to put %s in front of it.",
-                           _currentAction->GetName().c_str(),
-                           action->GetName().c_str());
+          LOG_INFO("ActionQueue.QueueAtFront.Interrupt",
+                   "Interrupting %s to put %s in front of it.",
+                   _currentAction->GetName().c_str(),
+                   action->GetName().c_str());
           action->SetNumRetries(numRetries);
           _queue.push_front(_currentAction);
           _queue.push_front(action);
@@ -571,10 +575,10 @@ namespace Anki {
           // cancel it
           if(_currentAction != nullptr)
           {
-            PRINT_NAMED_INFO("ActionQueue.QueueAtFront.Interrupt",
-                             "Could not interrupt %s. Will cancel and queue %s now.",
-                             _currentAction->GetName().c_str(),
-                             action->GetName().c_str());
+            LOG_INFO("ActionQueue.QueueAtFront.Interrupt",
+                     "Could not interrupt %s. Will cancel and queue %s now.",
+                     _currentAction->GetName().c_str(),
+                     action->GetName().c_str());
           }
           result = QueueNow(action, numRetries);
         }
@@ -642,12 +646,12 @@ namespace Anki {
         
         if (isRunning)
         {
-          vizManager->SetText(VizManager::ACTION, NamedColors::GREEN, "Action: %s", _currentAction->GetName().c_str());
+          vizManager->SetText(TextLabelType::ACTION, NamedColors::GREEN, "Action: %s", _currentAction->GetName().c_str());
           cozmoContext->SetSdkStatus(SdkStatusType::Action, std::string(_currentAction->GetName()));
         }
         else
         {
-          vizManager->SetText(VizManager::ACTION, NamedColors::GREEN, "");
+          vizManager->SetText(TextLabelType::ACTION, NamedColors::GREEN, "");
           cozmoContext->SetSdkStatus(SdkStatusType::Action, "");
         }
         
@@ -775,6 +779,6 @@ namespace Anki {
     
     
     
-  } // namespace Cozmo
+  } // namespace Vector
 } // namespace Anki
 

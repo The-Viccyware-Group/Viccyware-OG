@@ -8,7 +8,7 @@ set(PLATFORM_LIBS "")
 set(PLATFORM_INCLUDES "")
 set(PLATFORM_COMPILE_DEFS "")
 set(PLATFORM_FLAGS "")
-if (ANDROID)
+if (VICOS)
   set(PLATFORM_LIBS log)
 elseif (MACOSX)
   include(webots)
@@ -20,11 +20,15 @@ elseif (MACOSX)
 endif()
 
 include(anki_build_cxx)
+include(protobuf)
 include(symlink_target)
 
-anki_build_cxx_executable(test_engine ${ANKI_SRCLIST_DIR})
+set(PLATFORM_LIBS ${PLATFORM_LIBS} ${PROTOBUF_LIBS})
 
-target_link_libraries(test_engine 
+anki_build_cxx_executable(test_engine ${ANKI_SRCLIST_DIR})
+anki_build_target_license(test_engine "ANKI")
+
+target_link_libraries(test_engine
   PRIVATE
   # anki libs
   cozmo_engine
@@ -43,15 +47,17 @@ target_link_libraries(test_engine
   ${PLATFORM_LIBS}
 )
 
-target_include_directories(test_engine 
+target_include_directories(test_engine
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine>
 )
 
-target_compile_definitions(test_engine 
+target_compile_definitions(test_engine
   PRIVATE
   SIMULATOR
   CORETECH_ENGINE
+  ANKICONFIGROOT="${CMAKE_CURRENT_BINARY_DIR}"
+  ANKIWORKROOT="${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 #
@@ -66,23 +72,23 @@ symlink_target(TARGET test_engine
 # Set up symlinks to satisfy webots dynamic loading
 #
 symlink_target(TARGET test_engine
-  SRC ${WEBOTS_HOME}/lib/libController.dylib
-  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/
+  SRC ${WEBOTS_HOME}/lib/controller/libController.dylib
+  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/controller/
 )
 
 symlink_target(TARGET test_engine
-  SRC ${WEBOTS_HOME}/lib/libCppController.dylib
-  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/
+  SRC ${WEBOTS_HOME}/lib/controller/libCppController.dylib
+  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/controller/
 )
 
 symlink_target(TARGET test_engine
-  SRC ${WEBOTS_HOME}/lib/libode.dylib
-  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/
+  SRC ${WEBOTS_HOME}/lib/webots/libode.dylib
+  DST $<TARGET_FILE_DIR:cozmo_engine>/lib/webots/
 )
 
 if (MACOSX)
   enable_testing()
-  add_test(NAME test_engine 
+  add_test(NAME test_engine
     COMMAND test_engine
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )

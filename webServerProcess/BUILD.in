@@ -1,24 +1,17 @@
 cxx_project(
     name = 'victor_web_library',
     srcs = cxx_src_glob(['src'],
-                        excludes = ['*_android.*',
-                                    'android/**/*',
-                                    '*_mac.*',
-                                    'cozmoWebServerMain.cpp']),
+                        excludes = ['victorWebServerMain.cpp']),
     platform_srcs = [
-        ('android', glob(['android/**/*.cpp',
-                          '**/*_android.cpp'])),
-        ('mac', glob(['**/*_mac.cpp']))
     ],
     headers = cxx_header_glob(['src']),
     platform_headers = [
-        ('android', glob(['**/*.h']))
     ]
 )
 
 cxx_project(
     name = 'vic-webserver',
-    srcs = glob(['src/cozmoWebServerMain.cpp']),
+    srcs = glob(['src/victorWebServerMain.cpp']),
     platform_srcs = [
     ],
     headers = [],

@@ -265,7 +265,7 @@ debug build, everything else:
 -I../../../robot/include
 -I../../../robot/supervisor/src
 -I../../../robot/syscon
--I../../../tools/message-buffers/support/cpp/include
+-I../../../victor-clad/tools/message-buffers/support/cpp/include
 -I../../../webServerProcess/src
 ```
 
@@ -394,15 +394,6 @@ Anki::Util::sEvent
 #endif
 ```
 
-### uiMessageHandler
-```
-  #if defined(SHIPPING)
-    CONSOLE_VAR(bool, kEnableSdkCommsInInternalSdk,  "Sdk", false);
-  #else
-    CONSOLE_VAR(bool, kEnableSdkCommsInInternalSdk, "Sdk", true);
-  #endif
-```
-
 ### consoleMacro
 ```
 #ifndef REMOTE_CONSOLE_ENABLED
@@ -442,13 +433,6 @@ Anki::Util::sEvent
 
 comment only
 
-### reliableMessageTypes
-```
-const char* ReliableMessageTypeToString(EReliableMessageType messageType)
-{
-#ifdef SHIPPING
-  return "";
-```
 
 ### webService.cpp
 ```

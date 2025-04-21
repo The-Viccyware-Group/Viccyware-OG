@@ -257,6 +257,8 @@ class SimpleArgumentParser(argparse.ArgumentParser):
         self.add_argument('-I', '--include-directory', default=(), metavar='dir',
             nargs='*', dest='include_directories',
             help='Additional directories in which to search for included files.')
+        self.add_argument('--namespace', metavar='emitter_namespace', type=str,
+            help="Global namespace prefixed in front of all specified namespaces.")
 
     def parse_known_args(self, *args, **kwargs):
         # add this argument last
@@ -310,11 +312,21 @@ def parse(options, yacc_optimize=False, debuglevel=0):
             yacc_debug=options.debug_yacc, input_directories=input_directories)
         text = input.read()
         try:
-            return clad_parser.parse(text, filename=options.input_file, directory=options.input_directory, debuglevel=debuglevel)
+            tree = clad_parser.parse(text,
+                filename=options.input_file,
+                directory=options.input_directory,
+                debuglevel=debuglevel)
         except clad.ParseError as e:
             msg = e.args[1]
             coord = e.args[0]
             exit_at_coord(coord, 'Syntax Error: {msg}'.format(msg=msg))
+
+        # if specified, inject wrapper namespace
+        if options.namespace:
+            nsw = ast.ASTNamespaceWrapper(wrapper_ns=options.namespace)
+            nsw.visit(tree)
+
+        return tree
 
 def exit_at_coord(coord, error_text=None):
     "Exits, specifying a coord as the cause."
@@ -428,11 +440,97 @@ def write_c_file(output_directory, output_file, output_callback,
             output.write('#endif // {inclusion_guard}\n'.format(inclusion_guard=inclusion_guard))
 
 def write_cs_file(output_directory, output_file, output_callback, comment_lines=None, usings=None):
-    
+
     write_c_file(output_directory, output_file, output_callback,
         comment_lines, use_inclusion_guards=False,
         system_headers=None, local_headers=None, usings=usings)
-        
+
+def go_main(emitter, options, scanner=None):
+    tree = parse(options)
+    main_output_file = get_output_file(options, '.go')
+    comment_lines = get_comment_lines(options, 'Go')
+
+    def output_callback(output):
+        emitter(output).visit(tree)
+
+    properties = dict()
+    if scanner is not None:
+        scanner(properties).visit(tree)
+
+    write_go_file(options.output_directory, main_output_file, output_callback,
+        comment_lines=comment_lines, package=options.package, properties=properties)
+
+def write_go_file(output_directory, output_file, output_callback, comment_lines=None, package=None,
+    imports=None, properties=dict()):
+
+    includes = []
+    if properties.get('use_bytes', True):
+        includes.append('bytes')
+    if properties.get('use_binary', True):
+        includes.append('encoding/binary')
+    if properties.get('use_errors', True):
+        includes.append('errors')
+    if properties.get('use_clad', True):
+        includes.append('anki/clad')
+    if properties.get('use_fmt', True):
+        includes.append('fmt')
+
+    if package == None:
+        full_path = os.path.join(output_directory, output_file)
+        package = os.path.basename(os.path.normpath(os.path.dirname(full_path)))
+    with get_output(output_directory, output_file) as output:
+        if comment_lines:
+            output.write('\n'.join('// {0}'.format(line) for line in comment_lines))
+            output.write('\n\n')
+        output.write('package {}\n\n'.format(package))
+        output.write('import (\n')
+        includes = ['\t"' + x + '"\n' for x in includes]
+        output.write(''.join(includes))
+        output.write(')\n\n')
+
+        output_callback(output)
+
+def js_main(emitter, options, scanner=None):
+    tree = parse(options)
+    main_output_file = get_output_file(options, '.js')
+    comment_lines = get_comment_lines(options, 'JS')
+
+    def output_callback(output):
+        emitter(output).visit(tree)
+
+    properties = dict()
+    if scanner is not None:
+        scanner(properties).visit(tree)
+
+    write_js_file(options.output_directory, main_output_file, output_callback,
+        comment_lines=comment_lines, package=options.package, properties=properties)
+
+def write_js_file(output_directory, output_file, output_callback, comment_lines=None, package=None,
+    imports=None, properties=dict()):
+
+    includes = []
+    if properties.get('use_bytes', True):
+        includes.append('bytes')
+    if properties.get('use_binary', True):
+        includes.append('encoding/binary')
+    if properties.get('use_errors', True):
+        includes.append('errors')
+    if properties.get('use_clad', True):
+        includes.append('anki/clad')
+    if properties.get('use_fmt', True):
+        includes.append('fmt')
+
+    if package == None:
+        full_path = os.path.join(output_directory, output_file)
+        package = os.path.basename(os.path.normpath(os.path.dirname(full_path)))
+    with get_output(output_directory, output_file) as output:
+        if comment_lines:
+            output.write('\n'.join('// {0}'.format(line) for line in comment_lines))
+            output.write('\n\n')
+        output.write('const {{ Clad, CladBuffer }} = require(\'./cladConfig.js\');\n\n'.format(package))
+
+        output_callback(output)
+
 def write_python_file(output_directory, output_file, output_callback,
         comment_lines=None, future_features=('absolute_import', 'print_function'),
         additional_paths=None, import_modules=None):
@@ -550,4 +648,4 @@ def _convert_abspaths_to_relpaths(args):
     lcp = os.path.dirname(os.path.commonprefix(paths))
     rel_args = [os.path.relpath(a, lcp) if os.path.isabs(a) else a for a in args]
     return rel_args
-    
+

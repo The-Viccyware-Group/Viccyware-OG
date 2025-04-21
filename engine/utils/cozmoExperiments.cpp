@@ -22,7 +22,7 @@
 #endif
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 CozmoExperiments::CozmoExperiments(const CozmoContext* context)
 : _context(context)
@@ -35,6 +35,7 @@ CozmoExperiments::CozmoExperiments(const CozmoContext* context)
 static const char* GetDeviceId()
 {
 #if USE_DAS
+  DEV_ASSERT(DASGetPlatform() != nullptr, "CozmoExperiments.GetDeviceId.MissingDASPlatform");
   return DASGetPlatform()->GetDeviceId();
 #else
   return "user"; // non-empty string keeps it from failing on mac release
@@ -55,7 +56,7 @@ void CozmoExperiments::InitExperiments()
   };
   auto userIdAccessor = [this] {
     Robot* robot = _context->GetRobotManager()->GetRobot();
-    return robot != nullptr ? std::to_string(robot->GetBodySerialNumber()) : GetDeviceId();
+    return robot != nullptr ? std::to_string(robot->GetHeadSerialNumber()) : GetDeviceId();
   };
   Util::AnkiLab::InitializeABInterface(labOpRunner, userIdAccessor);
 }

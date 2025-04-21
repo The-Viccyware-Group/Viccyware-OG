@@ -15,12 +15,11 @@
 #define ANKI_COZMOANIM_FACE_DISPLAY_H
 
 #include "util/singleton/dynamicSingleton.h"
+#include "anki/cozmo/shared/factory/faultCodes.h"
 
-#include <array>
-#include <memory>
-#include <mutex>
+#include "clad/types/lcdTypes.h"
+
 #include <thread>
-
 
 namespace Anki {
 
@@ -28,11 +27,11 @@ namespace Vision {
   class ImageRGB565;
 }
 
-namespace Cozmo {
+namespace Vector {
 
 class FaceDisplayImpl;
-class FaceDebugDraw;
-  
+class FaceInfoScreenManager;
+
 class FaceDisplay : public Util::DynamicSingleton<FaceDisplay>
 {
   ANKIUTIL_FRIEND_SINGLETON(FaceDisplay); // Allows base class singleton access
@@ -43,8 +42,12 @@ public:
   // For drawing to face in various debug modes
   void DrawToFaceDebug(const Vision::ImageRGB565& img);
 
-  static FaceDebugDraw* GetDebugDraw() { return getInstance()->_faceDebugDraw.get(); }
 
+  void SetFaceBrightness(LCDBrightness level);
+
+  // Stops the boot animation process if it is running
+  void StopBootAnim();
+  
 protected:
   FaceDisplay();
   virtual ~FaceDisplay();
@@ -53,7 +56,6 @@ protected:
 
 private:
   std::unique_ptr<FaceDisplayImpl>  _displayImpl;
-  std::unique_ptr<FaceDebugDraw>    _faceDebugDraw;
 
   // Members for managing the drawing thread
   std::unique_ptr<Vision::ImageRGB565>  _faceDrawImg[2];
@@ -61,13 +63,21 @@ private:
   Vision::ImageRGB565*                  _faceDrawCurImg = nullptr;
   std::thread                           _faceDrawThread;
   std::mutex                            _faceDrawMutex;
-  bool                                  _stopDrawFace = false;
-    
-  void DrawFaceLoop();
+  std::atomic<bool>                     _stopDrawFace;
 
-}; // class FaceDisplay
+  std::mutex                            _readyMutex;
+  std::condition_variable               _readyCondition;
+  bool                                  _readyFace;
+
+  // Whether or not the boot animation process has been stopped
+  // Atomic because it is checked by the face drawing thread
+  std::atomic<bool> _stopBootAnim;
   
-} // namespace Cozmo
+  void DrawFaceLoop();
+  void UpdateNextImgPtr();
+}; // class FaceDisplay
+
+} // namespace Vector
 } // namespace Anki
 
 #endif // ANKI_COZMOANIM_FACE_DISPLAY_H

@@ -23,7 +23,7 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 
 class FullRobotPose : public IDependencyManagedComponent<RobotComponentID>
@@ -44,6 +44,9 @@ public:
 
   const Radians&  GetPitchAngle()   const { return _pitchAngle;   }
   void  SetPitchAngle(const Radians& rad) { _pitchAngle = rad;    }
+  
+  const Radians&  GetRollAngle()   const { return _rollAngle;   }
+  void  SetRollAngle(const Radians& rad) { _rollAngle = rad;    }
 
   const Pose3d&   GetNeckPose()     const { return _neckPose;     }
   const Pose3d&   GetHeadCamPose()  const { return _headCamPose;  }
@@ -67,13 +70,14 @@ private:
   f32              _headAngle;
   f32              _liftAngle;
   Radians          _pitchAngle;
+  Radians          _rollAngle;
 
   #if SHOULD_SEND_DISPLAYED_FACE_TO_ENGINE
   Vision::ImageRGB         _displayImg;
   #endif
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

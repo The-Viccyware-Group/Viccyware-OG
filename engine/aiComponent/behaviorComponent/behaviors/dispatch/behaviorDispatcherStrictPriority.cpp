@@ -17,20 +17,25 @@
 #include "json/json.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
 namespace {
 const char* kBehaviorsKey = "behaviors";
+const char* kLinkScopeKey = "linkScope";
+const char* kActAsSelectorKey = "actAsSelector";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorDispatcherStrictPriority::InstanceConfig::InstanceConfig()
+  : linkScope(false)
+  , actAsSelector(false)
 {
 }
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorDispatcherStrictPriority::DynamicVariables::DynamicVariables()
+  : hasDelegated(false)
 {
 }
 
@@ -39,6 +44,12 @@ BehaviorDispatcherStrictPriority::DynamicVariables::DynamicVariables()
 BehaviorDispatcherStrictPriority::BehaviorDispatcherStrictPriority(const Json::Value& config)
   : IBehaviorDispatcher(config)
 {
+  static_assert(std::is_base_of<BehaviorDispatcherStrictPriority::BaseClass, BehaviorDispatcherStrictPriority>::value,
+              "BaseClass is wrong");
+
+  _iConfig.linkScope = config.get(kLinkScopeKey, false).asBool();
+  _iConfig.actAsSelector = config.get(kActAsSelectorKey, false).asBool();
+  
   const Json::Value& behaviorArray = config[kBehaviorsKey];
   DEV_ASSERT_MSG(!behaviorArray.isNull(),
                  "BehaviorDispatcherStrictPriority.BehaviorsNotSpecified",
@@ -54,15 +65,55 @@ BehaviorDispatcherStrictPriority::BehaviorDispatcherStrictPriority(const Json::V
 void BehaviorDispatcherStrictPriority::GetBehaviorJsonKeys(std::set<const char*>& expectedKeys) const
 {
   expectedKeys.insert( kBehaviorsKey );
+  expectedKeys.insert( kLinkScopeKey );
+  expectedKeys.insert( kActAsSelectorKey );
   IBehaviorDispatcher::GetBehaviorJsonKeys(expectedKeys);
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorDispatcherStrictPriority::GetLinkedActivatableScopeBehaviors(std::set<IBehavior*>& delegates) const
+{
+  if( _iConfig.linkScope ) {
+    // all delegates are also linked in scope
+    BaseClass::GetAllDelegates(delegates);
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool BehaviorDispatcherStrictPriority::WantsToBeActivatedBehavior() const
+{
+  if( !_iConfig.linkScope ) {
+    // not linking, use the default implementation
+    return BaseClass::WantsToBeActivatedBehavior();
+  }
+
+  for(const auto& entry: GetAllPossibleDispatches()) {
+    if(entry->WantsToBeActivated()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void BehaviorDispatcherStrictPriority::BehaviorDispatcher_OnActivated(){
+  _dVars = DynamicVariables();
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ICozmoBehaviorPtr BehaviorDispatcherStrictPriority::GetDesiredBehavior()
 {
+  // Don't provide more than one desired behavior if acting as a selector
+  if(_iConfig.actAsSelector && _dVars.hasDelegated){
+    return ICozmoBehaviorPtr{};
+  }
+
   // Iterate through available behaviors, and use the first one that is activated or wants to be activated
   // since this is the highest priority behavior
   for(const auto& entry: GetAllPossibleDispatches()) {
     if(entry->IsActivated() || entry->WantsToBeActivated()) {
+      _dVars.hasDelegated = true;
       return entry;
     }
   }
@@ -70,5 +121,5 @@ ICozmoBehaviorPtr BehaviorDispatcherStrictPriority::GetDesiredBehavior()
   return ICozmoBehaviorPtr{};
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

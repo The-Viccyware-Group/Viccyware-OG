@@ -26,7 +26,7 @@
 #define DEBUG_COMMS 0
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
   
   static double GetCurrentTimeInSeconds()
@@ -192,7 +192,7 @@ namespace Cozmo {
     const double currentTime_s = GetCurrentTimeInSeconds();
     
     // Read datagrams and update advertising device list.
-    using EMessageTag = Cozmo::ExternalInterface::MessageGameToEngineTag;
+    using EMessageTag = Vector::ExternalInterface::MessageGameToEngineTag;
     const EMessageTag kAdvertisementMsgTag = EMessageTag::AdvertisementMsg;
     AdvertisementMsg advMsg;
     const size_t kMinAdMsgSize = sizeof(EMessageTag) + advMsg.Size(); // Size of message with an empty ip string
@@ -328,7 +328,7 @@ namespace Cozmo {
   
   void MultiClientComms::ReadAllMsgPackets()
   {
-    static const int kMaxRecvBufSize = 2048;
+    static const size_t kMaxRecvBufSize = 2048;
     u8 recvBuf[kMaxRecvBufSize];
     
     // Read from all connected clients.
@@ -364,7 +364,7 @@ namespace Cozmo {
         {
           if (bytes_recvd >= kMaxRecvBufSize) // == indicated truncation
           {
-            PRINT_NAMED_ERROR("MultiClientComms.ReadTruncated", "Read %zd, buffer size only %d", bytes_recvd, kMaxRecvBufSize);
+            PRINT_NAMED_ERROR("MultiClientComms.ReadTruncated", "Read %zd, buffer size only %zu", bytes_recvd, kMaxRecvBufSize);
           }
           
           receivedAnything = true;
@@ -583,7 +583,7 @@ namespace Cozmo {
     return numDevices;
   }
   
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki
 
 

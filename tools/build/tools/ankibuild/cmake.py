@@ -35,17 +35,22 @@ def find_anki_cmake_exe(version):
     for root, dirs, files in os.walk(d_ver):
         if os.path.basename(root) == 'bin':
             if 'cmake' in files:
+		        #print(os.path.join(d_ver, root, 'cmake'))
                 return os.path.join(d_ver, root, 'cmake') 
 
     return None
 
 def install_cmake(version):
     platform_map = {
-        'darwin': 'Darwin-x86_64',
-        'linux': 'Linux-x86_64'
+        'darwin': 'macos-universal',
+        'linux': 'linux-x86_64',
+	    'linux-arm64': 'linux-aarch64',
     }
 
     platform_name = platform.system().lower()
+
+    if platform.system().lower() == 'linux' and platform.machine() in ['aarch64', 'arm64']:
+        platform_name = 'linux-arm64'
 
     (major, minor, patch) = version.split('.')
     cmake_short_ver = "{}.{}".format(major, minor)
@@ -68,30 +73,29 @@ def install_cmake(version):
                                  version,
                                  "CMake")
 
-def find_or_install_cmake(required_ver, cmake_exe=None):
+def find_cmake(required_ver, cmake_exe=None):
     if not cmake_exe:
         try:
-            cmake_exe = subprocess.check_output(['which', 'cmake'])
+            cmake_exe = subprocess.check_output(['which', 'cmake']).rstrip()
         except subprocess.CalledProcessError as e:
             pass
-  
-    needs_install = True
-    if cmake_exe:
-        version = get_cmake_version_from_command(cmake_exe)
-        if version == required_ver:
-            needs_install = False
 
-    if needs_install:
-        cmake_exe = find_anki_cmake_exe(required_ver)
-        version = get_cmake_version_from_command(cmake_exe)
-        if version == required_ver:
-            needs_install = False
-        
-    if needs_install:
-        install_cmake(required_ver)
-        return find_anki_cmake_exe(required_ver)
-    else:
+    if get_cmake_version_from_command(cmake_exe) == required_ver:
         return cmake_exe
+
+    cmake_exe = find_anki_cmake_exe(required_ver)
+    if get_cmake_version_from_command(cmake_exe) == required_ver:
+        return cmake_exe
+
+    return None
+
+def find_or_install_cmake(required_ver, cmake_exe=None):
+    cmake_exe = find_cmake(required_ver, cmake_exe)
+    if cmake_exe:
+        return cmake_exe
+
+    install_cmake(required_ver)
+    return find_anki_cmake_exe(required_ver)
 
 def setup_cmake(required_ver):
     cmake_exe = find_or_install_cmake(required_ver)
@@ -102,20 +106,30 @@ def setup_cmake(required_ver):
 
 def parseArgs(scriptArgs):
     version = '1.0'
-    parser = argparse.ArgumentParser(description='finds or installs android ndk/sdk', version=version)
+    default_cmake_version = "3.20.6"
+    parser = argparse.ArgumentParser(description='finds or installs cmake', version=version)
     parser.add_argument('--install-cmake',
-                        action='store',
-                        dest='required_version',
                         nargs='?',
-                        default="3.9.6")
+                        const=default_cmake_version,
+                        default=None)
+    parser.add_argument('--find-cmake',
+                        nargs='?',
+                        const=default_cmake_version,
+                        default=None)
     (options, args) = parser.parse_known_args(scriptArgs)
     return options
 
 
 def main(argv):
     options = parseArgs(argv)
-    if options.required_version:
-        path = find_or_install_cmake(options.required_version)
+    if options.install_cmake:
+        path = find_or_install_cmake(options.install_cmake)
+        if not path:
+            return 1
+        print("%s" % path)
+        return 0
+    elif options.find_cmake:
+        path = find_cmake(options.find_cmake)
         if not path:
             return 1
         print("%s" % path)

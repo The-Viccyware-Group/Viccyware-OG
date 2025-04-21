@@ -13,11 +13,14 @@
 
 #include "gtest/gtest.h"
 
+#include "clad/types/animationTrigger.h"
 #include "coretech/common/engine/utils/timer.h"
 
+#include "engine/cozmoContext.h"
 #include "engine/moodSystem/moodManager.h"
 #include "engine/animations/animationGroup/animationGroup.h"
 #include "engine/animations/animationGroup/animationGroupContainer.h"
+#include "test/engine/callWithoutError.h"
 
 #include "util/entityComponent/dependencyManagedEntity.h"
 #include "util/logging/logging.h"
@@ -28,7 +31,8 @@
 #include <assert.h>
 
 
-using namespace Anki::Cozmo;
+using namespace Anki::Vector;
+extern CozmoContext* cozmoContext;
 
 static const std::string kMajorWin = "majorWin";
 static const std::string kMajorWinBeatBox = "majorWinBeatBox";
@@ -92,12 +96,12 @@ static const char* kOneAnimationDefaultMoodUnweightedJson =
 "  ]"
 "}";
 
-static const char* kOneAnimationHappyMoodJson =
+static const char* kOneAnimationHighStimJson =
 "{"
 "  \"Animations\": ["
 "    {"
 "      \"Name\": \"majorWin\","
-"      \"Mood\": \"Happy\","
+"      \"Mood\": \"HighStim\","
 "      \"Weight\": 1.0"
 "    }"
 "  ]"
@@ -119,12 +123,12 @@ static const char* kTwoAnimationsDefaultMoodsJson =
 "  ]"
 "}";
 
-static const char* kTwoAnimationsHappyDefaultMoodsJson =
+static const char* kTwoAnimationsHighStimDefaultMoodsJson =
 "{"
 "  \"Animations\": ["
 "    {"
 "      \"Name\": \"majorWin\","
-"      \"Mood\": \"Happy\","
+"      \"Mood\": \"HighStim\","
 "      \"Weight\": 1.0"
 "    },"
 "    {"
@@ -135,17 +139,17 @@ static const char* kTwoAnimationsHappyDefaultMoodsJson =
 "  ]"
 "}";
 
-static const char* kTwoAnimationsHappySadMoodsJson =
+static const char* kTwoAnimationsHighFrustratedMoodsJson =
 "{"
 "  \"Animations\": ["
 "    {"
 "      \"Name\": \"majorWin\","
-"      \"Mood\": \"Happy\","
+"      \"Mood\": \"HighStim\","
 "      \"Weight\": 1.0"
 "    },"
 "    {"
 "      \"Name\": \"majorWinBeatBox\","
-"      \"Mood\": \"Sad\","
+"      \"Mood\": \"Frustrated\","
 "      \"Weight\": 1.0"
 "    }"
 "  ]"
@@ -190,13 +194,13 @@ TEST(AnimationGroup, DeserializeAnimationGroup)
 
   DeserializeAnimationGroupFromJson(kOneAnimationDefaultMoodJson);
   
-  DeserializeAnimationGroupFromJson(kOneAnimationHappyMoodJson);
+  DeserializeAnimationGroupFromJson(kOneAnimationHighStimJson);
 
   DeserializeAnimationGroupFromJson(kTwoAnimationsDefaultMoodsJson);
   
-  DeserializeAnimationGroupFromJson(kTwoAnimationsHappyDefaultMoodsJson);
+  DeserializeAnimationGroupFromJson(kTwoAnimationsHighStimDefaultMoodsJson);
   
-  DeserializeAnimationGroupFromJson(kTwoAnimationsHappySadMoodsJson);
+  DeserializeAnimationGroupFromJson(kTwoAnimationsHighFrustratedMoodsJson);
 }
 
 TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
@@ -210,7 +214,7 @@ TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
 
   EXPECT_EQ(2, container.GetAnimationGroupNames().size());
 
-  DeserializeAnimationGroupContainerFromJson(container, "c", kOneAnimationHappyMoodJson);
+  DeserializeAnimationGroupContainerFromJson(container, "c", kOneAnimationHighStimJson);
 
   EXPECT_EQ(3, container.GetAnimationGroupNames().size());
 
@@ -218,12 +222,12 @@ TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
 
   EXPECT_EQ(4, container.GetAnimationGroupNames().size());
 
-  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHappyDefaultMoodsJson);
+  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHighStimDefaultMoodsJson);
 
   EXPECT_EQ(5, container.GetAnimationGroupNames().size());
   
   // Redeserialize the last one
-  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHappyDefaultMoodsJson);
+  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHighStimDefaultMoodsJson);
   
   EXPECT_EQ(5, container.GetAnimationGroupNames().size());
   
@@ -233,7 +237,7 @@ TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
   EXPECT_EQ(0, container.GetAnimationGroupNames().size());
   
   // now redeserialize the last one.
-  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHappyDefaultMoodsJson);
+  DeserializeAnimationGroupContainerFromJson(container, "e", kTwoAnimationsHighStimDefaultMoodsJson);
   
   EXPECT_EQ(1, container.GetAnimationGroupNames().size());
 
@@ -243,7 +247,10 @@ TEST(AnimationGroupContainer, AnimationGroupContainerDeserialization)
   EXPECT_FALSE(group == nullptr);
   
   // now test we can't retrieve a group that doesn't exist
-  group = container.GetAnimationGroup("a");
+  const bool err = CallWithoutError( [&](){
+    group = container.GetAnimationGroup("a");
+  });
+  EXPECT_TRUE( err );
 
   EXPECT_TRUE(group == nullptr);
 }
@@ -401,14 +408,14 @@ TEST(AnimationGroup, GetDefaultAnimationNameUnweighted)
   EXPECT_EQ(kMajorWin, name);
 }
 
-TEST(AnimationGroup, GetOneHappyAnimationName)
+TEST(AnimationGroup, GetOneHighStimAnimationName)
 {
   AnimationGroupContainer groupContainer(gRNG);
   MoodManager moodManager;
   
-  moodManager.SetEmotion(EmotionType::Happy, 0.5);
+  moodManager.SetEmotion(EmotionType::Stimulated, 0.9);
   
-  AnimationGroup group = DeserializeAnimationGroupFromJson(kOneAnimationHappyMoodJson);
+  AnimationGroup group = DeserializeAnimationGroupFromJson(kOneAnimationHighStimJson);
   
   const std::string& name = group.GetAnimationName(moodManager, groupContainer);
   
@@ -422,9 +429,13 @@ TEST(AnimationGroup, GetNoAnimationName)
   
   AnimationGroup group = DeserializeAnimationGroupFromJson(kNoAnimationJson);
   
-  const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+  const bool err = CallWithoutError( [&](){
+    const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+    EXPECT_EQ(kEmpty, name);
+  });
+  EXPECT_TRUE( err );
   
-  EXPECT_EQ(kEmpty, name);
+  
 }
 
 TEST(AnimationGroup, GetNoDefaultAnimationName)
@@ -432,11 +443,13 @@ TEST(AnimationGroup, GetNoDefaultAnimationName)
   AnimationGroupContainer groupContainer(gRNG);
   MoodManager moodManager;
   
-  AnimationGroup group = DeserializeAnimationGroupFromJson(kOneAnimationHappyMoodJson);
+  AnimationGroup group = DeserializeAnimationGroupFromJson(kOneAnimationHighStimJson);
   
-  const std::string& name = group.GetAnimationName(moodManager, groupContainer);
-  
-  EXPECT_EQ(kEmpty, name);
+  const bool err = CallWithoutError( [&](){
+    const std::string& name = group.GetAnimationName(moodManager, groupContainer);
+    EXPECT_EQ(kEmpty, name);
+  });
+  EXPECT_TRUE( err );
 }
 
 // run a maximum of 100 times. It should be a 50-50 chance of getting
@@ -487,10 +500,14 @@ TEST(AnimationGroup, GetNeitherAnimationNameOfTwo)
   MoodManager moodManager;
   
   bool foundMajorWin = false, foundMajorWinBeatBox = false;
-  TestTwoAnimations100Times(kTwoAnimationsHappySadMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  const bool err = CallWithoutError( [&](){
+    TestTwoAnimations100Times(kTwoAnimationsHighFrustratedMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  });
+  EXPECT_TRUE( err );
   
-  EXPECT_TRUE(!foundMajorWin);
-  EXPECT_TRUE(!foundMajorWinBeatBox);
+  EXPECT_FALSE(foundMajorWin);
+  EXPECT_FALSE(foundMajorWinBeatBox);
+  
 }
 
 
@@ -499,10 +516,10 @@ TEST(AnimationGroup, GetFirstAnimationNameOfTwo)
   AnimationGroupContainer groupContainer(gRNG);
   MoodManager moodManager;
   
-  moodManager.SetEmotion(EmotionType::Happy, 0.5);
+  moodManager.SetEmotion(EmotionType::Stimulated, 0.9);
   
   bool foundMajorWin = false, foundMajorWinBeatBox = false;
-  TestTwoAnimations100Times(kTwoAnimationsHappyDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  TestTwoAnimations100Times(kTwoAnimationsHighStimDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
   
   EXPECT_TRUE(foundMajorWin);
   EXPECT_TRUE(!foundMajorWinBeatBox);
@@ -514,7 +531,7 @@ TEST(AnimationGroup, GetSecondAnimationNameOfTwo)
   MoodManager moodManager;
   
   bool foundMajorWin = false, foundMajorWinBeatBox = false;
-  TestTwoAnimations100Times(kTwoAnimationsHappyDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  TestTwoAnimations100Times(kTwoAnimationsHighStimDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
   
   EXPECT_TRUE(!foundMajorWin);
   EXPECT_TRUE(foundMajorWinBeatBox);
@@ -528,8 +545,17 @@ TEST(AnimationGroup, GetDefaultAnimationNameOfTwo)
   moodManager.SetEmotion(EmotionType::Happy, -0.5);
   
   bool foundMajorWin = false, foundMajorWinBeatBox = false;
-  TestTwoAnimations100Times(kTwoAnimationsHappyDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
+  TestTwoAnimations100Times(kTwoAnimationsHighStimDefaultMoodsJson, moodManager, groupContainer, foundMajorWin, foundMajorWinBeatBox);
   
   EXPECT_TRUE(!foundMajorWin);
   EXPECT_TRUE(foundMajorWinBeatBox);
+}
+
+TEST(AnimationGroup, AllCLADTriggersHaveGroups)
+{
+  auto* data = cozmoContext->GetDataLoader();
+  for( size_t i=0; i< AnimationTriggerNumEntries - 1; ++i ) {
+    const auto trigger = static_cast<AnimationTrigger>(i);
+    EXPECT_TRUE( data->HasAnimationForTrigger(trigger) ) << "Could not find anim group for trigger " << AnimationTriggerToString(trigger);
+  }
 }

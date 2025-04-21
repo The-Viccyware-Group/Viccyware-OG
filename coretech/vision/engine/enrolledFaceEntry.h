@@ -19,6 +19,8 @@
 
 #include "clad/types/enrolledFaceStorage.h"
 
+#include "util/global/globalDefinitions.h"
+
 #include <chrono>
 #include <string>
 #include <vector>
@@ -33,6 +35,41 @@ namespace Json {
 
 namespace Anki {
 namespace Vision {
+
+// Literally a data type that represents the name of a user (which is generally mapped with a face)
+// Giving it a concrete data type to abstract away the comparison of phonetically similar names
+// * essentially an std::string wrapper that handles comparison for us *
+class UserName
+{
+public:
+  UserName( const std::string& name );
+  UserName() { } // empty string
+
+  // allowing default copy/move constructor/assignment functions
+
+  UserName& operator=( const std::string& name );
+
+  bool operator==( const UserName& rhs ) const;
+  bool operator==( const std::string& rhs ) const;
+  bool operator==( const char* rhs ) const;
+
+  // allow implicit cast to std::string
+  operator std::string() const { return _displayName; }
+
+  // simulate a minimal set of std::string functions since that's how it's expected to be used
+  bool                empty() const { return _displayName.empty(); }
+  const char*         c_str() const { return _displayName.c_str(); }
+  const std::string&  asString() const { return _displayName; }
+  const std::string&  asLCString() const { return _name; }
+
+  // use this for any debugging or clad messages where we want to obfuscate the names of the users
+  const char*         piiGuardedString() const { return Util::HidePersonallyIdentifiableInfo( _name.c_str() ); }
+
+
+private:
+  std::string _name;
+  std::string _displayName;
+};
 
 class EnrolledFaceEntry
 {
@@ -70,11 +107,12 @@ public:
   
   FaceID_t GetFaceID() const { return _faceID; }
   FaceID_t GetPreviousFaceID() const { return _prevID; }
+  void     SetPreviousFaceID(FaceID_t prevID) { _prevID = prevID; }
   
   TrackingID_t   GetTrackingID() const { return _trackID; }
   TrackingID_t   GetPreviousTrackingID() const { return _prevTrackID; }
   
-  const std::string& GetName() const { return _name; }
+  const UserName& GetName() const { return _name; }
   
   RecognitionScore  GetScore() const { return _score; }
   
@@ -85,6 +123,9 @@ public:
   void SetName(const std::string& newName) { _name = newName; }
   
   void SetScore(RecognitionScore newScore) { _score = newScore; }
+  
+  // Includes session-only entry
+  size_t GetNumAlbumEntries() const { return _albumEntrySeenTimes.size(); }
   
   // Returns a map of album entries fo last seen times
   const std::map<AlbumEntryID_t, Time>& GetAlbumEntries() const { return _albumEntrySeenTimes; }
@@ -97,7 +138,7 @@ public:
   
   void SetAlbumEntryLastSeenTime(AlbumEntryID_t entry, Time time);
   
-  AlbumEntryID_t  GetSessionOnlyAlbumEntry() const { return _sessionOnlyAlbumEntry; }
+  AlbumEntryID_t GetSessionOnlyAlbumEntry() const { return _sessionOnlyAlbumEntry; }
   
   // Get when this enrolled face was added to our album
   Time GetEnrollmentTime() const { return _enrollmentTime; }
@@ -156,13 +197,18 @@ protected:
   // Helper to make sure times aren't in the future when loaded/initialized
   bool ClipFutureTimesToNow(const std::string& logString);
   
+  // Helper to get the session-only entry's "seen time"
+  // Returns 0 if there is no session-only entry
+  // Returns 0 and throws an error if there is a session-only entry but no time found for it
+  Time GetSessionOnlySeenTime() const;
+  
   FaceID_t            _faceID = UnknownFaceID; // The ID used for recognition
   FaceID_t            _prevID = UnknownFaceID; // The previous ID if the ID just changed (e.g. due to merge)
   
   TrackingID_t        _trackID     = UnknownFaceID;  // The last associated tracker ID
   TrackingID_t        _prevTrackID = UnknownFaceID;  // The previous track ID in case it changed
   
-  std::string         _name;
+  UserName            _name;
   RecognitionScore    _score = 1000;  // [0,1000]
   
   AlbumEntryID_t      _sessionOnlyAlbumEntry;

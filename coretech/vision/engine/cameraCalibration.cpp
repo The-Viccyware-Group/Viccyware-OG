@@ -10,9 +10,8 @@
 
 #include "coretech/common/engine/jsonTools.h"
 
-#include "coretech/common/engine/math/matrix_impl.h"
-#include "coretech/common/engine/math/point_impl.h"
-
+#include "coretech/common/shared/math/matrix.h"
+ 
 
 namespace Anki {
 namespace Vision {
@@ -101,6 +100,35 @@ namespace Vision {
             && _skew == other._skew
             && _distortionCoeffs == other._distortionCoeffs);
 
+  }
+  
+  CameraCalibration& CameraCalibration::Scale(u16 nrows, u16 ncols)
+  {
+    if(ncols == _ncols && nrows == _nrows)
+    {
+      // Special case, early out
+      return *this;
+    }
+    
+    const f32 xscale = (f32)ncols / (f32)_ncols;
+    const f32 yscale = (f32)nrows / (f32)_nrows;
+    
+    _focalLength_x *= xscale;
+    _focalLength_y *= yscale;
+    _center.x()    *= xscale;
+    _center.y()    *= yscale;
+    
+    _nrows = nrows;
+    _ncols = ncols;
+    
+    return *this;
+  }
+  
+  CameraCalibration CameraCalibration::GetScaled(u16 nrows, u16 ncols) const
+  {
+    CameraCalibration scaledCalib(*this);
+    scaledCalib.Scale(nrows,ncols);
+    return scaledCalib;
   }
   
   template<typename PRECISION>

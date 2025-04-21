@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 import sys
 import subprocess
@@ -25,6 +25,9 @@ class DependencyInstaller(object):
     # TODO: This check will work for executables, but checking whether something exists
     # is not enough. We need to ensure that the installed version has the required capabilities.
     # OR we need to check that brew has just installed it.  Since some things are just libs.
+    # macOS comes bundled with a bad version of rsync
+    if dep == "rsync":
+      return False
     if not path.exists(path.join(self.L_BIN, dep)):
       notFound = subprocess.call(['which', dep], stdout=subprocess.PIPE)
       if notFound:
@@ -33,9 +36,7 @@ class DependencyInstaller(object):
 
   def isPythonPackageInstalled(self, package, version):
     pip = 'pip' + str(version)
-    # this prints a warning that can be disabled with '--format=columns',
-    # but that param isn't supported by older versions of pip
-    allPackages = subprocess.check_output([pip, 'list'])
+    allPackages = subprocess.check_output([pip, 'list', '--format=columns'])
     isInstalled = package in allPackages
     return isInstalled
 
@@ -189,12 +190,14 @@ class DependencyInstaller(object):
     for tool in homebrew_deps:
       if not self.installTool(tool):
         return False
-    for package in python2_deps:
-      if not self.installPythonPackage(package, 2):
-        return False
-    for package in python3_deps:
-      if not self.installPythonPackage(package, 3):
-        return False
+    if python2_deps:
+      for package in python2_deps:
+        if not self.installPythonPackage(package, 2):
+          return False
+    if python3_deps:
+      for package in python3_deps:
+        if not self.installPythonPackage(package, 3):
+          return False
     return True
 
 

@@ -10,14 +10,14 @@
 #include <unordered_map>
 #include <string>
 #include "engine/events/ankiEventMgr.h"
-#include "coretech/common/engine/math/point_impl.h"
+#include "coretech/common/shared/math/point.h"
 #include "coretech/messaging/shared/UdpServer.h"
 #include "clad/physicsInterface/messageSimPhysics.h"
 
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class PhysicsController
 {
@@ -64,7 +64,7 @@ private:
   UdpServer _server;
 };
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki
 
 #endif  //__CozmoPhysics_PhysicsControllerImpl_H__

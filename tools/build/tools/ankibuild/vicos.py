@@ -38,7 +38,7 @@ def install_vicos_sdk(version):
 
     platform_tag = '{}{}'.format(platform_map.get(platform_name), subver_tag)
 
-    url_prefix = "https://sai-general.s3.amazonaws.com/build-assets/"
+    url_prefix = "http://10.49.176.97:8000/"
     platform_name = platform.system().lower()
     sdk_base_name = "vicos-sdk-{0}-{1}".format(version, platform_tag)
     anki_sdk_url = "{0}{1}.tar.bz2".format(url_prefix, sdk_base_name)
@@ -90,13 +90,14 @@ def find_sdk_root_dir(required_ver):
     else:
         return anki_vicos_dir
 
-def find_or_install_vicos_sdk(required_ver):
+def find_or_install_vicos_sdk(required_ver, install=True):
     sdk_root_dir = find_sdk_root_dir(required_ver)
 
     if sdk_root_dir:
         return sdk_root_dir
     
-    install_vicos_sdk(required_ver)
+    if install:
+        install_vicos_sdk(required_ver)
     sdk_root_dir = find_sdk_root_dir(required_ver)
 
     return sdk_root_dir
@@ -106,7 +107,11 @@ def parseArgs(scriptArgs):
     parser = argparse.ArgumentParser(description='finds or installs vicos sdk', version=version)
     parser.add_argument('--install',
                         action='store',
-                        dest='required_version',
+                        dest='install_version',
+                        nargs='?')
+    parser.add_argument('--find',
+                        action='store',
+                        dest='find_version',
                         nargs='?')
     (options, args) = parser.parse_known_args(scriptArgs)
     return options
@@ -114,8 +119,9 @@ def parseArgs(scriptArgs):
 
 def main(argv):
     options = parseArgs(argv)
-    if options.required_version:
-        path = find_or_install_vicos_sdk(options.required_version)
+    version = options.install_version or options.find_version
+    if version:
+        path = find_or_install_vicos_sdk(version, bool(options.install_version))
         if not path:
             return 1
         print("%s" % path)

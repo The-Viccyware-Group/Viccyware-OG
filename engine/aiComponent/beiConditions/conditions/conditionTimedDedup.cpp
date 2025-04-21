@@ -22,7 +22,7 @@
 #include "lib/util/source/anki/util/logging/logging.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 const char* kSubConditionKey  = "subCondition";
@@ -42,9 +42,10 @@ ConditionTimedDedup::ConditionTimedDedup(const Json::Value& config)
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ConditionTimedDedup::ConditionTimedDedup(IBEIConditionPtr subCondition, float dedupInterval_ms)
-: IBEICondition(IBEICondition::GenerateBaseConditionConfig(BEIConditionType::Negate))
+ConditionTimedDedup::ConditionTimedDedup(IBEIConditionPtr subCondition, float dedupInterval_ms, const std::string& ownerDebugLabel)
+: IBEICondition(IBEICondition::GenerateBaseConditionConfig(BEIConditionType::TimedDedup))
 {
+  SetOwnerDebugLabel( ownerDebugLabel );
   _instanceParams.subCondition     = subCondition;
   _instanceParams.dedupInterval_ms = dedupInterval_ms;
   ANKI_VERIFY(_instanceParams.subCondition, "ConditionTimedDedup.Constructor.Direct.NullSubCondition", "" );
@@ -61,7 +62,7 @@ void ConditionTimedDedup::InitInternal(BehaviorExternalInterface& bei)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool ConditionTimedDedup::AreConditionsMetInternal(BehaviorExternalInterface& bei) const
 {
-  const TimeStamp_t currentTime_ms =  BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+  const EngineTimeStamp_t currentTime_ms =  BaseStationTimer::getInstance()->GetCurrentTimeStamp();
   if( _instanceParams.subCondition && 
       (currentTime_ms >= _lifetimeParams.nextTimeValid_ms)) {
     const bool subResult = _instanceParams.subCondition->AreConditionsMet(bei);
@@ -81,5 +82,5 @@ void ConditionTimedDedup::SetActiveInternal(BehaviorExternalInterface& bei, bool
   }
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

@@ -13,7 +13,8 @@
 #include "engine/vision/motionDetector.h"
 #include "engine/vision/motionDetector_neon.h"
 
-#include "coretech/common/engine/math/linearAlgebra_impl.h"
+#include "coretech/common/engine/math/linearAlgebra.h"
+#include "coretech/common/engine/math/quad.h"
 #include "coretech/vision/engine/camera.h"
 #include "coretech/vision/engine/imageCache.h"
 #include "coretech/common/engine/jsonTools.h"
@@ -26,13 +27,13 @@
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace {
 # define CONSOLE_GROUP_NAME "Vision.MotionDetection"
   
-  // For speed, compute motion detection on half-resolution images
-  CONSOLE_VAR(bool, kMotionDetection_UseHalfRes,          CONSOLE_GROUP_NAME, true);
+  // For speed, compute motion detection at lower resolution (1 for full resolution, 2 for half, etc)
+  CONSOLE_VAR_RANGED(s32, kMotionDetection_ScaleMultiplier,          CONSOLE_GROUP_NAME, 4, 1, 8);
   
   // How long we have to wait between motion detections. This may be reduce-able, but can't get
   // too small or we'll hallucinate image change (i.e. "motion") due to the robot moving.
@@ -483,25 +484,28 @@ Result MotionDetector::Detect(Vision::ImageCache&     imageCache,
                               const VisionPoseData&   crntPoseData,
                               const VisionPoseData&   prevPoseData,
                               std::list<ExternalInterface::RobotObservedMotion>& observedMotions,
-                              DebugImageList<Vision::ImageRGB>& debugImageRGBs)
+                              Vision::DebugImageList<Vision::CompressedImage>& debugImages)
 {
-  const f32 scaleMultiplier = (kMotionDetection_UseHalfRes ? 2.f : 1.f);
-
-  const Vision::ImageCache::Size imageSize = Vision::ImageCache::GetSize((s32)scaleMultiplier,
-                                                                         Vision::ResizeMethod::NearestNeighbor);
+  const Vision::ImageCacheSize imageSize = Vision::ImageCache::GetSize(kMotionDetection_ScaleMultiplier);
 
   // Call the right helper based on image's color
   if(imageCache.HasColor())
   {
     const Vision::ImageRGB& imageColor = imageCache.GetRGB(imageSize);
-    return DetectHelper(imageColor, imageCache.GetOrigNumRows(), imageCache.GetOrigNumCols(), scaleMultiplier,
-                        crntPoseData, prevPoseData, observedMotions, debugImageRGBs);
+    return DetectHelper(imageColor,
+                        imageCache.GetNumRows(Vision::ImageCacheSize::Half),
+                        imageCache.GetNumCols(Vision::ImageCacheSize::Half),
+                        kMotionDetection_ScaleMultiplier,
+                        crntPoseData, prevPoseData, observedMotions, debugImages);
   }
   else
   {
     const Vision::Image& imageGray = imageCache.GetGray(imageSize);
-    return DetectHelper(imageGray, imageCache.GetOrigNumRows(), imageCache.GetOrigNumCols(), scaleMultiplier,
-                        crntPoseData, prevPoseData, observedMotions, debugImageRGBs);
+    return DetectHelper(imageGray,
+                        imageCache.GetNumRows(Vision::ImageCacheSize::Half),
+                        imageCache.GetNumCols(Vision::ImageCacheSize::Half),
+                        kMotionDetection_ScaleMultiplier,
+                        crntPoseData, prevPoseData, observedMotions, debugImages);
   }
 }
   
@@ -512,7 +516,7 @@ Result MotionDetector::DetectHelper(const ImageType &image,
                                     const VisionPoseData& crntPoseData,
                                     const VisionPoseData& prevPoseData,
                                     std::list<ExternalInterface::RobotObservedMotion> &observedMotions,
-                                    DebugImageList<Vision::ImageRGB> &debugImageRGBs)
+                                    Vision::DebugImageList<Vision::CompressedImage>& debugImages)
 {
 
   // Create the ImageRegionSelector. It has to be done here since the image size is not known before
@@ -558,11 +562,11 @@ Result MotionDetector::DetectHelper(const ImageType &image,
 
   //Often this will be false
   const bool longEnoughSinceLastMotion = ((image.GetTimestamp() - _lastMotionTime) > kMotionDetection_LastMotionDelay_ms);
-  bool blurHappened = false;
 
   if(headSame && poseSame &&
      HavePrevImage<ImageType>() &&
      !crntPoseData.histState.WasCameraMoving() &&
+     !crntPoseData.histState.WasPickedUp() &&
      longEnoughSinceLastMotion)
   {
     // Save timestamp and prepare the msg
@@ -571,22 +575,22 @@ Result MotionDetector::DetectHelper(const ImageType &image,
     msg.timestamp = image.GetTimestamp();
 
     // Remove noise here before motion detection
-    FilterImageAndPrevImages<ImageType>(image);
-    blurHappened = true;
+    ImageType blurredImage(image.GetNumRows(), image.GetNumCols());
+    FilterImageAndPrevImages<ImageType>(image, blurredImage);
 
     // Create the ratio test image
-    Vision::Image foregroundMotion(image.GetNumRows(), image.GetNumCols());
-    s32 numAboveThresh = RatioTest(image, foregroundMotion);
+    Vision::Image foregroundMotion(blurredImage.GetNumRows(), blurredImage.GetNumCols());
+    s32 numAboveThresh = RatioTest(blurredImage, foregroundMotion);
 
     // Run the peripheral motion detection
-    const bool peripheralMotionDetected = DetectPeripheralMotionHelper(foregroundMotion, debugImageRGBs, msg,
+    const bool peripheralMotionDetected = DetectPeripheralMotionHelper(foregroundMotion, debugImages, msg,
                                                                        scaleMultiplier);
 
     const bool groundMotionDetected = DetectGroundAndImageHelper(foregroundMotion, numAboveThresh, origNumRows,
                                                                  origNumCols,
                                                                  scaleMultiplier, crntPoseData, prevPoseData,
                                                                  observedMotions,
-                                                                 debugImageRGBs, msg);
+                                                                 debugImages, msg);
 
     if (peripheralMotionDetected || groundMotionDetected) {
       if (kMotionDetectionDebug) {
@@ -596,10 +600,17 @@ Result MotionDetector::DetectHelper(const ImageType &image,
       observedMotions.emplace_back(std::move(msg));
     }
     
+    // Store a blurred copy of the current image for next time (at correct resolution!)
+    const bool kBlurHappened = true;
+    SetPrevImage(blurredImage, kBlurHappened);
+    
   } // if(headSame && poseSame)
-  
-  // Store a copy of the current image for next time (at correct resolution!)
-  SetPrevImage(image, blurHappened);
+  else
+  {
+    // Store a copy of the current image for next time (at correct resolution!)
+    const bool kBlurHappened = false;
+    SetPrevImage(image, kBlurHappened);
+  }
   
   return RESULT_OK;
   
@@ -610,7 +621,7 @@ bool MotionDetector::DetectGroundAndImageHelper(Vision::Image &foregroundMotion,
                                                 const VisionPoseData &crntPoseData,
                                                 const VisionPoseData &prevPoseData,
                                                 std::list<ExternalInterface::RobotObservedMotion> &observedMotions,
-                                                DebugImageList<Anki::Vision::ImageRGB> &debugImageRGBs,
+                                                Vision::DebugImageList<Vision::CompressedImage> &debugImages,
                                                 ExternalInterface::RobotObservedMotion &msg)
 {
 
@@ -693,7 +704,7 @@ bool MotionDetector::DetectGroundAndImageHelper(Vision::Image &foregroundMotion,
       snprintf(tempText, 127, "Area:%.2f X:%d Y:%d", imgRegionArea, msg.img_x, msg.img_y);
       putText(ratioImgDisp.get_CvMat_(), std::string(tempText),
               cv::Point(0, ratioImgDisp.GetNumRows()), CV_FONT_NORMAL, .4f, CV_RGB(0, 255, 0));
-      debugImageRGBs.push_back({"RatioImg", ratioImgDisp});
+      debugImages.emplace_back("RatioImg", ratioImgDisp);
 
       //_currentResult.debugImages.push_back({"PrevRatioImg", _prevRatioImg});
       //_currentResult.debugImages.push_back({"ForegroundMotion", foregroundMotion});
@@ -712,7 +723,7 @@ bool MotionDetector::DetectGroundAndImageHelper(Vision::Image &foregroundMotion,
                 cv::Point(0, crntPoseData.groundPlaneROI.GetWidthFar()), CV_FONT_NORMAL, .4f,
                 CV_RGB(0,255,0));
       }
-      debugImageRGBs.push_back({"RatioImgGround", ratioImgDispGround});
+      debugImages.emplace_back("RatioImgGround", ratioImgDispGround);
 
     }
   }
@@ -836,33 +847,43 @@ void MotionDetector::ExtractGroundPlaneMotion(s32 origNumRows, s32 origNumCols, 
   }
 }
 
-template <class ImageType>
-void MotionDetector::FilterImageAndPrevImages(const ImageType& image)
+template<>
+inline Vision::Image& MotionDetector::GetPrevImage()
 {
-  const cv::Mat& imageCV = image.get_CvMat_();
-  cv::boxFilter(imageCV, imageCV, -1,
-            cv::Size(kMotionDetection_BlurFilterSize_pix, kMotionDetection_BlurFilterSize_pix));
+  return _prevImageGray;
+}
+
+template<>
+inline Vision::ImageRGB& MotionDetector::GetPrevImage()
+{
+  return _prevImageRGB;
+}
+ 
+template<>
+inline bool MotionDetector::WasPrevImageBlurred<Vision::Image>() const {
+  return _wasPrevImageGrayBlurred;
+}
+
+template<>
+inline bool MotionDetector::WasPrevImageBlurred<Vision::ImageRGB>() const {
+  return _wasPrevImageRGBBlurred;
+}
+  
+template <class ImageType>
+void MotionDetector::FilterImageAndPrevImages(const ImageType& image, ImageType& blurredImage)
+{
+  image.BoxFilter(blurredImage, kMotionDetection_BlurFilterSize_pix);
 
   // If the previous image hadn't been blurred before, do it now
-  if (std::is_same<ImageType, Vision::Image>::value) {
-    if (!_wasPrevImageGrayBlurred) {
-      cv::boxFilter(_prevImageGray.get_CvMat_(), _prevImageGray.get_CvMat_(), -1,
-                    cv::Size(kMotionDetection_BlurFilterSize_pix, kMotionDetection_BlurFilterSize_pix));
-    }
-  }
-  else if (std::is_same<ImageType, Vision::ImageRGB>::value) {
-    if (!_wasPrevImageRGBBlurred) {
-      cv::boxFilter(_prevImageRGB.get_CvMat_(), _prevImageRGB.get_CvMat_(), -1,
-                    cv::Size(kMotionDetection_BlurFilterSize_pix, kMotionDetection_BlurFilterSize_pix));
-    }
-  }
-  else {
-    DEV_ASSERT(false, "MotionDetector.DetectMotion.FoundCentroid");
+  if(!WasPrevImageBlurred<ImageType>())
+  {
+    ImageType& prevImage = GetPrevImage<ImageType>();
+    prevImage.BoxFilter(prevImage, kMotionDetection_BlurFilterSize_pix);
   }
 }
 
 bool MotionDetector::DetectPeripheralMotionHelper(Vision::Image &ratioImage,
-                                                  DebugImageList<Anki::Vision::ImageRGB> &debugImageRGBs,
+                                                  Vision::DebugImageList<Vision::CompressedImage> &debugImages,
                                                   ExternalInterface::RobotObservedMotion &msg, f32 scaleMultiplier)
 {
 
@@ -1074,7 +1095,7 @@ bool MotionDetector::DetectPeripheralMotionHelper(Vision::Image &ratioImage,
         imageToDisplay.DrawFilledCircle(centroid, Anki::NamedColors::GREEN, 10);
       }
     }
-    debugImageRGBs.emplace_back("PeripheralMotion", imageToDisplay);
+    debugImages.emplace_back("PeripheralMotion", imageToDisplay);
   }
 
   return motionDetected;
@@ -1086,13 +1107,13 @@ template Result MotionDetector::DetectHelper(const Vision::Image&, s32, s32, f32
                                              const VisionPoseData&,
                                              const VisionPoseData&,
                                              std::list<ExternalInterface::RobotObservedMotion>&,
-                                             DebugImageList<Vision::ImageRGB>&);
+                                             Vision::DebugImageList<Vision::CompressedImage>&);
 
 template Result MotionDetector::DetectHelper(const Vision::ImageRGB&, s32, s32, f32,
                                              const VisionPoseData&,
                                              const VisionPoseData&,
                                              std::list<ExternalInterface::RobotObservedMotion>&,
-                                             DebugImageList<Vision::ImageRGB>&);
+                                             Vision::DebugImageList<Vision::CompressedImage>&);
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Computes "centroid" at specified percentiles in X and Y
@@ -1138,6 +1159,6 @@ size_t MotionDetector::GetCentroid(const Vision::Image& motionImg, Point2f& cent
 }
 // GetCentroid()
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 

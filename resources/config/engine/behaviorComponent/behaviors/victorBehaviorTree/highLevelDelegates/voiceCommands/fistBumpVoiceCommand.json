@@ -2,8 +2,21 @@
   "behaviorID" : "FistBumpVoiceCommand",
   "behaviorClass" : "DispatcherQueue",
 
+  "associatedActiveFeature": "FistBump",
+  
+  "wantsToBeActivatedCondition": {
+    "conditionType": "OffTreadsState",
+    "targetState": "OnTreads"
+  },
+
+  "respondToUserIntents" : [
+    {
+      "type" : "play_fistbump"
+    }
+  ],
+
   "behaviors": [
-    "DriveOffCharger",
+    "DriveOffChargerFace",
     "FistBumpInternal"
   ],
 
@@ -11,8 +24,11 @@
     {
       "behaviorClass": "FistBump",
       "behaviorName": "FistBumpInternal",
-      "abortIfNoFaceFound": false
+      "abortIfNoFaceFound": false,
+      "maxTimeToLookForFace_s": 0.0
     }
-  ]
+  ],
+
+  "postBehaviorSuggestion": "Nothing"
 }
 

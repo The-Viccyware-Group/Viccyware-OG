@@ -15,7 +15,7 @@
 #include "coretech/common/engine/utils/timer.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 BehaviorTimerManager::BehaviorTimerManager()
@@ -73,8 +73,14 @@ void BehaviorTimer::Reset()
                    "BehaviorTimer.Reset",
                    "Cannot reset the default timer") )
   {
+    const float currTime_s = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
     
-    _baseTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
+    PRINT_CH_DEBUG("Behaviors", "BehaviorTimer.Reset",
+                   "Timer '%s' reset at t=%f",
+                   BehaviorTimerTypesToString(_timerType),
+                   currTime_s);
+    
+    _baseTime = currTime_s;
     _hasBeenReset = true;
   }
 }
@@ -105,5 +111,5 @@ bool BehaviorTimer::HasCooldownExpired(float cooldown, bool valueIfNoReset) cons
   }
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

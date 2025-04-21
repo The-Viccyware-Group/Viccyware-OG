@@ -5,17 +5,16 @@
 #include <string.h>
 #include "app.h"
 #include "board.h"
+#include "cmd.h"
 #include "console.h"
 #include "crypto/crypto.h"
-#include "display.h"
 #include "fixture.h"
 #include "flash.h"
 #include "meter.h"
 #include "motorled.h"
 #include "nvReset.h"
-#include "testport.h"
+#include "robotcom.h"
 #include "timer.h"
-#include "uart.h"
 
 // Which character to escape into command code
 #define ESCAPE_CODE 27
@@ -24,7 +23,7 @@
 
 #define BAUD_RATE   1000000
 
-extern void SetFixtureText(void);
+extern void SetFixtureText(bool reinit=0);
 extern void SetOKText(void);
 extern void SetErrorText(u16 error);
 
@@ -228,8 +227,6 @@ void InitConsole(void)
   DMA_ITConfig(DMA1_Stream2, DMA_IT_TC, DISABLE);
   DMA_Cmd(DMA1_Stream2, ENABLE);
   
-  SlowPutString("Console Initialized\n");
-  
   //restore console mode from reset data
   m_isInConsoleMode = g_app_reset.valid && g_app_reset.console.isInConsoleMode;
 }
@@ -268,7 +265,7 @@ static void SetMode(void)
       g_flashParams.fixtureTypeOverride = i;
       StoreParams();
       g_fixmode = i;
-      SetFixtureText();
+      SetFixtureText(1);
       return;
     }
     
@@ -277,18 +274,18 @@ static void SetMode(void)
 
 static void SetSerial(void)
 {
-  char* arg;
+  char* arg = GetArgument(1);
   u32 serial = FIXTURE_SERIAL;
+  sscanf(arg, "%i", &serial);
   
   // Check if this fixture already has a serial
-  if (serial != 0xFFFFffff)
+  if (FIXTURE_SERIAL != 0xFFFFffff)
   {
-    ConsolePrintf("Fixture already has serial: %i\n", serial);
-    throw ERROR_SERIAL_EXISTS;
+    if( serial > 0 ) { //allow overwrite of existing serial to 0 (invalid)
+      ConsolePrintf("Fixture already has serial: %i\n", serial);
+      throw ERROR_SERIAL_EXISTS;
+    }
   }
-  
-  arg = GetArgument(1);
-  sscanf(arg, "%i", &serial);
   
   //if ((u32)serial >= 0xf0)
   //  throw ERROR_SERIAL_INVALID;
@@ -303,6 +300,25 @@ static void SetSerial(void)
   __enable_irq();
 }
 
+static void BurnSerials_(void)
+{
+  //required format "burn # serials"
+  int num = -1;
+  try {
+    if( !strncmp(GetArgument(2), "serials", 7) )
+      num = strtol(GetArgument(1),0,0);
+  } catch (int e) { num = -2; }
+
+  if( num < 0 ) {
+    ConsolePrintf("invalid format: \"burn # serials\"\n");
+    return;
+  }
+  
+  ConsolePrintf("burning %i serial numbers\n", num);
+  for(int n=0; n<num; n++)
+    fixtureGetSerial();
+}
+
 extern int g_canary;
 static void GetSerialCmd(void)
 {
@@ -312,6 +328,13 @@ static void GetSerialCmd(void)
     fixtureName(),
     g_canary == 0xcab00d1e ? FIXTURE_VERSION : 0xbadc0de);    // This part is hard to explain
 }
+
+static void GetEsnCmd(void)
+{
+  uint32_t sequence = fixtureReadSequence();
+  ConsolePrintf("serial,%i,sequence,%i,esn,%08x\n", FIXTURE_SERIAL, sequence, (FIXTURE_SERIAL<<20) | sequence);
+}
+
 static void SetLotCode(void)
 {
   char* arg = GetArgument(1);
@@ -327,10 +350,47 @@ static void SetLotCode(void)
   SetFixtureText();
 }
 
+static void GetTime(void)
+{
+  time_t time = fixtureGetTime(); //rtc time
+  ConsolePrintf("%010u,%i,%s", time, fixtureTimeIsValid(), ctime(&time));
+  
+  int arg1 = 0;
+  try { sscanf(GetArgument(1), "%i", &arg1); } catch(...) { arg1=0; }
+  
+  if( arg1 == 1 ) {
+    time_t settime = fixtureGetSetTime();
+    ConsolePrintf("%010u,%i,%s", settime, settime>0, ctime(&settime));
+    
+    int timediff = time - settime;
+    int days  =   timediff/(24*3600);
+    int hours =  (timediff%(24*3600)) / 3600;
+    int min   = ((timediff%(24*3600)) % 3600) / 60;
+    int sec   = ((timediff%(24*3600)) % 3600) % 60;
+    ConsolePrintf("diff,days,%i,hms,%i,%i,%i\n", days, hours, min, sec);
+  }
+}
+
 static void SetTime(void)
 {
-  char* arg = GetArgument(1);  
-  sscanf(arg, "%i", &g_time);
+  time_t time = 0;
+  sscanf(GetArgument(1), "%u", (uint32_t*)&time);
+  
+  //ConsolePrintf("settime %010u          %s", time, ctime(&time)); //DEBUG
+  int e = fixtureSetTime(time);
+  if( e != 0 ) {
+    ConsolePrintf("failed. e=0x%04x\n", e);
+    throw ERROR_UNHANDLED_EXCEPTION;
+  }
+  
+  //readback & print formatted
+  time = fixtureGetTime(); //rtc time
+  ConsolePrintf("%010u,%i,%s", time, fixtureTimeIsValid(), ctime(&time));
+}
+
+extern void fixtureRtcTestbench(void);
+static void RtcTestbench(void) {
+  fixtureRtcTestbench(); //runs testbench, if enabled
 }
 
 static void SetDateCode(void)
@@ -341,13 +401,13 @@ static void SetDateCode(void)
 
 static void TestCurrent(void)
 {
-  s32 v = Meter::getVextCurrentMa();
+  s32 v = Meter::getCurrentMa(PWR_VEXT);
   ConsolePrintf("I = %i, %X\n", v, v);
 }
 
 static void TestVoltage(void)
 {
-  s32 v = Meter::getVextVoltageMv();
+  s32 v = Meter::getVoltageMv(PWR_VEXT);
   ConsolePrintf("V = %i, %X\n", v, v);
 }
 
@@ -380,16 +440,46 @@ static void BinVersionCmd(void)
   binPrintInfo(format_csv);
 }
 
+static void emmcdlVersionCmd(void)
+{
+  int display = 0, timeout_ms = 0;
+  try {
+    display = strtol(GetArgument(1),0,0);
+    timeout_ms = strtol(GetArgument(2),0,0);
+  } catch (int e) { }
+  
+  timeout_ms = timeout_ms < 1 ? CMD_DEFAULT_TIMEOUT : (timeout_ms > 600000 ? 600000 : timeout_ms);
+  
+  //read version from head and format display string
+  char b[31]; int bz=sizeof(b);
+  snformat(b,bz,"emmcdl: %s", helperGetEmmcdlVersion(timeout_ms));
+  ConsolePrintf("%s\n", b);
+  
+  if( display ) {
+    helperLcdSetLine(2, b);
+    SetFixtureText();
+  }
+}
+
+static void GetTemperatureCmd(void)
+{
+  int zone = DEFAULT_TEMP_ZONE;
+  try { zone = strtol(GetArgument(1),0,0); } catch (int e) { }
+  
+  int tempC = helperGetTempC(zone);
+  ConsolePrintf("zone %i: %iC\n", zone >= 0 ? zone : DEFAULT_TEMP_ZONE, tempC);
+}
+
 static void DutProgCmd_(void)
 {
   int enable = 0;
   try { enable = strtol(GetArgument(1),0,0); } catch (int e) { }
   
   if( enable ) {
-    Board::enableDUTPROG();
+    Board::powerOn(PWR_DUTPROG);
     ConsolePrintf("DUT_PROG enabled\n");
   } else {
-    Board::disableDUTPROG();
+    Board::powerOff(PWR_DUTPROG);
     ConsolePrintf("DUT_PROG disabled\n");
   }
 }
@@ -442,18 +532,24 @@ static CommandFunction m_functions[] =
   {"AllowOutdated", AllowOutdated, FALSE},
   {"GetSerial", GetSerialCmd, FALSE},
   {"BinVersion", BinVersionCmd, FALSE},
+  {"emmcdlVersion", emmcdlVersionCmd, FALSE},
+  {"GetTemp", GetTemperatureCmd, FALSE},
   {"SetDateCode", SetDateCode, FALSE},
   {"SetLotCode", SetLotCode, FALSE},
   {"SetMode", SetMode, FALSE},
   {"GetModes", ConsolePrintModes_, FALSE},
+  {"GetEsn", GetEsnCmd, FALSE},
   {"SetSerial", SetSerial, FALSE},
   {"SetTime", SetTime, FALSE},
+  {"GetTime", GetTime, FALSE},
+  {"RtcTestbench", RtcTestbench, FALSE},
   {"Current", TestCurrent, FALSE},
   {"DumpFixtureSerials", DumpFixtureSerials, FALSE},
   {"Voltage", TestVoltage, FALSE},
   {"SetMotor", SetMotor, FALSE},
   {"DUTProg", DutProgCmd_, FALSE},
   {"SetDetect", SetDetect_, FALSE},
+  {"Burn", BurnSerials_, FALSE},
   {"Reset", ConsoleReset_, FALSE},
   {"Exit", NULL, FALSE}, //processed directly - include here so it prints in 'help' list
 };
@@ -522,6 +618,12 @@ static void ParseCommand(void)
     if (!commandFound && strcmp(buffer, ""))
     {
       ConsolePrintf("Unknown command: %s\n", buffer);
+      
+      /*/DEBUG inspect complete input
+      ConsolePrintf("'");
+      for(int i=0; i<m_numberOfArguments; i++) ConsolePrintf(" %s", GetArgument(i));
+      ConsolePrintf("'\n");
+      //-*/
     }
   }
 }
@@ -529,7 +631,7 @@ static void ParseCommand(void)
 //keep partial line in a local buffer so we can flush it into the console
 const  int  line_maxlen = 127;
 static int  line_len = 0;
-static char line[line_maxlen+1];
+static char m_line[line_maxlen+1];
 char* ConsoleGetLine(int timeout_us, int *out_len)
 {
   //append to line - never destroy data
@@ -541,19 +643,19 @@ char* ConsoleGetLine(int timeout_us, int *out_len)
       if( c == '\r' || c == '\n' )
         eol = 1;
       else if( line_len < line_maxlen )
-        line[line_len++] = c;
+        m_line[line_len++] = c;
       //else, whoops! drop data we don't have room for
     }
   }
   while( !eol && Timer::elapsedUs(start) < timeout_us );
   
-  line[line_len] = '\0';
+  m_line[line_len] = '\0';
   if( out_len )
     *out_len = line_len; //always report read length (even if not EOL)
   
   if( eol ) {
     line_len = 0; //wash our hands of this data once we've passed it to caller
-    return line;
+    return m_line;
   }
   return NULL;
 }
@@ -562,6 +664,13 @@ int ConsoleFlushLine(void) {
   int n = line_len; //report how many chars we're dumping
   line_len = 0;
   return n;
+}
+
+int ConsoleGetIndex_(bool clear) {
+  int val = m_index;
+  if( clear )
+    m_index = 0;
+  return val;
 }
 
 void ConsoleProcessChar_(char c)
@@ -661,7 +770,7 @@ void ConsoleUpdate(void)
 {
   if(line_len) { //some joker left data in the line buffer...
     for(int x=0; x < line_len; x++)
-      ConsoleProcessChar_(line[x]); //shove it into the console processor
+      ConsoleProcessChar_(m_line[x]); //shove it into the console processor
     line_len = 0;
   }
   

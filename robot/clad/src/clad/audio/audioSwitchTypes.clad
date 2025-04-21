@@ -4,139 +4,23 @@ namespace Anki {
 namespace AudioMetaData {
 namespace SwitchState {
 
-enum uint_32 Cozmo_Sings_100Bpm
-{
-  Cozmo_Sings_Beautiful_Dreamer = 366264019,
-  Cozmo_Sings_Beethovens_5Th = 234196460,
-  Cozmo_Sings_Bingo = 2671798574,
-  Cozmo_Sings_Buffalo_Gals = 1616439696,
-  Cozmo_Sings_Camptown_Races = 2068892721,
-  Cozmo_Sings_Can_Can_1 = 1565293210,
-  Cozmo_Sings_Can_Can_2 = 1565293209,
-  Cozmo_Sings_Itsy_Bitsy_Spider = 4216855774,
-  Cozmo_Sings_London_Bridge = 1890869377,
-  Cozmo_Sings_Mountain_King = 2556694018,
-  Cozmo_Sings_Muss_I_Denn = 2520896685,
-  Cozmo_Sings_Pop_Goes_The_Weasel = 2629521585,
-  Cozmo_Sings_Row_Your_Boat = 468566904,
-  Cozmo_Sings_Ta_Ra_Ra_Boom = 2367266190,
-  Cozmo_Sings_Tisket_Tasket = 2168319140,
-  Cozmo_Sings_Yellow_Rose = 3186274273,
-  Invalid = 0,
-}
-
-enum uint_32 Cozmo_Sings_120Bpm
-{
-  Cozmo_Sings_Cozmambo = 885738211,
-  Cozmo_Sings_Entry_Of_The_Gladiators = 2101741982,
-  Cozmo_Sings_Hello_My_Baby = 1653598059,
-  Cozmo_Sings_Hush_Little_Baby = 4192423907,
-  Cozmo_Sings_La_Paloma = 2263560367,
-  Cozmo_Sings_Moonlight_Bay = 3990987963,
-  Cozmo_Sings_Ode_To_Joy = 277478768,
-  Cozmo_Sings_Sakura = 1066913866,
-  Cozmo_Sings_Silvery_Moon = 2709516065,
-  Cozmo_Sings_Toccata = 2295405948,
-  Cozmo_Sings_Turkey_In_The_Straw = 222542119,
-  Cozmo_Sings_Twinkle_Twinkle = 2925972690,
-  Cozmo_Sings_Wild_About_Harry = 2245203260,
-  Invalid = 0,
-}
-
-enum uint_32 Cozmo_Sings_80Bpm
-{
-  Cozmo_Sings_Aba_Daba = 2234458138,
-  Cozmo_Sings_Danny_Boy = 3740392146,
-  Cozmo_Sings_Farmer_In_The_Dell = 3199213520,
-  Cozmo_Sings_Frere_Jacques = 1503161152,
-  Cozmo_Sings_Habanera = 2657364191,
-  Cozmo_Sings_Mary_Had_A_Little_Lamb = 4246470244,
-  Cozmo_Sings_Muffin_Man = 197233699,
-  Cozmo_Sings_Mulberry_Bush = 2808835548,
-  Cozmo_Sings_Pachebel_Canon = 553164015,
-  Cozmo_Sings_Take_Me_Out_To_The_Ballgame = 330639210,
-  Cozmo_Sings_Vivaldi_Spring = 3538265926,
-  Cozmo_Sings_Water_Music = 583110970,
-  Cozmo_Sings_William_Tell = 2911111070,
-  Cozmo_Sings_Yankee_Doodle = 3906943052,
-  Invalid = 0,
-}
-
-enum uint_32 Cozmo_Voice_Processing
-{
-  Invalid = 0,
-  Name = 797654004,
-  Sentence = 906532866,
-  Unprocessed = 860658140,
-}
-
-enum uint_32 External
-{
-  External_Long = 3001056757,
-  External_Maximum = 1931150551,
-  External_Medium = 3619992510,
-  External_Short = 1727626579,
-  Invalid = 0,
-}
-
-enum uint_32 Freeplay_Mood
-{
-  Arcade = 1946377065,
-  Bored = 2890913445,
-  Busy = 1427625958,
-  Chill = 4294400669,
-  Cubeinteract = 889740396,
-  Dancing = 386094975,
-  Guard_Dog = 1030326287,
-  Happy = 1427264549,
-  Hiking = 296159617,
-  Invalid = 0,
-  Neutral = 670611050,
-  Neutral_Cubes_Stacked = 2172443987,
-  Neutral_Lift_Cube = 1603627138,
-  Neutral_Request_Game = 3496250545,
-  Nurture_Feeding = 2320504975,
-  Nurture_Nirvana = 3261805104,
-  Nurture_Repair = 3081923682,
-  Nurture_Severe = 1058497985,
-  Sleep = 3671647190,
-}
-
-enum uint_32 Gameplay_Round
-{
-  Invalid = 0,
-  Round_00 = 4039654994,
-  Round_01 = 4039654995,
-  Round_02 = 4039654992,
-  Round_03 = 4039654993,
-  Round_04 = 4039654998,
-  Round_05 = 4039654999,
-  Round_06 = 4039654996,
-  Round_07 = 4039654997,
-  Round_08 = 4039655002,
-  Round_09 = 4039655003,
-  Round_10 = 4056432581,
-}
-
 enum uint_32 GenericSwitch
 {
   Invalid = 0,
 }
 
-enum uint_32 Mood
+enum uint_32 Robot_Vic_External_Input_Source
 {
   Invalid = 0,
-  Mood_Happy = 457607035,
-  Mood_Neutral = 3970296952,
-  Mood_Sad = 777739821,
+  Streaming_Wave_Portal = 4272719686,
+  Wave_Portal = 4178937859,
 }
 
-enum uint_32 Relationship
+enum uint_32 Robot_Vic_External_Processing
 {
+  Default_Processed = 1906807385,
   Invalid = 0,
-  Realtionship_Bff = 743952678,
-  Realtionship_Friend = 1061927592,
-  Relationship_Stranger = 3087192196,
+  Unprocessed = 860658140,
 }
 
 enum uint_32 Robot_Vic_Head_Direction
@@ -153,6 +37,52 @@ enum uint_32 Robot_Vic_Lift_Direction
   Robot_Vic_Lift_Direction_Up = 807633034,
 }
 
+enum uint_32 Robot_Vic_Mood_Switch
+{
+  Angry = 1206605712,
+  Curious = 620622945,
+  Effort = 2445358259,
+  Excited = 2633337909,
+  Happy = 1427264549,
+  Invalid = 0,
+  Neutral = 670611050,
+  Sad = 443572635,
+  Surprised = 2662801688,
+}
+
+enum uint_32 Robot_Vic_Mvmt_Size
+{
+  Invalid = 0,
+  Robot_Vic_Mvmt_Long = 3071588350,
+  Robot_Vic_Mvmt_Micro = 414260672,
+  Robot_Vic_Mvmt_Short = 3300471426,
+}
+
+enum uint_32 Robot_Vic_Scrn_Procedural_Shift_Length
+{
+  Invalid = 0,
+  Shift_Long = 3156794696,
+  Shift_Short = 3265274760,
+}
+
+enum uint_32 Robot_Vic_Stim_Switch
+{
+  Invalid = 0,
+  Stim_01 = 446181668,
+  Stim_02 = 446181671,
+  Stim_03 = 446181670,
+  Stim_04 = 446181665,
+}
+
+enum uint_32 Robot_Vic_Stim_Switch_Old_Reference_Only
+{
+  Invalid = 0,
+  Stim_01 = 446181668,
+  Stim_02 = 446181671,
+  Stim_03 = 446181670,
+  Stim_04 = 446181665,
+}
+
 enum uint_32 Robot_Vic_Tread_Drive
 {
   Invalid = 0,
@@ -167,41 +97,20 @@ enum uint_32 Robot_Vic_Tread_Speed
   Robot_Vic_Tread_Forward = 1541107887,
 }
 
-enum uint_32 Sparked
-{
-  Fun = 982472036,
-  Invalid = 0,
-  Pyramid = 797712787,
-  Sneaky = 468648200,
-  Workout = 1875882538,
-}
-
 enum uint_32 SwitchGroupType
 {
-  Cozmo_Sings_100Bpm = 3759662965,
-  Cozmo_Sings_120Bpm = 2987768599,
-  Cozmo_Sings_80Bpm = 3366294904,
-  Cozmo_Voice_Processing = 366280094,
-  External = 1442075084,
-  Freeplay_Mood = 2205807877,
-  Gameplay_Round = 2536359484,
   Invalid = 0,
-  Mood = 3128647864,
-  Relationship = 3723222599,
+  Robot_Vic_External_Input_Source = 3465152049,
+  Robot_Vic_External_Processing = 475135532,
   Robot_Vic_Head_Direction = 358594767,
   Robot_Vic_Lift_Direction = 3690255634,
+  Robot_Vic_Mood_Switch = 1492705913,
+  Robot_Vic_Mvmt_Size = 1553011127,
+  Robot_Vic_Scrn_Procedural_Shift_Length = 1706342803,
+  Robot_Vic_Stim_Switch = 2087220263,
+  Robot_Vic_Stim_Switch_Old_Reference_Only = 2717392740,
   Robot_Vic_Tread_Drive = 4283612440,
   Robot_Vic_Tread_Speed = 724346585,
-  Sparked = 62349551,
-  World_Event = 846944294,
-}
-
-enum uint_32 World_Event
-{
-  Cubes_Stacked = 2547007631,
-  Invalid = 0,
-  Lift_Cube = 3497001966,
-  Request_Game = 2296204869,
 }
 
 } // SwitchState

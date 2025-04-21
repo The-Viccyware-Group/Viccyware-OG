@@ -16,13 +16,16 @@
 
 
 #include "engine/aiComponent/behaviorComponent/behaviors/dispatch/behaviorDispatcherPassThrough.h"
+#include "engine/aiComponent/behaviorComponent/behaviorTreeStateHelpers.h"
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // forward declarations
+class BehaviorDriveToFace;
 class BehaviorHighLevelAI;
+class BehaviorReactToVoiceCommand;
 class BehaviorTimerUtilityCoordinator;
 
 
@@ -48,20 +51,27 @@ protected:
   virtual bool WantsToBeActivatedBehavior() const override;
 
 private:
+  
+  void CreateConsoleVars();
+  
   struct InstanceConfig{
     InstanceConfig();
   };
 
   struct DynamicVariables{
     DynamicVariables();
+
+    bool suppressProx;
   };
 
   InstanceConfig   _iConfig;
   DynamicVariables _dVars;
 
+  bool ShouldSuppressProxReaction();
+  
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

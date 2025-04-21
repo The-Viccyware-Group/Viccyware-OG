@@ -19,14 +19,14 @@
 #include "engine/aiComponent/behaviorComponent/behaviorContainer.h"
 #include "engine/aiComponent/behaviorComponent/behaviorExternalInterface/beiRobotInfo.h"
 #include "engine/aiComponent/behaviorComponent/behaviorTypesWrapper.h"
-#include "engine/components/bodyLightComponent.h"
+#include "engine/components/backpackLights/engineBackpackLightComponent.h"
 
 #include "util/console/consoleInterface.h"
 
 #include <set>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 namespace{
   
@@ -34,12 +34,18 @@ const float kAccelMagnitudeShakingStartedThreshold = 16000.f;
   
 const char* const kBehaviorsKey = "behaviors";
 
+#if REMOTE_CONSOLE_ENABLED
 // set to > 0 from console to fake the repeated "shakes" (shakes are hard to do in webots sim)
 CONSOLE_VAR(unsigned int, kDevDispatchAfterShake, "DevBaseBehavior", 0);
+#endif
+
 // how long you have to shake/pause
 CONSOLE_VAR_RANGED(float, kShakeTime, "DevBaseBehavior", 0.1f, 0.01f, 2.0f);
   
-static const BackpackLights kLightsSteady =
+// if the robot is put down and no behavior wants to be active after this many ticks, the shake count is reset
+const unsigned int kFailTicksBeforeReset = 10;
+  
+static const BackpackLightAnimation::BackpackAnimation kLightsSteady =
 {
   .onColors               = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
   .offColors              = {{NamedColors::BLACK,NamedColors::BLACK,NamedColors::BLACK}},
@@ -50,7 +56,7 @@ static const BackpackLights kLightsSteady =
   .offset                 = {{0,0,0}}
 };
 
-static const BackpackLights kLightsShake =
+static const BackpackLightAnimation::BackpackAnimation kLightsShake =
 {
   .onColors               = {{NamedColors::RED,NamedColors::BLACK,NamedColors::BLACK}},
   .offColors              = {{NamedColors::RED,NamedColors::BLACK,NamedColors::BLACK}},
@@ -77,6 +83,7 @@ BehaviorDispatchAfterShake::DynamicVariables::DynamicVariables()
   countShaken = 0;
   shakingSession = false;
   lastChangeTime_s = 0.0f;
+  tickPlacedDown = 0;
 }
 
 
@@ -143,13 +150,16 @@ void BehaviorDispatchAfterShake::BehaviorUpdate()
 
   const auto& robotInfo = GetBEI().GetRobotInfo();
   
+#if REMOTE_CONSOLE_ENABLED
   if( kDevDispatchAfterShake > 0 ) {
     
     _dVars.countShaken = kDevDispatchAfterShake;
     kDevDispatchAfterShake = 0;
     _dVars.shakingSession = false;
     
-  } else {
+  } else
+#endif // REMOTE_CONSOLE_ENABLED
+  {
     
     const bool isBeingShaken = (robotInfo.GetHeadAccelMagnitudeFiltered() > kAccelMagnitudeShakingStartedThreshold);
     const float currentTime = BaseStationTimer::getInstance()->GetCurrentTimeInSeconds();
@@ -165,14 +175,14 @@ void BehaviorDispatchAfterShake::BehaviorUpdate()
       // shaking stopped for a while
       _dVars.shakingSession = false;
       
-      GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsSteady);
+      GetBEI().GetBackpackLightComponent().SetBackpackAnimation(kLightsSteady);
     }
     if( !_dVars.shakingSession && isBeingShaken && timeElapsed ) {
       // shaking started for a while
       _dVars.shakingSession = true;
       ++_dVars.countShaken;
       
-      GetBEI().GetBodyLightComponent().SetBackpackLights(kLightsShake);
+      GetBEI().GetBackpackLightComponent().SetBackpackAnimation(kLightsShake);
     }
     // shaking is one of those words where if you write it enough times it starts to look wrong.
     
@@ -180,6 +190,10 @@ void BehaviorDispatchAfterShake::BehaviorUpdate()
   
   const bool isOnTreads = (robotInfo.GetOffTreadsState() == OffTreadsState::OnTreads);
   if( (_dVars.countShaken>0) && (!_dVars.shakingSession) && isOnTreads ) {
+    EngineTimeStamp_t currTimeStamp = BaseStationTimer::getInstance()->GetCurrentTimeStamp();
+    if( _dVars.tickPlacedDown == 0 ) {
+      _dVars.tickPlacedDown = currTimeStamp;
+    }
     // time to delegate to the data defined delegate
     size_t idx = _dVars.countShaken - 1;
     if( _dVars.countShaken > _iConfig.delegates.size() ) {
@@ -199,13 +213,21 @@ void BehaviorDispatchAfterShake::BehaviorUpdate()
     {
       if( delegate->WantsToBeActivated() ) {
         DelegateIfInControl( delegate.get() );
-        
+        // clear shaken count so you have to shake again to run the behavior again if it completes
+        _dVars.countShaken = 0;
+        _dVars.tickPlacedDown = 0;
+      } else if( currTimeStamp > _dVars.tickPlacedDown + kFailTicksBeforeReset ) {
+        // start over
+        _dVars.countShaken = 0;
+        _dVars.tickPlacedDown = 0;
+        PRINT_NAMED_WARNING( "BehaviorDispatchAfterShake.BehaviorUpdate.NoWant",
+                            "Behavior %s didn't want to be activated",
+                            BehaviorTypesWrapper::BehaviorIDToString(delegate->GetID()) );
       }
     }
-    // clear shaken count so you have to shake again to run the behavior again if it completes
-    _dVars.countShaken = 0;
+    
   }
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

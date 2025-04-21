@@ -14,12 +14,12 @@
 
 #include "memoryMapData.h"
 
-#include "coretech/common/engine/math/point.h"
-#include "coretech/common/engine/math/polygon.h"
+#include "coretech/common/engine/math/polygon_fwd.h"
+#include "coretech/common/engine/robotTimeStamp.h"
 #include "engine/cozmoObservableObject.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // MemoryMapData_ObservableObject
@@ -28,13 +28,21 @@ class MemoryMapData_ObservableObject : public MemoryMapData
 {
 public:
   // constructor
-  MemoryMapData_ObservableObject(const ObservableObject& o, const Poly2f& p, TimeStamp_t t);
+  MemoryMapData_ObservableObject(const ObservableObject& o, const Poly2f& p, RobotTimeStamp_t t);
   
   // create a copy of self (of appropriate subclass) and return it
   MemoryMapDataPtr Clone() const override;
   
+  // return true if this type collides with the robot
+  virtual bool IsCollisionType() const override { return _poseIsVerified; }
+
+  // if we should have seen the object with the camera, but did not
+  void MarkUnobserved() { _poseIsVerified = false; }
+  
   // compare to IMemoryMapData and return bool if the data stored is the same
   bool Equals(const MemoryMapData* other) const override;
+  
+  virtual ExternalInterface::ENodeContentTypeEnum GetExternalContentType() const override;
   
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Attributes
@@ -43,8 +51,12 @@ public:
   const ObjectID id;
   const Poly2f boundingPoly; 
   
-protected: 
-  MemoryMapData_ObservableObject() : MemoryMapData(MemoryMapTypes::EContentType::ObstacleObservable, 0, true), id(), boundingPoly() {}
+  static bool HandlesType(EContentType otherType) {
+    return otherType == EContentType::ObstacleObservable;
+  }
+
+private: 
+  bool _poseIsVerified;
 };
  
 } // namespace

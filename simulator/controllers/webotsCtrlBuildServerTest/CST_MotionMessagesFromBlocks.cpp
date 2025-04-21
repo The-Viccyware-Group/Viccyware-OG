@@ -2,19 +2,17 @@
 #include <string>
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum class TestState {
   Init,
   TapCube,
   CheckForTappedMessage,
-  CheckForStoppedMessage,
   Wait1Sec,
   MoveCube,
   CheckForMovedMessage,
-  CheckForStoppedMessage1,
+  CheckForStoppedMessage,
   CheckForUpAxisChangedMessage,
-  CheckForObjectAccelMessage,
   Exit
 };
 
@@ -31,7 +29,6 @@ private:
   void HandleActiveObjectMoved(const ExternalInterface::ObjectMoved& msg) override;
   void HandleActiveObjectUpAxisChanged(const ExternalInterface::ObjectUpAxisChanged& msg) override;
   void HandleActiveObjectConnectionState(const ExternalInterface::ObjectConnectionState& msg) override;
-  void HandleActiveObjectAccel(const ExternalInterface::ObjectAccel& msg) override;
 
   TestState _testState = TestState::Init;
   const Pose3d _cubePose1 = {0, Vec3f(0.f, 0.f, 1.f), Vec3f(200.f, 50.f, 22.1f)};
@@ -39,7 +36,6 @@ private:
   bool _wasStopped = false;
   bool _wasMoved = false;
   UpAxis _lastReportedUpAxis = UpAxis::UnknownAxis;
-  u32 _numObjectAccelMsgs = 0;
   
   u32 _numObjectsConnected = 0;
   u32 _objId = 0;
@@ -54,7 +50,8 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
   switch(_testState) {
     case TestState::Init:
     {
-      SendEnableBlockTapFilter(false);
+      // Request a cube connection
+      SendConnectToCube();
 
       SET_TEST_STATE(TapCube);
       break;
@@ -62,7 +59,7 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
 
     case TestState::TapCube:
     {
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(_numObjectsConnected == 1, 5) {
+      IF_CONDITION_WITH_TIMEOUT_ASSERT(_numObjectsConnected == 1, 15) {
         _wasTapped = false;
         _wasStopped = false;
         _wasMoved = false;
@@ -75,19 +72,11 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
     case TestState::CheckForTappedMessage:
     {
       IF_CONDITION_WITH_TIMEOUT_ASSERT(_wasTapped, 5) {
-        SET_TEST_STATE(CheckForStoppedMessage);
-      }
-      break;
-    }
-
-    case TestState::CheckForStoppedMessage:
-    {
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(_wasStopped, 5) {
         SET_TEST_STATE(Wait1Sec);
       }
       break;
     }
-      
+
     case TestState::Wait1Sec:
     {
       // To prevent double tap detect (and therefore move suppression) with the next lifting of the cube
@@ -102,7 +91,7 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
       _wasTapped = false;
       _wasStopped = false;
       _wasMoved = false;
-      UiGameController::SendApplyForce("cube", 6, 0, 0);
+      UiGameController::SendApplyForce("cube", 10, 0, 20);
       SET_TEST_STATE(CheckForMovedMessage);
       break;
     }
@@ -110,12 +99,12 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
     case TestState::CheckForMovedMessage:
     {
       IF_CONDITION_WITH_TIMEOUT_ASSERT(_wasMoved, 5) {
-        SET_TEST_STATE(CheckForStoppedMessage1);
+        SET_TEST_STATE(CheckForStoppedMessage);
       }
       break;
     }
 
-    case TestState::CheckForStoppedMessage1:
+    case TestState::CheckForStoppedMessage:
     {
       IF_CONDITION_WITH_TIMEOUT_ASSERT(_wasStopped, 5) {
         // Rotate the block onto another side
@@ -132,19 +121,6 @@ s32 CST_MotionMessagesFromBlocks::UpdateSimInternal()
     case TestState::CheckForUpAxisChangedMessage:
     {
       IF_CONDITION_WITH_TIMEOUT_ASSERT(_lastReportedUpAxis == UpAxis::XNegative, 5) {
-        // Make sure we're getting ObjectAccel messages when we request them:
-        CST_ASSERT(_numObjectAccelMsgs == 0, "We've received ObjectAccel messages, but we shouldn't have yet!");
-        
-        SendStreamObjectAccel(_objId, true);
-        SET_TEST_STATE(CheckForObjectAccelMessage);
-      }
-      break;
-    }
-      
-    case TestState::CheckForObjectAccelMessage:
-    {
-      // Should receive a stream of ObjectAccel messages (~30 per second)
-      IF_CONDITION_WITH_TIMEOUT_ASSERT(_numObjectAccelMsgs > 100, 10) {
         SET_TEST_STATE(Exit);
       }
       break;
@@ -190,10 +166,6 @@ void CST_MotionMessagesFromBlocks::HandleActiveObjectConnectionState(const Exter
   }
 }
 
-void CST_MotionMessagesFromBlocks::HandleActiveObjectAccel(const ExternalInterface::ObjectAccel& msg)
-{
-  ++_numObjectAccelMsgs;
-}
 
-}  // namespace Cozmo
+}  // namespace Vector
 }  // namespace Anki

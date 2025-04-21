@@ -1,0 +1,11 @@
+{
+  "behaviorClass" : "AdvanceClock",
+  "behaviorID" : "SingletonCancelTimer",
+
+  "associatedActiveFeature": "TimerCanceled",
+
+  "getInAnimTrigger" : "TimerCancelGetIn",
+  "getOutAnimTrigger" : "TimerCancelTimer",
+  "displayClockFor_s" : 3,
+  "shouldPlayAudioOnClockUpdates" : false
+}

@@ -12,7 +12,6 @@
 #ifndef __Basestation_Factory_FactoryTestLogger_H_
 #define __Basestation_Factory_FactoryTestLogger_H_
 
-#include "coretech/common/engine/math/point.h"
 #include "coretech/common/engine/math/pose.h"
 #include "clad/externalInterface/messageEngineToGame.h"
 #include "clad/externalInterface/messageGameToEngine.h"
@@ -33,7 +32,7 @@ namespace Util {
   }
 }
   
-namespace Cozmo {
+namespace Vector {
 
 class FactoryTestLogger {
 public:
@@ -52,7 +51,6 @@ public:
   // Appends struct as formatted entry to log file
   bool Append(const FactoryTestResultEntry& data);
   bool Append(const CameraCalibration& data);
-  bool Append(const ToolCodeInfo& data);
   bool Append(const BirthCertificate& data);
   bool Append(const IMUInfo& data);
   bool Append(const IMUTempDuration& data);
@@ -67,11 +65,17 @@ public:
   bool Append(const ExternalInterface::RobotCompletedFactoryDotTest& msg);
   bool Append(const std::map<std::string, std::vector<FactoryTestResultCode>>& results);
   bool Append(const std::string& dataTypeName, const TouchSensorValues& data);
+  bool Append(const std::string& name, const TouchSensorFilt& data);
+  
   
   // DistanceSensorData is added to an json array of data called "name". Separate data entries are
   // labelled as "seq_*". Call with an existing name to add to that array
   bool Append(const std::string& name, const DistanceSensorData& data);
-  
+
+  // RangeSensorData is added to an json array of data called "name". Separate data entries are
+  // labelled as "seq_*". Call with an existing name to add to that array
+  bool Append(const std::string& name, const RangeSensorData& data);
+
   // Adds a file with the given contents to the log folder
   bool AddFile(const std::string& filename, const std::vector<uint8_t>& data);
   
@@ -112,7 +116,7 @@ private:
   bool _exportJson;
 };
 
-} // end namespace Cozmo
+} // end namespace Vector
 } // end namespace Anki
 
 

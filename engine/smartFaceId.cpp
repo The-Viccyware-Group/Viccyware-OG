@@ -20,7 +20,7 @@
 #include "engine/cozmoContext.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 using FaceID_t = Vision::FaceID_t;
 
@@ -176,11 +176,6 @@ bool SmartFaceID::operator==(const SmartFaceID& other) const
     // internal ids don't match, so only equal if both are invalid
     return !thisValid && !otherValid;
   }
-}
-
-bool SmartFaceID::operator<(const SmartFaceID& other) const
-{
-  return GetID() < other.GetID();
 }
 
 }

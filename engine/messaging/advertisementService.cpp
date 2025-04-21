@@ -31,10 +31,12 @@ namespace Anki {
   namespace Comms {
 
     AdvertisementService::AdvertisementService(const char* serviceName, RegMsgTag regMsgTag)
+    : regServer_("regServer")
+    , advertisingServer_("advertisingServer")
     {
       if (regMsgTag == kInvalidRegMsgTag)
       {
-        using EMessageTag = Cozmo::ExternalInterface::MessageGameToEngineTag;
+        using EMessageTag = Vector::ExternalInterface::MessageGameToEngineTag;
         static_assert(sizeof(EMessageTag) == sizeof(RegMsgTag), "Robot and Game tag size must match");
         _regMsgTag = Util::numeric_cast<RegMsgTag>(EMessageTag::AdvertisementRegistrationMsg);
       }
@@ -66,7 +68,7 @@ namespace Anki {
     void AdvertisementService::Update()
     {
       // Message from device that wants to (de)register for advertising.
-      Cozmo::AdvertisementRegistrationMsg regMsg;
+      Vector::AdvertisementRegistrationMsg regMsg;
       const size_t kMinAdRegMsgSize = sizeof(RegMsgTag) + regMsg.Size(); // Size of message with an empty ip string
   
       connectionInfoMapIt it;
@@ -100,7 +102,7 @@ namespace Anki {
           else
           {
           #if DEBUG_AD_SERVICE
-            namespace CoEx = Cozmo::ExternalInterface;
+            namespace CoEx = Vector::ExternalInterface;
             using GToETag = CoEx::MessageGameToEngineTag;
             PRINT_NAMED_WARNING("AdvertisementService.Recv.BadTag",
                                 "%s: Received %d byte message with tag %u('%s') when expected %u('%s')\n%s",
@@ -150,8 +152,8 @@ namespace Anki {
           
           for (const auto& kv : connectionMap)
           {
-            const Cozmo::AdvertisementMsg& adMsg = kv.second;
-            Anki::Cozmo::ExternalInterface::MessageGameToEngine message; // We pretend that this came directly from Game
+            const Vector::AdvertisementMsg& adMsg = kv.second;
+            Anki::Vector::ExternalInterface::MessageGameToEngine message; // We pretend that this came directly from Game
             message.Set_AdvertisementMsg(adMsg);
 
             PRINT_NAMED_INFO("AdvertisementService.NotifyClients",
@@ -162,7 +164,7 @@ namespace Anki {
             uint8_t messageData[64];
             size_t bytesPacked = message.Pack(messageData, sizeof(messageData));
             
-            advertisingServer_.Send((char*)messageData, (int)bytesPacked);
+            advertisingServer_.Send((char*)messageData, bytesPacked);
           }
         }
         
@@ -173,7 +175,7 @@ namespace Anki {
     }
     
   
-    void AdvertisementService::ProcessRegistrationMsg(const Cozmo::AdvertisementRegistrationMsg& regMsg)
+    void AdvertisementService::ProcessRegistrationMsg(const Vector::AdvertisementRegistrationMsg& regMsg)
     {
       if (regMsg.enableAdvertisement)
       {
@@ -181,7 +183,7 @@ namespace Anki {
                          "%s: Received from device %d on host %s at ports ToEngine: %d FromEngine: %d with advertisement service",
                          serviceName_, (int)regMsg.id, regMsg.ip.c_str(), (int)regMsg.toEnginePort, (int)regMsg.fromEnginePort);
 
-        Cozmo::AdvertisementMsg& destMsg = regMsg.oneShot ? oneShotAdvertiseConnectionInfoMap_[regMsg.id] : connectionInfoMap_[regMsg.id];
+        Vector::AdvertisementMsg& destMsg = regMsg.oneShot ? oneShotAdvertiseConnectionInfoMap_[regMsg.id] : connectionInfoMap_[regMsg.id];
         
         destMsg.id = regMsg.id;
         destMsg.toEnginePort   = regMsg.toEnginePort;

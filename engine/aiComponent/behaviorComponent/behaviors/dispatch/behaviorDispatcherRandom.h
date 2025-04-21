@@ -4,7 +4,8 @@
  * Author: Brad Neuman
  * Created: 2017-10-31
  *
- * Description: Dispatcher which runs behaviors randomly based on weights and cooldowns
+ * Description: Dispatcher which runs behaviors randomly based on weights and cooldowns. Once the delegated-to behavior
+ *              ends, this behavior will cancel itself (this should probably be configurable - see VIC-4836)
  *
  * Copyright: Anki, Inc. 2017
  *
@@ -18,7 +19,7 @@
 #include "engine/aiComponent/behaviorComponent/behaviors/dispatch/helpers/behaviorCooldownInfo.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 class BehaviorDispatcherRandom : public IBehaviorDispatcher
 {
@@ -57,7 +58,7 @@ private:
 
 };
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 #endif // __Engine_AiComponent_BehaviorComponent_Behaviors_Dispatch_BehaviorDispatcherRandom_H__

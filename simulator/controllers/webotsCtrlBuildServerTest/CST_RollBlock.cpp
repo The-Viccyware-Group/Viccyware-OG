@@ -11,13 +11,12 @@
  */
 
 #include "simulator/game/cozmoSimTestController.h"
-#include "coretech/common/engine/math/point_impl.h"
 #include "engine/actions/basicActions.h"
 #include "engine/robot.h"
 
 
 namespace Anki {
-  namespace Cozmo {
+  namespace Vector {
     
     enum class TestState {
       Init,
@@ -56,7 +55,7 @@ namespace Anki {
         }
         case TestState::RollObject:
         {
-          std::vector<s32> objIds = GetAllObjectIDsByFamily(ObjectFamily::LightCube);
+          std::vector<s32> objIds = GetAllLightCubeObjectIDs();
           IF_ALL_CONDITIONS_WITH_TIMEOUT_ASSERT(DEFAULT_TIMEOUT,
                                                 !IsRobotStatus(RobotStatusFlag::IS_MOVING),
                                                 NEAR(GetRobotHeadAngle_rad(), 0, HEAD_ANGLE_TOL),
@@ -70,7 +69,7 @@ namespace Anki {
             // Roll first LightCube
             _cubeID = objIds[0];
             
-            m.action.Set_rollObject(ExternalInterface::RollObject(_cubeID, _defaultTestMotionProfile, 0, false, false, true, true, false));
+            m.action.Set_rollObject(ExternalInterface::RollObject(_cubeID, _defaultTestMotionProfile, 0, false, false, true, false));
             ExternalInterface::MessageGameToEngine message;
             message.Set_QueueSingleAction(m);
             SendMessage(message);
@@ -96,6 +95,6 @@ namespace Anki {
       }
       return _result;
     }
-  } // end namespace Cozmo
+  } // end namespace Vector
 } // end namespace Anki
 

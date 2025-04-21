@@ -18,7 +18,7 @@
 #include "util/time/universalTime.h"
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 CONSOLE_VAR(bool, kPrintUiMessageLatency, "UiComms", false);
   
@@ -69,7 +69,8 @@ void ISocketComms::Update()
 
 void ISocketComms::HandlePingResponse(const ExternalInterface::Ping& pingMsg)
 {
-  const double latency_ms = (Util::Time::UniversalTime::GetCurrentTimeInMilliseconds() - pingMsg.timeSent_ms);
+  const double now_ms = Util::Time::UniversalTime::GetCurrentTimeInMilliseconds();
+  const double latency_ms = (now_ms - pingMsg.timeSent_ms);
   _latencyStats.AddStat(latency_ms);
   if (kPrintUiMessageLatency)
   {
@@ -87,17 +88,17 @@ void ISocketComms::HandlePingResponse(const ExternalInterface::Ping& pingMsg)
     }
   }
   
-  _lastPingTime_ms = static_cast<uint32_t>(Util::Time::UniversalTime::GetCurrentTimeInMilliseconds());
+  _lastPingTime_ms = static_cast<uint32_t>(now_ms);
 }
 
 void ISocketComms::SetPingTimeoutForDisconnect(uint32_t ms, DisconnectCallback cb)
 {
-  PRINT_CH_INFO("UiComms", "SetPingTimeoutForDisconnect", "%d ms", ms);
+  PRINT_CH_DEBUG("UiComms", "SetPingTimeoutForDisconnect", "%d ms", ms);
   _pingTimeoutForDisconnect_ms = ms;
   _disconnectCb = cb;
 }
 
   
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 

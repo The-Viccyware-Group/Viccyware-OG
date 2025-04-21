@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
@@ -218,7 +219,6 @@ static void MicroWait(long microsec)
 
 void imu_init()
 {
-
   imu_debug("Initializing IMU");
 
   //Chip starts in I2C mode.  A rising edge after power-up switches the interface switches to SPI
@@ -290,8 +290,12 @@ int imu_manage(struct IMURawData* data)
   uint8_t rawdata[DATA_BYTES*IMU_MAX_SAMPLES_PER_READ+1];
   memset(rawdata, DATA_INVALID, sizeof(rawdata)); // Prefill frame with invalid so we don't have to branch on read success
 
-  spi_read_n(FIFO_DATA, (uint8_t*)rawdata, DATA_BYTES*IMU_MAX_SAMPLES_PER_READ);
-
+  int rc = spi_read_n(FIFO_DATA, (uint8_t*)rawdata, DATA_BYTES*IMU_MAX_SAMPLES_PER_READ);
+  if(rc < 0)
+  {
+    return rc;
+  }
+  
   int i;
   for (i=0; i < IMU_MAX_SAMPLES_PER_READ; i++) {
     uint8_t* sample_data = rawdata + 1 + (DATA_BYTES*i);
@@ -332,7 +336,7 @@ int imu_manage(struct IMURawData* data)
   
   // If we got here then we had more data than we should so flush the IMU FIFO
   imu_purge();
-  return i;
+  return IMU_MAX_SAMPLES_PER_READ;
 }
 
 void imu_update_temperature(void)

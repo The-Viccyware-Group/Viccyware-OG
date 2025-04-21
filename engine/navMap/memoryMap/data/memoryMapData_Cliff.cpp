@@ -9,20 +9,21 @@
  * Copyright: Anki, Inc. 2016
  **/
 #include "memoryMapData_Cliff.h"
-
-#include "coretech/common/engine/math/point_impl.h"
+#include "clad/types/memoryMap.h"
 
 namespace {
   const float kRotationTolerance = 1e-6f;
 }
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-MemoryMapData_Cliff::MemoryMapData_Cliff(const Pose3d& cliffPose, TimeStamp_t t)
+MemoryMapData_Cliff::MemoryMapData_Cliff(const Pose3d& cliffPose, RobotTimeStamp_t t)
 : MemoryMapData(MemoryMapTypes::EContentType::Cliff, t, true)
 , pose(cliffPose)
+, isFromCliffSensor(false)
+, isFromVision(false)
 {
 
 }
@@ -41,11 +42,24 @@ bool MemoryMapData_Cliff::Equals(const MemoryMapData* other) const
   }
 
   const MemoryMapData_Cliff* castPtr = static_cast<const MemoryMapData_Cliff*>( other );
-  const bool isNearLocation = IsNearlyEqual( pose.GetTranslation(), castPtr->pose.GetTranslation() );
-  const bool isNearRotation = IsNearlyEqual( pose.GetRotation(), castPtr->pose.GetRotation(), kRotationTolerance );
+
+  if(isFromVision == castPtr->isFromVision && isFromCliffSensor == castPtr->isFromCliffSensor) {
+    if(isFromCliffSensor) { // && castPtr->isFromCliffSensor
+      const bool isNearLocation = IsNearlyEqual( pose.GetTranslation(), castPtr->pose.GetTranslation() );
+      const bool isNearRotation = IsNearlyEqual( pose.GetRotation(), castPtr->pose.GetRotation(), kRotationTolerance );
+      return ( isNearLocation && isNearRotation );
+    }
+    // no cached pose to compare, so they are equal
+    return true;
+  }
+  return false;
+}
   
-  return ( isNearLocation && isNearRotation );
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ExternalInterface::ENodeContentTypeEnum MemoryMapData_Cliff::GetExternalContentType() const
+{
+  return ExternalInterface::ENodeContentTypeEnum::Cliff;
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

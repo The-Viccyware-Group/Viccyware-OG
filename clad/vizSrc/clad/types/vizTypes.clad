@@ -4,13 +4,12 @@
 // Copyright: Anki Inc (c) 2015
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
 
 enum uint_32 VizConstants
 {
   VIZ_SERVER_PORT = 5252,
   PHYSICS_PLUGIN_SERVER_PORT = 5253,
-  UNITY_VIZ_SERVER_PORT = 5352,
   WEBOTS_PHYSICS_CONTROLLER_PORT = 5354,
   ALL_PATH_IDs    = 0xffffffff,
   ALL_QUAD_IDs    = 0xffffffff,
@@ -23,13 +22,12 @@ enum uint_32 VizConstants
 enum uint_32 VizObjectType {
   VIZ_OBJECT_ROBOT = 0,
   VIZ_OBJECT_CUBOID,
-  VIZ_OBJECT_RAMP,
   VIZ_OBJECT_CHARGER,      
   VIZ_OBJECT_PREDOCKPOSE,
   VIZ_OBJECT_HUMAN_HEAD,
-  VIZ_OBJECT_CAMERA_FACE,
+  VIZ_OBJECT_TEXT,
 
-  NUM_VIZ_OBJECT_TYPES = 7
+  NUM_VIZ_OBJECT_TYPES
 }
 
 enum uint_8 VizQuadType {
@@ -49,5 +47,5 @@ enum uint_8 VizRobotMarkerType {
   VIZ_ROBOT_MARKER_BIG_TRIANGLE
 }
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki

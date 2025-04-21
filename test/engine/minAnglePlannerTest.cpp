@@ -16,23 +16,23 @@
 #define private public
 #define protected public
 
-#include "anki/common/types.h"
 #include "engine/minimalAnglePlanner.h"
 #include "engine/robot.h"
 #include "engine/cozmoContext.h"
 #include "engine/components/pathComponent.h"
 
 using namespace Anki;
-using namespace Cozmo;
+using namespace Vector;
 
-extern Anki::Cozmo::CozmoContext* cozmoContext;
+extern Anki::Vector::CozmoContext* cozmoContext;
+
 
 namespace {
 MinimalAnglePlanner* GetPlanner(Robot& robot)
 {
   return dynamic_cast<MinimalAnglePlanner*>(robot.GetPathComponent()._shortMinAnglePathPlanner.get());
 }
-}                      
+}
 
 TEST(MinAnglePlanner, Create)
 {
@@ -62,7 +62,10 @@ TEST(MinAnglePlanner, Straight)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -91,7 +94,10 @@ TEST(MinAnglePlanner, Simple)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -122,7 +128,10 @@ TEST(MinAnglePlanner, NoFinalTurn)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -152,7 +161,10 @@ TEST(MinAnglePlanner, StraightAndTurn)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -181,7 +193,10 @@ TEST(MinAnglePlanner, NoBackup)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -211,7 +226,10 @@ TEST(MinAnglePlanner, TurnOnly)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+  
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 
@@ -229,7 +247,7 @@ TEST(MinAnglePlanner, OldBug)
 
   Pose3d start(0, Z_AXIS_3D(), Vec3f(166.914886f, 153.714859f, 0));
   Pose3d goal( DEG_TO_RAD(-7.68f), Z_AXIS_3D(), Vec3f(149.33f, 153.33f, 0));
-  
+
   EComputePathStatus ret = planner->ComputePath(start, goal);
   EXPECT_EQ(ret, EComputePathStatus::Running);
 
@@ -239,7 +257,10 @@ TEST(MinAnglePlanner, OldBug)
   Planning::GoalID selectedTargetIdx = 100;
   Planning::Path path;
 
-  bool hasPath = planner->GetCompletePath(start, path, selectedTargetIdx);
+  bool hasPath = planner->HasCompletePath();
+  path = planner->GetCompletePath();
+  selectedTargetIdx = planner->GetPathSelectedTargetIndex();
+
   ASSERT_TRUE(hasPath);
   EXPECT_EQ(selectedTargetIdx, 0) << "only one target, should have selected it";
 

@@ -16,9 +16,11 @@
 #define __Cozmo_Basestation_MoodSystem_StaticMoodData_H__
 
 
-#include "engine/moodSystem/emotionEventMapper.h"
 #include "clad/types/emotionTypes.h"
+#include "engine/moodSystem/emotionEventMapper.h"
+#include "engine/moodSystem/moodDecayEvaluator.h"
 #include "util/graphEvaluator/graphEvaluator2d.h"
+#include <map>
 
 
 namespace Json {
@@ -27,7 +29,7 @@ namespace Json {
 
 
 namespace Anki {
-namespace Cozmo {
+namespace Vector {
   
   
 class EmotionEvent;
@@ -36,23 +38,28 @@ class EmotionEvent;
 class StaticMoodData
 {
 public:
-  
+
   StaticMoodData();
   
   void  Init(const Json::Value& inJson);
   
-  void  InitDecayGraphs();
-  bool  SetDecayGraph(EmotionType emotionType, const Util::GraphEvaluator2d& newGraph);
-  const Util::GraphEvaluator2d& GetDecayGraph(EmotionType emotionType) const;
-  
-  static bool VerifyDecayGraph(const Util::GraphEvaluator2d& newGraph, bool warnOnErrors=true);
+  void  InitDecayEvaluators();
+  bool  SetDecayEvaluator(EmotionType emotionType,
+                      const Util::GraphEvaluator2d& newGraph,
+                      const MoodDecayEvaulator::DecayGraphType graphType);
 
+  const MoodDecayEvaulator& GetDecayEvaluator(EmotionType emotionType) const;
+  
   void  SetDefaultRepetitionPenalty(const Util::GraphEvaluator2d& newGraph) { _defaultRepetitionPenalty = newGraph; }
   const Util::GraphEvaluator2d& GetDefaultRepetitionPenalty() const { return _defaultRepetitionPenalty; }
   
   const EmotionEventMapper& GetEmotionEventMapper() const { return _emotionEventMapper; }
         EmotionEventMapper& GetEmotionEventMapper()       { return _emotionEventMapper; }
-  
+
+  // maps emotions which don't use default values to the (min, max) range pair
+  using EmotionValueRangeMap = std::map< EmotionType, std::pair< float, float > >;
+  const EmotionValueRangeMap& GetEmotionValueRangeMap() const { return _emotionValueRangeMap; }
+
   // ===== Json =====
   
   bool LoadEmotionEvents(const Json::Value& inJson);
@@ -62,13 +69,14 @@ public:
   
 private:
   
-  Util::GraphEvaluator2d   _emotionDecayGraphs[(size_t)EmotionType::Count];
-  EmotionEventMapper       _emotionEventMapper;
-  Util::GraphEvaluator2d   _defaultRepetitionPenalty;
+  MoodDecayEvaulator     _emotionDecayEvaluators[(size_t)EmotionType::Count];
+  EmotionEventMapper     _emotionEventMapper;
+  Util::GraphEvaluator2d _defaultRepetitionPenalty;
+  EmotionValueRangeMap   _emotionValueRangeMap;
 };
 
 
-} // namespace Cozmo
+} // namespace Vector
 } // namespace Anki
 
 

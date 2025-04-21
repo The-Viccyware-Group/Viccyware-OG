@@ -2,10 +2,19 @@
   "behaviorID" : "Observing",
   "behaviorClass" : "DispatcherStrictPriority",
 
+  "associatedActiveFeature": "Observing",
+
   "interruptActiveBehavior": true,
+  "requireGentleInterruption": true,
 
   "behaviors": [
-    "DriveOffCharger",
+    // typically the drive off is handled via HLAI ObservingDriveOffCharger, but we can't consolidate states because
+    // there are transitions from ObservingDriveOffCharger into Socializing if faces are seen when leaving the charger
+    "DriveOffChargerRandomly",
+
+    // contains internal cooldowns and requirements
+    "PossibleUnintentionalPerformance",
+
     "ObservingInternal"
   ],
 
@@ -18,16 +27,27 @@
     
       "behaviors": [    
         {
-          "behavior": "ObservingLookAtFaces",
-          "cooldown_s": 300.0,
-          "cooldown_random_factor": 0.5
-        },
-        {
-          "behavior": "ObservingEyeContact",
+          "behavior": "TrackingEyeContact",
           "cooldown_s": 15.0
         },
         {
-          "behavior": "NothingToDo_Idle",
+          "behavior": "ReactToGazeDirection",
+          "cooldown_s": 15.0
+        },
+        {
+          // NOTE: internally has stim requirments so it won't constantly run
+          "behavior": "ObservingLookAtFaces",
+          "cooldown_s": 30.0,
+          "cooldown_random_factor": 0.5
+        },
+        {
+          "behavior": "ReactToMotion",
+          "cooldown_s": 0.0
+        },
+        {
+          // TODO:(bn) need to make stim go up here if faces are seen. maybe need a general purpose way to do
+          // this? Just always do it?
+          "behavior": "ObservingOffChargerHeadOnly",
           "cooldown_s": 0.0
         }
       ]
