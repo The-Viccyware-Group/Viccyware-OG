@@ -600,6 +600,23 @@ message TextToSpeechCancel {
   uint_8 ttsID  // ID of utterance
 }
 
+//
+// Sent from engine to robot (anim process) to initiate TTS
+//
+message TextToSpeechStart {
+  float_32 durationScalar, // Duration adjustment
+  float_32 pitchScalar,    // Pitch adjustment
+  uint_8 ttsID,            // ID of utterance
+  string text              // Text to be pronounced
+}
+
+//
+// Sent from robot (anim process) to engine to cancel TTS
+//
+message TextToSpeechStop {
+  uint_8 ttsID  // ID of utterance
+}
+
 // If this delay message is sent before a message with the specified tag, when that tag is
 // received the message will be delayed until the animation streamer reaches the specified time
 // These delays:
@@ -808,7 +825,6 @@ union EngineToRobot
 
   DisplayProceduralFace         displayProceduralFace       = 0x56,
   SetFaceHue                    setFaceHue                  = 0x57,
-  SetFaceSaturation             setFaceSaturation           = 0x58,
   DisplayFaceImageBinaryChunk   displayFaceImageBinaryChunk = 0x59,
   DisplayFaceImageRGBChunk      displayFaceImageRGBChunk    = 0x5A,
 
@@ -821,12 +837,8 @@ union EngineToRobot
   RemoveSquint                  removeSquint                = 0x61,
 
   DisplayFaceImageGrayscaleChunk   displayFaceImageGrayscaleChunk      = 0x62,
-  PlayAnimWithSpriteBoxRemaps      playAnimWithSpriteBoxRemaps         = 0x63,
-  PlayAnimWithSpriteBoxKeyFrames   playAnimWithSpriteBoxKeyFrames      = 0x64, 
-  AddSpriteBoxKeyFrames            addSpriteBoxKeyFrames               = 0x65,
   EnableMirrorModeScreen           enableMirrorModeScreen              = 0x66,
 
-  SetButtonWakeWord                setButtonWakeWord                   = 0x67,
 
   AudioEngine::Multiplexer::PostAudioEvent        postAudioEvent       = 0x70,
   AudioEngine::Multiplexer::StopAllAudioEvents    stopAllAudioEvents   = 0x71,
@@ -849,6 +861,8 @@ union EngineToRobot
   // Available                                              = 0x93,
   TextToSpeechPlay              textToSpeechPlay            = 0x94,
   TextToSpeechCancel            textToSpeechCancel          = 0x95,
+  TextToSpeechStart             textToSpeechStart           = 0xA8,
+  TextToSpeechStop              textToSpeechStop            = 0xA9,
 
   StartRecordingMicsRaw         startRecordingMicsRaw       = 0x96,
   StartRecordingMicsProcessed   startRecordingMicsProcessed = 0x97,
@@ -885,7 +899,7 @@ union EngineToRobot
 
   UpdatedSettings           updatedSettings           = 0xAF,
 
-  StartDoom startDoom = 0x94,
+  StartDoom startDoom = 0xA7,
 
   // 0xB0 to 0xFE: To engine, see messageRobotToEngine.clad
 }

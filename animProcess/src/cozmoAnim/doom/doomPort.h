@@ -7,7 +7,7 @@ namespace Vision {
 }
   
 
-  namespace Cozmo {
+  namespace Vector {
     struct RobotState;
     namespace Audio {
       class CozmoAudioController;
@@ -20,7 +20,7 @@ class DoomPort {
 public:
   DoomPort(const std::string& resourcePath, unsigned int width, unsigned int height);
   
-  using AudioController = Anki::Cozmo::Audio::CozmoAudioController;
+  using AudioController = Anki::Vector::Audio::CozmoAudioController;
   void SetAudioController( AudioController* ac );
   
   void Run();
@@ -28,7 +28,7 @@ public:
   
   void GetScreen(Anki::Vision::ImageRGB565& screen);
   
-  void HandleMessage(const Anki::Cozmo::RobotState& robotState);
+  void HandleMessage(const Anki::Vector::RobotState& robotState);
   
   void Update();
   

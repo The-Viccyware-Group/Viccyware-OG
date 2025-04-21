@@ -14,6 +14,7 @@
 #include "json/json.h"
 
 #include "coretech/common/shared/types.h"
+#include "cozmoAnim/animation/streamingAnimationModifier.h"
 
 // Forward declarations
 namespace Anki {
@@ -82,7 +83,7 @@ public:
   void HandleMessage(const RobotInterface::TextToSpeechStop& msg);
   
   void HandleMessage(const RobotInterface::StartDoom& msg);
-  void HandleMessage(const Anki::Cozmo::RobotState& robotState);
+  void HandleMessage(const Anki::Vector::RobotState& robotState);
 
 protected:
 

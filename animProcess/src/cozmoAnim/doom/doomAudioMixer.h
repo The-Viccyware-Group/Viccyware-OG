@@ -7,9 +7,9 @@ namespace Anki{
   namespace AudioEngine {
     struct StandardWaveDataContainer;
   }
-  namespace Cozmo {
+  namespace Vector { // Changed from Cozmo to Vector
     namespace Audio {
-      class CozmoAudioController;
+      class CozmoAudioController; // Keep the name CozmoAudioController for compatibility
     }
   }
 }
@@ -19,16 +19,16 @@ public:
   
   using WaveContainer = Anki::AudioEngine::StandardWaveDataContainer;
   
-  // clears whatever is playing and plays something new. todo: multiple wwise wave plugins
-  void Play( const WaveContainer* container, bool looping);
+  // clears whatever is playing and plays something new
+  void Play(const WaveContainer* container, bool looping);
   
-  using AudioController = Anki::Cozmo::Audio::CozmoAudioController;
-  void SetAudioController(AudioController* audioController){ _audioController = audioController; }
+  using AudioController = Anki::Vector::Audio::CozmoAudioController; // Changed from Cozmo to Vector
+  void SetAudioController(AudioController* audioController) { _audioController = audioController; }
   
   void FlushPlayQueue();
 private:
   
-  void PlayInternal( const WaveContainer* container, bool looping);
+  void PlayInternal(const WaveContainer* container, bool looping);
   
   struct QueueEntry {
     const Anki::AudioEngine::StandardWaveDataContainer* container;
@@ -39,6 +39,4 @@ private:
   
   AudioController* _audioController = nullptr;
   const WaveContainer* _lastContainer = nullptr;
-  
 };
-

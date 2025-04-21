@@ -81,7 +81,7 @@ AnimEngine::AnimEngine(Util::Data::DataPlatform* dataPlatform)
 
 AnimEngine::~AnimEngine()
 {
-  _context->GetWebService()->Stop();
+  //_context->GetWebService()->Stop();
 
 #if ANKI_PROFILE_ANIMCOMMS_SOCKET_BUFFER_STATS
   AnimComms::ReportSocketBufferStats();
@@ -105,7 +105,7 @@ Result AnimEngine::Init()
     seed = 1; // Setting to non-zero value for now for repeatable testing.
   }
 # endif
-  _context->SetRandomSeed(seed);
+  //_context->SetRandomSeed(seed);
 
   OSState::getInstance()->SetUpdatePeriod(1000);
 
@@ -114,34 +114,34 @@ Result AnimEngine::Init()
 //  dataLoader->LoadNonConfigData();
 
   _ttsComponent = std::make_unique<TextToSpeechComponent>(_context.get());
-  _context->GetMicDataSystem()->Init(*dataLoader);
+  //_context->GetMicDataSystem()->Init(*dataLoader);
 
   // animation streamer must be initialized after loading non config data (otherwise there are no animations loaded)
   _animationStreamer->Init(_ttsComponent.get());
-  _context->GetBackpackLightComponent()->Init();
+  //_context->GetBackpackLightComponent()->Init();
 
   // Create and set up EngineRobotAudioInput to receive Engine->Robot messages and broadcast Robot->Engine
-  auto* audioMux = _context->GetAudioMultiplexer();
+  //auto* audioMux = _context->GetAudioMultiplexer();
   auto regId = audioMux->RegisterInput( new Audio::EngineRobotAudioInput() );
   // Easy access to Audio Controller
-  _audioControllerPtr = _context->GetAudioController();
+  //_audioControllerPtr = _context->GetAudioController();
 
   // Set up message handler
   auto * audioInput = static_cast<Audio::EngineRobotAudioInput*>(audioMux->GetInput(regId));
   _streamingAnimationModifier = std::make_unique<StreamingAnimationModifier>(_animationStreamer.get(), audioInput, _ttsComponent.get());
 
   // set up audio stream state manager
-  {
-    _context->GetShowAudioStreamStateManager()->SetAnimationStreamer(_animationStreamer.get());
-  }
+  //{
+    //_context->GetShowAudioStreamStateManager()->SetAnimationStreamer(_animationStreamer.get());
+  //}
 
 
   AnimProcessMessages::Init(this, _animationStreamer.get(), _streamingAnimationModifier.get(), audioInput, _context.get());
 
   Json::Value jsonConfig;
   jsonConfig["port"] = "8889";
-  _context->GetWebService()->Start(_context->GetDataPlatform(),
-                                   jsonConfig);
+  //_context->GetWebService()->Start(_context->GetDataPlatform(),
+  //                                 jsonConfig);
 //  FaceDisplay::GetDebugDraw()->SetWebService( _context->GetWebService() );
 
   LOG_INFO("AnimEngine.Init.Success","Success");
@@ -179,7 +179,7 @@ Result AnimEngine::Update(const BaseStationTime_t currTime_nanosec)
 
   BaseStationTimer::getInstance()->UpdateTime(currTime_nanosec);
 
-  _context->GetWebService()->Update();
+  //_context->GetWebService()->Update();
 
   Result result = AnimProcessMessages::Update(currTime_nanosec);
   if (RESULT_OK != result) {

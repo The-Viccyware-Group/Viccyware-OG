@@ -31,10 +31,10 @@ const uint8_t kOffsetForEndOfFrame = 1;
 
 StreamingAnimationModifier::StreamingAnimationModifier(AnimationStreamer* streamer, Audio::EngineRobotAudioInput* audioInput, TextToSpeechComponent* ttsComponent)
 {
-  auto newAnimationCallback = [this](){
-    _streamTimeToMessageMap.clear();
-  };
-  streamer->AddNewAnimationCallback(newAnimationCallback);
+  //auto newAnimationCallback = [this](){
+  //  _streamTimeToMessageMap.clear();
+  //};
+  //streamer->AddNewAnimationCallback(newAnimationCallback);
   _audioInput = audioInput;
   _ttsComponent = ttsComponent;
 }
@@ -95,20 +95,20 @@ void StreamingAnimationModifier::HandleMessage(const RobotInterface::AlterStream
       AddToMapStreamMap(relativeStreamTime_ms, std::move(alterationMessage));
       break;
     }
-    case RobotInterface::EngineToRobotTag::postAudioEvent:
-    {
-      if(ANKI_DEV_CHEATS){
-        ANKI_VERIFY(msg.postAudioEvent.callbackId == 0, "StreamingAnimationModifier.HandleMessage.InvalidCallbackID",
-                    "Callbacks are not currently supported for altering the streaming animation");
-        ANKI_VERIFY(msg.postAudioEvent.gameObject == Anki::AudioMetaData::GameObjectType::Animation,
-                    "StreamingAnimationModifier.HandleMessage.PostAudioEvent.ImproperGameObject", 
-                    "All game objects sent through alter streaming animation must have object type Animation");
-      }
-
-      RobotInterface::EngineToRobot alterationMessage(std::move(msg.postAudioEvent));
-      AddToMapStreamMap(relativeStreamTime_ms, std::move(alterationMessage));
-      break;
-    }
+    //case RobotInterface::EngineToRobotTag::postAudioEvent:
+    //{
+    //  if(ANKI_DEV_CHEATS){
+    //    ANKI_VERIFY(msg.postAudioEvent.callbackId == 0, "StreamingAnimationModifier.HandleMessage.InvalidCallbackID",
+    //                "Callbacks are not currently supported for altering the streaming animation");
+    //    ANKI_VERIFY(msg.postAudioEvent.gameObject == Anki::AudioMetaData::GameObjectType::Animation,
+    //                "StreamingAnimationModifier.HandleMessage.PostAudioEvent.ImproperGameObject", 
+    //                "All game objects sent through alter streaming animation must have object type Animation");
+    //  }
+    
+    //  RobotInterface::EngineToRobot alterationMessage(std::move(msg.postAudioEvent));
+    //  AddToMapStreamMap(relativeStreamTime_ms, std::move(alterationMessage));
+    //  break;
+    //}
     case RobotInterface::EngineToRobotTag::textToSpeechPlay:
     {
       RobotInterface::EngineToRobot alterationMessage(std::move(msg.textToSpeechPlay));
@@ -143,13 +143,13 @@ void StreamingAnimationModifier::ApplyMessageToStreamer(AnimationStreamer* strea
       }
       break;
     }
-    case (uint32_t)RobotInterface::EngineToRobotTag::textToSpeechPlay:
-    {
-      if(_ttsComponent != nullptr){
-        _ttsComponent->HandleMessage(msg.textToSpeechPlay);
-      }
-      break;
-    }
+    //case (uint32_t)RobotInterface::EngineToRobotTag::textToSpeechPlay:
+    //{
+    //  if(_ttsComponent != nullptr){
+    //    _ttsComponent->HandleMessage(msg.textToSpeechPlay);
+    //  }
+    //  break;
+    //}
     default:
     {
       PRINT_NAMED_ERROR("StreamingAnimationModifier.ApplyMessageToStreamer.NoImplementation",

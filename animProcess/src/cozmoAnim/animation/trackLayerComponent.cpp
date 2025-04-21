@@ -67,7 +67,7 @@ void TrackLayerComponent::Init(AnimationStreamer& animStreamer)
   SetupKeepFaceAliveActivities();
   // Setup Audio latency callback to reset keyframe idx
   const auto callback = [this] () { _validAudioKeyframeIt = false; };
-  animStreamer.AddNewAnimationCallback(callback);
+  //animStreamer.AddNewAnimationCallback(callback);
 }
   
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

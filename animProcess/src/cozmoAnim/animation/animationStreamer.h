@@ -18,8 +18,8 @@
 
 #include "coretech/common/shared/types.h"
 #include "coretech/vision/engine/image.h"
-#include "cannedAnimLib/animation.h"
-#include "cannedAnimLib/track.h"
+#include "cannedAnimLib/cannedAnims/animation.h"
+#include "cannedAnimLib/baseTypes/track.h"
 #include "clad/types/keepFaceAliveParameters.h"
 
 #include <list>
@@ -59,8 +59,8 @@ namespace Anim {
   {
   public:
     
-    void StartGame(const std::string& path, Anki::Cozmo::Audio::CozmoAudioController* audioController);
-    void HandleMessage(const Anki::Cozmo::RobotState& robotState);
+    void StartGame(const std::string& path, Anki::Vector::Audio::CozmoAudioController* audioController);
+    void HandleMessage(const Anki::Vector::RobotState& robotState);
     
     using Tag = AnimationTag;
     using FaceTrack = Animations::Track<ProceduralFaceKeyFrame>;
@@ -102,14 +102,8 @@ namespace Anim {
     void Process_displayFaceImageChunk(const RobotInterface::DisplayFaceImageGrayscaleChunk& msg);
     void Process_displayFaceImageChunk(const RobotInterface::DisplayFaceImageRGBChunk& msg);
 
-    void Process_playAnimWithSpriteBoxRemaps(const RobotInterface::PlayAnimWithSpriteBoxRemaps& msg);
-
-    void Process_playAnimWithSpriteBoxKeyFrames(const RobotInterface::PlayAnimWithSpriteBoxKeyFrames& msg);
-    void Process_addSpriteBoxKeyFrames(const RobotInterface::AddSpriteBoxKeyFrames& msg);
 
     Result SetFaceImage(Vision::SpriteHandle spriteHandle, bool overrideAllSpritesToEyeHue, u32 duration_ms);
-
-    Audio::ProceduralAudioClient* GetProceduralAudioClient() const { return _proceduralAudioClient.get(); }
 
     // If any animation is set for streaming and isn't done yet, stream it.
     Result Update();
@@ -125,9 +119,9 @@ namespace Anim {
     void SetKeepFaceAliveFocus(bool enable);
 
     // Functions passed in here will be called each time a new animation is set to streaming
-    void AddNewAnimationCallback(NewAnimationCallback callback) {
-      _newAnimationCallbacks.push_back(callback);
-    }
+    //void AddNewAnimationCallback(NewAnimationCallback callback) {
+    //  _newAnimationCallbacks.push_back(callback);
+    //}
 
     // Returns the time in ms that the animation streamer will use to get animation frames
     // NOTE: This value generally updated at the end of the Update tick, so checks before streamer update
@@ -238,7 +232,7 @@ namespace Anim {
 
     // When this animation started playing (was initialized) in milliseconds, in
     // "real" basestation time
-    AnimTimeStamp_t _startTime_ms;
+    TimeStamp_t _startTime_ms;
 
     // Where we are in the animation in terms of what has been streamed out, since
     // we don't stream in real time. Each time we send an audio frame to the
@@ -257,7 +251,7 @@ namespace Anim {
     // to smooth over gaps in between non-procedural frames that can occur
     // when trying to render them at near real-time. Otherwise, procedural
     // face layers like eye darts could play during these gaps.
-    AnimTimeStamp_t _nextProceduralFaceAllowedTime_ms = 0;
+    TimeStamp_t _nextProceduralFaceAllowedTime_ms = 0;
 
     // Last time we streamed anything
     f32 _lastAnimationStreamTime = std::numeric_limits<f32>::lowest();
@@ -271,7 +265,6 @@ namespace Anim {
     u8 _tracksInUse;
 
     std::unique_ptr<Audio::AnimationAudioClient> _animAudioClient;
-    std::unique_ptr<Audio::ProceduralAudioClient> _proceduralAudioClient;
 
     // Time to wait before forcing KeepFaceAlive() after the latest stream has stopped
     f32 _longEnoughSinceLastStreamTimeout_s;
@@ -314,7 +307,7 @@ namespace Anim {
     bool _redirectFaceImagesToDebugScreen = false;
     bool _lockFaceTrackAtEndOfStreamingAnimation = false;
 
-    std::vector<NewAnimationCallback> _newAnimationCallbacks;
+    //std::vector<NewAnimationCallback> _newAnimationCallbacks;
     
     bool _onCharger = false;
     
@@ -326,7 +319,7 @@ namespace Anim {
       return ((lockedTracks & trackFlagToCheck) == trackFlagToCheck);
     }
 
-    void SendAnimationMessages(AnimationMessageWrapper& stateToSend);
+    //void SendAnimationMessages(AnimationMessageWrapper& stateToSend);
 
     Result SetStreamingAnimation(Animation* anim,
                                  Tag tag,
@@ -344,12 +337,12 @@ namespace Anim {
                                   bool overrideAllSpritesToEyeHue = false);
 
     // Update Stream of either the streaming animation or procedural tracks
-    Result ExtractAnimationMessages(AnimationMessageWrapper& stateToSend);
+    // Result ExtractAnimationMessages(AnimationMessageWrapper& stateToSend);
     // Actually stream the animation (called each tick)
-    Result ExtractMessagesFromStreamingAnim(AnimationMessageWrapper& stateToSend);
+    // Result ExtractMessagesFromStreamingAnim(AnimationMessageWrapper& stateToSend);
 
     // Used to stream _just_ the stuff left in the various layers (all procedural stuff)
-    Result ExtractMessagesFromProceduralTracks(AnimationMessageWrapper& stateToSend);
+    // Result ExtractMessagesFromProceduralTracks(AnimationMessageWrapper& stateToSend);
 
     // Combine the tracks inside of the specified animations with the tracks in the track layer component
     // specified, and then assign the output to stateToSend
@@ -358,8 +351,8 @@ namespace Anim {
                                                                    TrackLayerComponent* trackComp,
                                                                    const u8 tracksCurrentlyLocked,
                                                                    const TimeStamp_t timeSinceAnimStart_ms,
-                                                                   const bool storeFace,
-                                                                   AnimationMessageWrapper& stateToSend);
+                                                                   const bool storeFace);
+                                                                   //AnimationMessageWrapper& stateToSend);
 
 
     void SetKeepAliveIfAppropriate();
@@ -405,8 +398,8 @@ namespace Anim {
     static void InsertStreamableFaceIntoCompImg(Vision::ImageRGB565& streamableFace,
                                                 Vision::CompositeImage& image);
     
-    void InvalidateBannedTracks(const std::string& animName,
-                                AnimationMessageWrapper& messageWrapper) const;
+    //void InvalidateBannedTracks(const std::string& animName,
+                                //AnimationMessageWrapper& messageWrapper) const;
 
     static void GetStreamableFace(const Anim::AnimContext* context, const ProceduralFace& procFace, Vision::ImageRGB565& outImage);
     void BufferFaceToSend(Vision::ImageRGB565& image);

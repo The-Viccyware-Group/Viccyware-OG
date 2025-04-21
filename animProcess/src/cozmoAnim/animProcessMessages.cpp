@@ -269,10 +269,10 @@ void Process_setFaceHue(const Anki::Vector::RobotInterface::SetFaceHue& msg)
   ProceduralFace::SetHue(msg.hue);
 }
 
-void Process_setFaceSaturation(const Anki::Vector::RobotInterface::SetFaceSaturation& msg)
-{
-  ProceduralFace::SetSaturation(msg.saturation);
-}
+//void Process_setFaceSaturation(const Anki::Vector::RobotInterface::SetFaceSaturation& msg)
+//{
+//  ProceduralFace::SetSaturation(msg.saturation);
+//}
 
 void Process_displayFaceImageBinaryChunk(const Anki::Vector::RobotInterface::DisplayFaceImageBinaryChunk& msg)
 {
@@ -289,20 +289,20 @@ void Process_displayFaceImageRGBChunk(const Anki::Vector::RobotInterface::Displa
   _animStreamer->Process_displayFaceImageChunk(msg);
 }
 
-void Process_playAnimWithSpriteBoxRemaps(const Anki::Vector::RobotInterface::PlayAnimWithSpriteBoxRemaps& msg)
-{
-  _animStreamer->Process_playAnimWithSpriteBoxRemaps(msg);
-}
+//void Process_playAnimWithSpriteBoxRemaps(const Anki::Vector::RobotInterface::PlayAnimWithSpriteBoxRemaps& msg)
+//{
+//  _animStreamer->Process_playAnimWithSpriteBoxRemaps(msg);
+//}
 
-void Process_playAnimWithSpriteBoxKeyFrames(const Anki::Vector::RobotInterface::PlayAnimWithSpriteBoxKeyFrames& msg)
-{
-  _animStreamer->Process_playAnimWithSpriteBoxKeyFrames(msg);
-}
+//void Process_playAnimWithSpriteBoxKeyFrames(const Anki::Vector::RobotInterface::PlayAnimWithSpriteBoxKeyFrames& msg)
+//{
+//  _animStreamer->Process_playAnimWithSpriteBoxKeyFrames(msg);
+//}
 
-void Process_addSpriteBoxKeyFrames(const Anki::Vector::RobotInterface::AddSpriteBoxKeyFrames& msg)
-{
-  _animStreamer->Process_addSpriteBoxKeyFrames(msg);
-}
+//void Process_addSpriteBoxKeyFrames(const Anki::Vector::RobotInterface::AddSpriteBoxKeyFrames& msg)
+//{
+//  _animStreamer->Process_addSpriteBoxKeyFrames(msg);
+//}
 
 void Process_enableKeepFaceAlive(const Anki::Vector::RobotInterface::EnableKeepFaceAlive& msg)
 {
@@ -459,13 +459,13 @@ void Process_setAlexaUsage(const Anki::Vector::RobotInterface::SetAlexaUsage& ms
   }
 }
 
-void Process_setButtonWakeWord(const Anki::Vector::RobotInterface::SetButtonWakeWord& msg)
-{
-  auto* micDataSystem = _context->GetMicDataSystem();
-  if (micDataSystem != nullptr) {
-    micDataSystem->SetButtonWakeWordIsAlexa( msg.isAlexa );
-  }
-}
+//void Process_setButtonWakeWord(const Anki::Vector::RobotInterface::SetButtonWakeWord& msg)
+//{
+//  auto* micDataSystem = _context->GetMicDataSystem();
+//  if (micDataSystem != nullptr) {
+//    micDataSystem->SetButtonWakeWordIsAlexa( msg.isAlexa );
+//  }
+//}
 
 void Process_setLCDBrightnessLevel(const Anki::Vector::RobotInterface::SetLCDBrightnessLevel& msg)
 {
@@ -515,45 +515,45 @@ void Process_runDebugConsoleFuncMessage(const Anki::Vector::RobotInterface::RunD
   }
 }
 
-void Process_externalAudioChunk(const RobotInterface::ExternalAudioChunk& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_externalAudioChunk(const RobotInterface::ExternalAudioChunk& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_externalAudioPrepare(const RobotInterface::ExternalAudioPrepare& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_externalAudioPrepare(const RobotInterface::ExternalAudioPrepare& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
   
-void Process_startDoom(const RobotInterface::StartDoom& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_startDoom(const RobotInterface::StartDoom& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_externalAudioComplete(const RobotInterface::ExternalAudioComplete& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_externalAudioComplete(const RobotInterface::ExternalAudioComplete& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_externalAudioCancel(const RobotInterface::ExternalAudioCancel& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_externalAudioCancel(const RobotInterface::ExternalAudioCancel& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_textToSpeechPrepare(const RobotInterface::TextToSpeechPrepare& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_textToSpeechPrepare(const RobotInterface::TextToSpeechPrepare& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_textToSpeechPlay(const RobotInterface::TextToSpeechPlay& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_textToSpeechPlay(const RobotInterface::TextToSpeechPlay& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
-void Process_textToSpeechCancel(const RobotInterface::TextToSpeechCancel& msg)
-{
-  _animEngine->HandleMessage(msg);
-}
+//void Process_textToSpeechCancel(const RobotInterface::TextToSpeechCancel& msg)
+//{
+//  _animEngine->HandleMessage(msg);
+//}
 
 void Process_setConnectionStatus(const Anki::Vector::SwitchboardInterface::SetConnectionStatus& msg)
 {
@@ -855,7 +855,7 @@ Result AnimProcessMessages::Init(Anim::AnimEngine* animEngine,
   _animEngine             = animEngine;
   _animStreamer           = animStreamer;
   _streamingAnimationModifier  = streamingAnimationModifier;
-  _proceduralAudioClient  = _animStreamer->GetProceduralAudioClient();
+  //_proceduralAudioClient  = _animStreamer->GetProceduralAudioClient();
   _engAudioInput          = audioInput;
   _context                = context;
 
