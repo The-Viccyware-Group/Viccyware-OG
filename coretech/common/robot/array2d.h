@@ -36,9 +36,15 @@ For internal use only. No part of this code may be used without a signed non-dis
 #include "opencv2/objdetect.hpp"
 #endif
 
-#if ANKICORETECH_EMBEDDED_USE_OPENCV
-#define ANKICORETECH_EMBEDDED_USE_MALLOC 1
+#ifndef ANKICORETECH_EMBEDDED_USE_ZLIB
 #define ANKICORETECH_EMBEDDED_USE_ZLIB 1
+#endif
+
+#ifndef ANKICORETECH_EMBEDDED_USE_MALLOC
+#define ANKICORETECH_EMBEDDED_USE_MALLOC 1
+#endif
+
+#if ANKICORETECH_EMBEDDED_USE_OPENCV
 #endif
 
 #if ANKICORETECH_EMBEDDED_USE_ZLIB
@@ -795,7 +801,8 @@ namespace Anki
     template<typename Type> Result Array<Type>::InitializeBuffer(const s32 numRows, const s32 numCols, void * const rawData, const s32 dataLength, const Flags::Buffer flags)
     {
       if(!rawData) {
-        AnkiError("Anki.Array2d.initialize", "input data buffer is NULL");
+        AnkiError("Anki.Array2d.initialize", "input data buffer is NULL, numRows=%d, numCols=%d, dataLength=%d",
+                  numRows, numCols, dataLength);
         InvalidateArray();
         return RESULT_FAIL_UNINITIALIZED_MEMORY;
       }

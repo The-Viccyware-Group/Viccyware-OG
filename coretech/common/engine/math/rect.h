@@ -20,6 +20,7 @@
 #endif
 
 #include "coretech/common/engine/math/quad.h"
+#include "clad/types/cladRect.h"
 
 namespace Anki {
   
@@ -42,13 +43,16 @@ namespace Anki {
     
     // Construct bounding boxes:
     template<typename T_other>
-    Rectangle(const Quadrilateral<2,T_other>& quad);
+    explicit Rectangle(const Quadrilateral<2,T_other>& quad);
     
     template<typename T_other>
-    Rectangle(const std::vector<Point<2,T_other> >& points);
+    explicit Rectangle(const std::vector<Point<2,T_other> >& points);
     
     template<size_t NumPoints>
-    Rectangle(const std::array<Point<2,T>,NumPoints>& points);
+    explicit Rectangle(const std::array<Point<2,T>,NumPoints>& points);
+    
+    Rectangle(const CladRect& cladRect);
+    CladRect ToCladRect() const;
     
     T Area() const { return width*height; }
     
@@ -57,11 +61,11 @@ namespace Anki {
     inline T GetY()      const;
     inline T GetWidth()  const;
     inline T GetHeight() const;
-    
+
     // Get x+width or y+height
     inline T GetXmax()   const;
     inline T GetYmax()   const;
-    
+
     // Get x+width/2 or y+height/2
     inline T GetXmid()   const;
     inline T GetYmid()   const;
