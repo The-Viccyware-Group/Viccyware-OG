@@ -1,3 +1,6 @@
+> [!WARNING]
+> **This repository has been depreciated in favor of using the new wire-os repo as a base. Please use https://github.com/Switch-modder/Viccyware**
+
 # Viccyware-tester
 
 Welcome to the unstable branch of `Viccyware`. This is the home of a modified copy of the Vector source
