@@ -401,6 +401,7 @@ apps/xamarin/chewie/codelab.Droid/obj
 apps/xamarin/chewie/codelab.iOS/bin
 apps/xamarin/chewie/codelab.iOS/obj
 robot_ip.txt
+robot_sshkey
 
 # Allow us to include okaoVision libs
 !okaoVision/lib/Android/armeabi-v7a/*.a
@@ -412,7 +413,12 @@ robot_ip.txt
 victor-packages
 log.txt
 
-robot_sshkey
 ota/out
 ota/ota-server/*.ota
 snowboy/server/main
+3rd/snowboy/snowboyModels/.DS_Store
+3rd/.DS_Store
+3rd/snowboy/.DS_Store
+3rd/.DS_Store
+3rd/.DS_Store
+ota/wire-os
