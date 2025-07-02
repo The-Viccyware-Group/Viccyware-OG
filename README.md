@@ -1,5 +1,5 @@
 > [!WARNING]
-> **This repository has been depreciated in favor of using the new wire-os repo as a base. Please use https://github.com/Switch-modder/Viccyware**
+> **This repository has been depreciated in favor of using the new wire-os repo as a base. Please use https://github.com/The-Viccyware-Group/Viccyware**
 
 # Viccyware-tester
 
